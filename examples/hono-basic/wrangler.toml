@@ -1,0 +1,6 @@
+name = "hono-basic-example"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+JWT_SECRET = "your-secret-key-for-development"
