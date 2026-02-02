@@ -130,18 +130,27 @@ function toRouteConfig(
 }
 
 /**
- * Recursively apply handlers to a route group
+ * Handler record type used internally for recursive processing
+ */
+type HandlerRecord = {
+  middlewares?: MiddlewareHandler[];
+} & Record<string, unknown>;
+
+/**
+ * Recursively apply handlers to a route group.
+ *
+ * Note: Type assertion is required because the generic handlers object
+ * comes from the implementation signature which uses a wider type to
+ * accommodate all overload signatures.
  */
 function applyGroupHandlers<E extends Env>(
   group: RouteGroup,
-  handlers: unknown,
+  handlers: HandlerRecord,
   target: OpenAPIHono<E>,
   version: string,
   groupPath: string[],
-) {
-  const h = handlers as {
-    middlewares?: MiddlewareHandler[];
-  } & Record<string, unknown>;
+): void {
+  const h = handlers;
 
   // Apply group-level middleware from schema
   if (group.middleware?.length) {
@@ -192,12 +201,12 @@ function applyGroupHandlers<E extends Env>(
   // Recurse into children
   if (group.children) {
     for (const [childName, childGroup] of Object.entries(group.children)) {
-      const childHandlers = h[childName];
+      const childHandlers: HandlerRecord = (h[childName] as HandlerRecord) ?? {};
       const childApp = new OpenAPIHono<E>();
 
       applyGroupHandlers(
         childGroup,
-        childHandlers ?? {},
+        childHandlers,
         childApp,
         version,
         [...groupPath, childName],
@@ -214,11 +223,11 @@ function applyGroupHandlers<E extends Env>(
 function registerSecuritySchemes<E extends Env>(
   app: OpenAPIHono<E>,
   contract: ApiContract,
-) {
+): void {
   const authTypes = new Set<string>();
 
   // Collect all auth types from the contract
-  function collectAuthTypes(group: RouteGroup) {
+  const collectAuthTypes = (group: RouteGroup): void => {
     if (group.routes) {
       for (const route of Object.values(group.routes)) {
         if (route.auth && route.auth !== 'none') {
@@ -231,7 +240,7 @@ function registerSecuritySchemes<E extends Env>(
         collectAuthTypes(childGroup);
       }
     }
-  }
+  };
 
   for (const versionGroup of Object.values(contract)) {
     collectAuthTypes(versionGroup);
@@ -336,23 +345,25 @@ export function createHonoRouter(
   registerSecuritySchemes(app, contract);
 
   // Mount each version
+  // Type assertion: handlers object structure is validated by overload signatures
+  const typedHandlers = handlers as Record<string, HandlerRecord>;
+
   for (const [version, versionGroup] of Object.entries(contract)) {
-    const versionHandlers = (handlers as Record<string, unknown>)[version] ?? {};
+    const versionHandlers: HandlerRecord = typedHandlers[version] ?? {};
     const versionApp = new OpenAPIHono();
 
     // Apply version-level middleware
-    const versionH = versionHandlers as { middlewares?: MiddlewareHandler[] };
-    if (versionH.middlewares?.length) {
-      versionApp.use(...versionH.middlewares);
+    if (versionHandlers.middlewares?.length) {
+      versionApp.use(...versionHandlers.middlewares);
     }
 
     // Process children (top-level groups like 'products', 'users')
     if (versionGroup.children) {
       for (const [groupName, groupDef] of Object.entries(versionGroup.children)) {
-        const groupHandlers = (versionHandlers as Record<string, unknown>)[groupName];
+        const groupHandlers: HandlerRecord = (versionHandlers[groupName] as HandlerRecord) ?? {};
         const groupApp = new OpenAPIHono();
 
-        applyGroupHandlers(groupDef, groupHandlers ?? {}, groupApp, version, [
+        applyGroupHandlers(groupDef, groupHandlers, groupApp, version, [
           groupName,
         ]);
 

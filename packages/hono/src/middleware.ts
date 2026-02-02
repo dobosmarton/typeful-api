@@ -117,8 +117,15 @@ export function createVariableMiddleware<
   factory: (c: Context<E>) => V | Promise<V>,
 ): MiddlewareHandler<WithVariables<E, Record<K, V>>> {
   return createMiddleware<WithVariables<E, Record<K, V>>>(async (c, next) => {
-    const value = await factory(c as unknown as Context<E>);
-    c.set(key as never, value as never);
+    // Type assertion required: Context<WithVariables<E, ...>> is compatible with Context<E>
+    // but TypeScript cannot infer this due to the variance of nested generic types
+    type BaseContext = Context<E>;
+    const baseContext = c as unknown as BaseContext;
+    const value = await factory(baseContext);
+
+    // Type assertion required: Hono's c.set expects specific key/value types
+    // but we're working with generic K extends string
+    (c.set as (k: string, v: V) => void)(key, value);
     await next();
   });
 }
