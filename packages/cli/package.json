@@ -1,0 +1,57 @@
+{
+  "name": "@typi/cli",
+  "version": "0.0.1",
+  "description": "CLI for generating OpenAPI specs and client types from typi contracts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "typi": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "@typi/core": "workspace:*",
+    "cac": "^6.7.14",
+    "openapi-typescript": "^7.8.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "eslint": "^9.30.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "zod": "^3.24.4"
+  },
+  "keywords": [
+    "openapi",
+    "typescript",
+    "cli",
+    "codegen",
+    "typesafe"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/martondobos/typi.git",
+    "directory": "packages/cli"
+  }
+}
