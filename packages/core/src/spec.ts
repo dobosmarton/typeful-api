@@ -290,7 +290,7 @@ function applyStringChecks(
         schema.format = 'date-time';
         break;
       case 'regex':
-        schema.pattern = String((check as { regex: RegExp }).regex);
+        schema.pattern = String((check as unknown as { regex: RegExp }).regex);
         break;
     }
   }

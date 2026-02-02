@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
-import type { Env, MiddlewareHandler } from 'hono';
+import type { Context, Env, MiddlewareHandler } from 'hono';
+import type { AnyZodObject } from 'zod';
 import type {
   ApiContract,
   RouteDefinition,
@@ -8,7 +9,11 @@ import type {
 } from '@typi/core';
 import type {
   CreateHonoRouterOptions,
+  DefaultEnv,
   InferHonoHandlers,
+  InferHonoHandlersWithVars,
+  InferSimpleHonoHandlers,
+  SimpleEnv,
   VersionEnvMap,
 } from './types';
 
@@ -55,19 +60,19 @@ function toRouteConfig(
     };
   }
 
-  // Query parameters
+  // Query parameters (cast to AnyZodObject as RouteConfig expects ZodObject)
   if (route.query) {
     config.request = {
       ...config.request,
-      query: route.query,
+      query: route.query as AnyZodObject,
     };
   }
 
-  // Path parameters
+  // Path parameters (cast to AnyZodObject as RouteConfig expects ZodObject)
   if (route.params) {
     config.request = {
       ...config.request,
-      params: route.params,
+      params: route.params as AnyZodObject,
     };
   }
 
@@ -152,7 +157,15 @@ function applyGroupHandlers<E extends Env>(
   // Register routes (leaves)
   if (group.routes) {
     for (const [name, route] of Object.entries(group.routes)) {
-      const handler = h[name] as RouteHandler<RouteConfig, E> | undefined;
+      // User handler is a function that takes {c, body, query, params} and returns the response
+      type UserHandler = (ctx: {
+        c: Context<E>;
+        body: undefined;
+        query: undefined;
+        params: undefined;
+      }) => Promise<object> | object;
+
+      const handler = h[name] as UserHandler | undefined;
       if (!handler) {
         console.warn(
           `Missing handler for route: ${version}/${groupPath.join('/')}/${name}`,
@@ -164,16 +177,11 @@ function applyGroupHandlers<E extends Env>(
 
       // Create a wrapper that extracts typed data and calls the user handler
       const wrappedHandler: RouteHandler<RouteConfig, E> = async (c) => {
-        const ctx = {
-          c,
-          body: route.body ? c.req.valid('json' as never) : undefined,
-          query: route.query ? c.req.valid('query' as never) : undefined,
-          params: route.params ? c.req.valid('param' as never) : undefined,
-        };
+        const body = route.body ? c.req.valid('json' as never) : undefined;
+        const query = route.query ? c.req.valid('query' as never) : undefined;
+        const params = route.params ? c.req.valid('param' as never) : undefined;
 
-        const result = await (
-          handler as (ctx: typeof ctx) => Promise<unknown>
-        )(ctx);
+        const result = await handler({ c, body, query, params });
         return c.json(result as object);
       };
 
@@ -255,39 +263,66 @@ function registerSecuritySchemes<E extends Env>(
 }
 
 /**
- * Create a Hono router from an API contract with type-safe handlers
+ * Create a Hono router from an API contract with type-safe handlers.
  *
- * @example
+ * Supports three usage modes:
+ *
+ * **Simple mode** - No type parameters, uses default environment:
  * ```ts
- * import { createHonoRouter } from '@typi/hono';
- * import { api } from './api';
+ * const router = createHonoRouter(api, handlers);
+ * ```
  *
- * const router = createHonoRouter(api, {
+ * **Shared variables mode** - All handlers share the same variables type:
+ * ```ts
+ * type Vars = { db: Database; logger: Logger };
+ * const router = createHonoRouter<typeof api, Vars>(api, handlers);
+ * ```
+ *
+ * **Full mode** - Per-group environment mapping (Cloudflare Workers):
+ * ```ts
+ * type EnvMap = {
  *   v1: {
- *     products: {
- *       list: async ({ c }) => {
- *         const products = await db.products.findMany();
- *         return products;
- *       },
- *       get: async ({ c, params }) => {
- *         const product = await db.products.find(params.id);
- *         return product;
- *       },
- *     },
- *   },
- * });
- *
- * app.route('/api', router);
+ *     products: { Bindings: Env; Variables: { db: Database } };
+ *   };
+ * };
+ * const router = createHonoRouter<typeof api, EnvMap>(api, handlers);
  * ```
  */
+
+// Overload 1: Simple mode - no type parameters needed
+export function createHonoRouter<C extends ApiContract>(
+  contract: C,
+  handlers: InferSimpleHonoHandlers<C>,
+  options?: CreateHonoRouterOptions,
+): OpenAPIHono<DefaultEnv>;
+
+// Overload 2: Shared variables mode - single type for all handlers
+export function createHonoRouter<
+  C extends ApiContract,
+  V extends Record<string, unknown>,
+>(
+  contract: C,
+  handlers: InferHonoHandlersWithVars<C, V>,
+  options?: CreateHonoRouterOptions,
+): OpenAPIHono<SimpleEnv<V>>;
+
+// Overload 3: Full mode - per-group environment mapping (backward compatible)
 export function createHonoRouter<
   C extends ApiContract,
   M extends VersionEnvMap<C>,
 >(
   contract: C,
   handlers: InferHonoHandlers<C, M>,
+  options?: CreateHonoRouterOptions,
+): OpenAPIHono<Env>;
+
+// Implementation (signature is not visible to callers - overloads are used)
+export function createHonoRouter(
+  contract: ApiContract,
+  handlers: unknown,
   options: CreateHonoRouterOptions = {},
-): OpenAPIHono<Env> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): OpenAPIHono<any> {
   const { basePath = '', middleware = [] } = options;
 
   const app = basePath ? new OpenAPIHono().basePath(basePath) : new OpenAPIHono();
@@ -399,3 +434,12 @@ export function createHonoRegistry<C extends ApiContract>(
 
   return app;
 }
+
+/**
+ * Internal testing utilities - DO NOT USE IN PRODUCTION
+ * Exported for unit testing purposes only
+ */
+export const __testing = {
+  toRouteConfig,
+  registerSecuritySchemes,
+};

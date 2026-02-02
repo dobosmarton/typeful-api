@@ -96,6 +96,97 @@ export type InferHonoHandlers<
     : object);
 };
 
+// ============================================================================
+// Simplified Types for Non-Cloudflare Platforms
+// ============================================================================
+
+/**
+ * Simple environment type without Cloudflare Bindings.
+ * Use this for Node.js, Bun, Deno, or any non-Cloudflare deployment.
+ *
+ * @example
+ * ```ts
+ * type AppEnv = SimpleEnv<{ db: Database; user: User }>;
+ * ```
+ */
+export type SimpleEnv<V = Record<string, unknown>> = {
+  Variables: V;
+};
+
+/**
+ * Default environment with empty variables.
+ * Use when you don't need typed context variables.
+ */
+export type DefaultEnv = SimpleEnv<Record<string, unknown>>;
+
+/**
+ * Simplified handler inference for platforms without Cloudflare bindings.
+ * Uses DefaultEnv for all handlers - no per-group environment mapping required.
+ *
+ * @example
+ * ```ts
+ * const router = createHonoRouter(api, {
+ *   v1: {
+ *     products: {
+ *       list: async ({ query }) => { ... },
+ *     },
+ *   },
+ * });
+ * ```
+ */
+export type InferSimpleHonoHandlers<C extends ApiContract> = {
+  [VK in keyof C]: {
+    middlewares?: MiddlewareHandler[];
+  } & (C[VK]['routes'] extends Record<string, RouteDefinition>
+    ? {
+        [RK in keyof C[VK]['routes']]: HonoHandler<C[VK]['routes'][RK], DefaultEnv>;
+      }
+    : object) &
+    (C[VK]['children'] extends Record<string, RouteGroup>
+      ? {
+          [CK in keyof C[VK]['children']]: InferHonoGroupHandlers<
+            C[VK]['children'][CK],
+            DefaultEnv
+          > & {
+            middlewares?: MiddlewareHandler[];
+          };
+        }
+      : object);
+};
+
+/**
+ * Handler inference with shared variables type.
+ * All handlers share the same environment type.
+ *
+ * @example
+ * ```ts
+ * type Vars = { db: Database; logger: Logger };
+ * const router = createHonoRouter<typeof api, Vars>(api, handlers);
+ * ```
+ */
+export type InferHonoHandlersWithVars<
+  C extends ApiContract,
+  V extends Record<string, unknown>,
+> = {
+  [VK in keyof C]: {
+    middlewares?: MiddlewareHandler[];
+  } & (C[VK]['routes'] extends Record<string, RouteDefinition>
+    ? {
+        [RK in keyof C[VK]['routes']]: HonoHandler<C[VK]['routes'][RK], SimpleEnv<V>>;
+      }
+    : object) &
+    (C[VK]['children'] extends Record<string, RouteGroup>
+      ? {
+          [CK in keyof C[VK]['children']]: InferHonoGroupHandlers<
+            C[VK]['children'][CK],
+            SimpleEnv<V>
+          > & {
+            middlewares?: MiddlewareHandler[];
+          };
+        }
+      : object);
+};
+
 /**
  * Options for creating a Hono router
  */

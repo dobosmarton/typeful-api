@@ -43,7 +43,8 @@ export function composeMiddleware<E extends Env>(
 
     const runMiddleware = async (): Promise<void> => {
       if (index >= middlewares.length) {
-        return next();
+        await next();
+        return;
       }
 
       const currentMiddleware = middlewares[index++];

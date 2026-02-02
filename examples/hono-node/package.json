@@ -1,0 +1,26 @@
+{
+  "name": "hono-node-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Hono + Node.js example using typi",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsup src/index.ts --format esm --dts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "@hono/zod-openapi": "^0.19.6",
+    "@typi/core": "workspace:*",
+    "@typi/hono": "workspace:*",
+    "hono": "^4.7.10",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

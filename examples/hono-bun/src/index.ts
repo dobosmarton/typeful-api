@@ -1,0 +1,177 @@
+/**
+ * Hono Bun Example
+ *
+ * A complete example demonstrating typi with Hono on Bun runtime.
+ * This example uses the simplified API without Cloudflare bindings.
+ *
+ * Run with: bun run dev
+ */
+
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { createHonoRouter, type SimpleEnv } from '@typi/hono';
+import { api, type Product } from './api';
+
+// ============================================
+// Environment Type (simplified - no Bindings)
+// ============================================
+
+type AppVariables = {
+  products: Product[];
+};
+
+// ============================================
+// In-Memory Database (for demo purposes)
+// ============================================
+
+const products: Product[] = [
+  {
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    name: 'TypeScript Handbook',
+    description: 'Complete guide to TypeScript',
+    price: 29.99,
+    inStock: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '550e8400-e29b-41d4-a716-446655440002',
+    name: 'Bun in Action',
+    description: 'Learn Bun the fast way',
+    price: 34.99,
+    inStock: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+// ============================================
+// Middleware
+// ============================================
+
+// Middleware to inject products "database" into context
+const productsMiddleware = async (
+  c: { set: (key: string, value: unknown) => void },
+  next: () => Promise<void>,
+) => {
+  c.set('products', products);
+  await next();
+};
+
+// ============================================
+// Router (using simplified API)
+// ============================================
+
+const router = createHonoRouter<typeof api, AppVariables>(api, {
+  v1: {
+    // Version-level routes
+    health: async () => ({
+      status: 'ok' as const,
+      timestamp: new Date().toISOString(),
+    }),
+
+    // Products group
+    products: {
+      middlewares: [productsMiddleware],
+
+      list: async ({ c, query }) => {
+        const allProducts = c.get('products');
+        const { page, limit } = query;
+        const start = (page - 1) * limit;
+        const paginatedProducts = allProducts.slice(start, start + limit);
+
+        return {
+          products: paginatedProducts,
+          total: allProducts.length,
+          page,
+          limit,
+        };
+      },
+
+      get: async ({ c, params }) => {
+        const allProducts = c.get('products');
+        const product = allProducts.find((p) => p.id === params.id);
+
+        if (!product) {
+          throw new Error('Product not found');
+        }
+
+        return product;
+      },
+
+      create: async ({ c, body }) => {
+        const allProducts = c.get('products');
+        const newProduct: Product = {
+          id: crypto.randomUUID(),
+          ...body,
+          createdAt: new Date().toISOString(),
+        };
+
+        allProducts.push(newProduct);
+        return newProduct;
+      },
+
+      update: async ({ c, params, body }) => {
+        const allProducts = c.get('products');
+        const index = allProducts.findIndex((p) => p.id === params.id);
+
+        if (index === -1) {
+          throw new Error('Product not found');
+        }
+
+        const updated = { ...allProducts[index]!, ...body };
+        allProducts[index] = updated;
+        return updated;
+      },
+
+      delete: async ({ c, params }) => {
+        const allProducts = c.get('products');
+        const index = allProducts.findIndex((p) => p.id === params.id);
+
+        if (index === -1) {
+          throw new Error('Product not found');
+        }
+
+        allProducts.splice(index, 1);
+        return { success: true };
+      },
+    },
+  },
+});
+
+// ============================================
+// Main App
+// ============================================
+
+const app = new Hono<SimpleEnv<AppVariables>>();
+
+// Global middleware
+app.use('*', logger());
+app.use('*', cors());
+
+// Mount API router
+app.route('/api', router);
+
+// Root endpoint
+app.get('/', (c) => {
+  return c.json({
+    name: 'Hono Bun Example',
+    version: '1.0.0',
+    runtime: 'Bun',
+    docs: '/api/v1/health',
+  });
+});
+
+// ============================================
+// Start Server (Bun native)
+// ============================================
+
+const port = Number(process.env.PORT) || 3000;
+
+console.log(`Server running at http://localhost:${port}`);
+console.log(`Health check: http://localhost:${port}/api/v1/health`);
+console.log(`Products API: http://localhost:${port}/api/v1/products`);
+
+export default {
+  port,
+  fetch: app.fetch,
+};

@@ -1,0 +1,22 @@
+{
+  "name": "hono-bun-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Hono + Bun example using typi",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^0.19.6",
+    "@typi/core": "workspace:*",
+    "@typi/hono": "workspace:*",
+    "hono": "^4.7.10",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}

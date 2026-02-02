@@ -4,52 +4,64 @@
  * Hono adapter for typi. Creates fully typed Hono routers
  * from API contracts with automatic OpenAPI integration.
  *
- * @example
+ * Works on multiple runtimes: Node.js, Cloudflare Workers, Deno, Bun, and more.
+ *
+ * @example Simple mode (Node.js, Bun, Deno)
  * ```ts
- * import { Hono } from 'hono';
+ * import { serve } from '@hono/node-server';
  * import { createHonoRouter } from '@typi/hono';
  * import { api } from './api';
  *
- * // Define environment types per group
+ * const router = createHonoRouter(api, {
+ *   v1: {
+ *     products: {
+ *       list: async ({ query }) => {
+ *         return { products: [], total: 0, page: query.page };
+ *       },
+ *     },
+ *   },
+ * });
+ *
+ * serve({ fetch: router.fetch, port: 3000 });
+ * ```
+ *
+ * @example Shared variables mode
+ * ```ts
+ * type Vars = { db: Database; logger: Logger };
+ *
+ * const router = createHonoRouter<typeof api, Vars>(api, {
+ *   v1: {
+ *     products: {
+ *       list: async ({ c, query }) => {
+ *         const db = c.get('db');
+ *         return db.products.findMany({ page: query.page });
+ *       },
+ *     },
+ *   },
+ * });
+ * ```
+ *
+ * @example Full mode (Cloudflare Workers with Bindings)
+ * ```ts
  * type Envs = {
  *   v1: {
  *     products: { Bindings: Env; Variables: { db: Database } };
- *     users: { Bindings: Env; Variables: { db: Database; user: User } };
  *   };
  * };
  *
- * // Create router with fully typed handlers
  * const router = createHonoRouter<typeof api, Envs>(api, {
  *   v1: {
- *     middlewares: [corsMiddleware],
  *     products: {
  *       middlewares: [dbMiddleware],
  *       list: async ({ c, query }) => {
  *         const db = c.get('db');
  *         return db.products.findMany({ page: query.page });
  *       },
- *       get: async ({ c, params }) => {
- *         const db = c.get('db');
- *         return db.products.find(params.id);
- *       },
- *       create: async ({ c, body }) => {
- *         const db = c.get('db');
- *         return db.products.create(body);
- *       },
- *     },
- *     users: {
- *       middlewares: [dbMiddleware, authMiddleware],
- *       me: async ({ c }) => {
- *         return c.get('user');
- *       },
  *     },
  *   },
  * });
  *
- * const app = new Hono();
- * app.route('/api', router);
- *
- * export default app;
+ * export default router;
  * ```
  *
  * @packageDocumentation
@@ -76,6 +88,11 @@ export type {
   InferHonoHandlers,
   VersionEnvMap,
   WithVariables,
+  // Simplified types for non-Cloudflare platforms
+  DefaultEnv,
+  InferHonoHandlersWithVars,
+  InferSimpleHonoHandlers,
+  SimpleEnv,
 } from './types';
 
 // Re-export core types for convenience

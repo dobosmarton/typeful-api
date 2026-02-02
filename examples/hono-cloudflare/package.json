@@ -1,8 +1,8 @@
 {
-  "name": "hono-basic-example",
+  "name": "hono-cloudflare-example",
   "version": "0.0.1",
   "private": true,
-  "description": "Basic Hono example using typi",
+  "description": "Hono + Cloudflare Workers example using typi",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev src/index.ts",
