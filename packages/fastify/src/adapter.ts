@@ -4,7 +4,7 @@ import type {
   FastifyRequest,
   FastifyReply,
   RouteShorthandOptions,
-  preHandlerHookHandler,
+  preHandlerAsyncHookHandler,
 } from 'fastify';
 import type { ZodSchema, ZodError } from 'zod';
 import type {
@@ -27,7 +27,7 @@ function formatZodError(error: ZodError): object {
     statusCode: 422,
     error: 'Validation Error',
     message: 'Request validation failed',
-    details: error.errors.map((e) => ({
+    details: error.issues.map((e) => ({
       path: e.path.join('.'),
       message: e.message,
     })),
@@ -39,7 +39,7 @@ function formatZodError(error: ZodError): object {
  */
 function createValidationPreHandler(
   route: RouteDefinition,
-): preHandlerHookHandler {
+): preHandlerAsyncHookHandler {
   return async (request, reply) => {
     // Validate body
     if (route.body && ['post', 'put', 'patch'].includes(route.method)) {
@@ -91,11 +91,11 @@ function registerGroupRoutes(
   groupPath: string[],
 ) {
   const h = handlers as {
-    preHandler?: preHandlerHookHandler | preHandlerHookHandler[];
+    preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
   } & Record<string, unknown>;
 
   // Collect preHandlers for this group
-  const groupPreHandlers: preHandlerHookHandler[] = [];
+  const groupPreHandlers: preHandlerAsyncHookHandler[] = [];
   if (h.preHandler) {
     if (Array.isArray(h.preHandler)) {
       groupPreHandlers.push(...h.preHandler);
@@ -224,9 +224,9 @@ export function createFastifyPlugin<C extends ApiContract>(
       const preHandlers = Array.isArray(options.preHandler)
         ? options.preHandler
         : [options.preHandler];
-      fastify.addHook('preHandler', async (request, reply) => {
+      fastify.addHook('preHandler', async function (request, reply) {
         for (const handler of preHandlers) {
-          await handler(request, reply);
+          await handler.call(this, request, reply);
         }
       });
     }
@@ -244,15 +244,15 @@ export function createFastifyPlugin<C extends ApiContract>(
         async (versionFastify) => {
           // Apply version-level preHandler
           const versionH = versionHandlers as {
-            preHandler?: preHandlerHookHandler | preHandlerHookHandler[];
+            preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
           };
           if (versionH.preHandler) {
             const preHandlers = Array.isArray(versionH.preHandler)
               ? versionH.preHandler
               : [versionH.preHandler];
-            versionFastify.addHook('preHandler', async (request, reply) => {
+            versionFastify.addHook('preHandler', async function (request, reply) {
               for (const handler of preHandlers) {
-                await handler(request, reply);
+                await handler.call(this, request, reply);
               }
             });
           }

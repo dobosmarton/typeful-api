@@ -1,7 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
 import type { Context, Env, MiddlewareHandler } from 'hono';
-import type { AnyZodObject } from 'zod';
+import type { ZodObject } from 'zod';
 import type {
   ApiContract,
   RouteDefinition,
@@ -64,7 +64,7 @@ function toRouteConfig(
   if (route.query) {
     config.request = {
       ...config.request,
-      query: route.query as AnyZodObject,
+      query: route.query as ZodObject,
     };
   }
 
@@ -72,7 +72,7 @@ function toRouteConfig(
   if (route.params) {
     config.request = {
       ...config.request,
-      params: route.params as AnyZodObject,
+      params: route.params as ZodObject,
     };
   }
 

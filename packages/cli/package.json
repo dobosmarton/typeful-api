@@ -30,16 +30,16 @@
   "dependencies": {
     "@typi/core": "workspace:*",
     "cac": "^6.7.14",
-    "openapi-typescript": "^7.8.0",
+    "openapi-typescript": "^7.10.1",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
-    "eslint": "^9.30.1",
-    "tsup": "^8.5.0",
+    "eslint": "^9.39.2",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "zod": "^3.24.4"
+    "zod": "^4.3.5"
   },
   "keywords": [
     "openapi",

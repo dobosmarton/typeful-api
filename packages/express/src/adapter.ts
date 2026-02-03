@@ -39,7 +39,7 @@ function zodToValidationError(
 ): ValidationError {
   return {
     type,
-    errors: zodError.errors.map((e) => ({
+    errors: zodError.issues.map((e) => ({
       path: e.path.map(String),
       message: e.message,
     })),
@@ -74,7 +74,8 @@ function createValidationMiddleware(
           return onError(zodToValidationError(result.error, 'query'), req, res, next);
         }
         // Assign validated query (cast needed for Express types)
-        (req as Request).query = result.data;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (req as any).query = result.data;
       }
 
       // Validate params
@@ -83,7 +84,8 @@ function createValidationMiddleware(
         if (!result.success) {
           return onError(zodToValidationError(result.error, 'params'), req, res, next);
         }
-        req.params = result.data;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (req as any).params = result.data;
       }
 
       next();

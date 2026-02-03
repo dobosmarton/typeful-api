@@ -3,7 +3,7 @@ import type {
   FastifyRequest,
   FastifyReply,
   FastifyPluginCallback,
-  preHandlerHookHandler,
+  preHandlerAsyncHookHandler,
 } from 'fastify';
 import type {
   ApiContract,
@@ -64,13 +64,13 @@ export type InferFastifyGroupHandlers<G extends RouteGroup> =
  */
 export type InferFastifyHandlers<C extends ApiContract> = {
   [VK in keyof C]: {
-    preHandler?: preHandlerHookHandler | preHandlerHookHandler[];
+    preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
   } & (C[VK]['children'] extends Record<string, RouteGroup>
     ? {
         [CK in keyof C[VK]['children']]: InferFastifyGroupHandlers<
           C[VK]['children'][CK]
         > & {
-          preHandler?: preHandlerHookHandler | preHandlerHookHandler[];
+          preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
         };
       }
     : object);
@@ -88,7 +88,7 @@ export type CreateFastifyPluginOptions = {
   /**
    * Global preHandler hooks applied to all routes
    */
-  preHandler?: preHandlerHookHandler | preHandlerHookHandler[];
+  preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
 
   /**
    * Whether to use Fastify's native schema validation with Zod
@@ -118,4 +118,4 @@ export type RequestWithLocals<T> = FastifyRequest & FastifyLocals<T>;
 /**
  * Type helper for Fastify plugin with typed options
  */
-export type TypedFastifyPlugin<T = unknown> = FastifyPluginCallback<T>;
+export type TypedFastifyPlugin<T extends Record<string, unknown> = Record<string, unknown>> = FastifyPluginCallback<T>;

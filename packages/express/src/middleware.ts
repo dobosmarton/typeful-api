@@ -22,11 +22,12 @@ export function createTypedMiddleware<TLocals>(
   ) => void | Promise<void>,
 ): RequestHandler {
   return (req, res, next) => {
-    // Ensure locals exists
-    if (!req.locals) {
-      (req as WithLocals<TLocals>).locals = {} as TLocals;
+    // Ensure locals exists on request (custom property for request-scoped data)
+    const reqWithLocals = req as WithLocals<TLocals>;
+    if (!reqWithLocals.locals) {
+      reqWithLocals.locals = {} as TLocals;
     }
-    return handler(req as WithLocals<TLocals>, res, next);
+    return handler(reqWithLocals, res, next);
   };
 }
 
@@ -128,10 +129,11 @@ export function createLocalsMiddleware<K extends string, V>(
   return async (req, res, next) => {
     try {
       const value = await factory(req);
-      if (!req.locals) {
-        (req as WithLocals<Record<K, V>>).locals = {} as Record<K, V>;
+      const reqWithLocals = req as WithLocals<Record<K, V>>;
+      if (!reqWithLocals.locals) {
+        reqWithLocals.locals = {} as Record<K, V>;
       }
-      (req as WithLocals<Record<K, V>>).locals[key] = value;
+      reqWithLocals.locals[key] = value;
       next();
     } catch (error) {
       next(error);

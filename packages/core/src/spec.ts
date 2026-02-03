@@ -1,4 +1,6 @@
 import type { ZodSchema } from 'zod';
+import { toJSONSchema } from 'zod/v4/core';
+import type { $ZodType } from 'zod/v4/core';
 import { extractTags, flattenRoutes } from './contract';
 import type {
   ApiContract,
@@ -123,198 +125,14 @@ type JsonSchema = {
 };
 
 /**
- * Convert a Zod schema to JSON Schema
- * This is a simplified converter - for full support, use zod-to-json-schema
+ * Convert a Zod schema to JSON Schema using Zod v4's native conversion
  */
 function zodToJsonSchema(schema: ZodSchema): JsonSchema {
-  // Get the underlying Zod definition
-  const def = (schema as unknown as { _def: ZodDef })._def;
-
-  return convertZodDef(def);
-}
-
-type ZodDef = {
-  typeName: string;
-  shape?: () => Record<string, ZodSchema>;
-  type?: ZodSchema;
-  innerType?: ZodSchema;
-  options?: ZodSchema[];
-  values?: readonly string[];
-  checks?: Array<{ kind: string; value?: unknown }>;
-  defaultValue?: () => unknown;
-  description?: string;
-};
-
-function convertZodDef(def: ZodDef): JsonSchema {
-  const result: JsonSchema = {};
-
-  if (def.description) {
-    result.description = def.description;
-  }
-
-  switch (def.typeName) {
-    case 'ZodString':
-      result.type = 'string';
-      applyStringChecks(result, def.checks);
-      break;
-
-    case 'ZodNumber':
-      result.type = 'number';
-      applyNumberChecks(result, def.checks);
-      break;
-
-    case 'ZodBoolean':
-      result.type = 'boolean';
-      break;
-
-    case 'ZodNull':
-      result.type = 'null';
-      break;
-
-    case 'ZodArray':
-      result.type = 'array';
-      if (def.type) {
-        result.items = zodToJsonSchema(def.type);
-      }
-      break;
-
-    case 'ZodObject':
-      result.type = 'object';
-      if (def.shape) {
-        const shape = def.shape();
-        result.properties = {};
-        result.required = [];
-
-        for (const [key, value] of Object.entries(shape)) {
-          result.properties[key] = zodToJsonSchema(value);
-          // Check if the field is required (not optional)
-          const valueDef = (value as unknown as { _def: ZodDef })._def;
-          if (valueDef.typeName !== 'ZodOptional' && valueDef.typeName !== 'ZodDefault') {
-            result.required.push(key);
-          }
-        }
-
-        if (result.required.length === 0) {
-          delete result.required;
-        }
-      }
-      break;
-
-    case 'ZodEnum':
-      result.type = 'string';
-      if (def.values) {
-        result.enum = [...def.values];
-      }
-      break;
-
-    case 'ZodNativeEnum':
-      result.type = 'string';
-      break;
-
-    case 'ZodUnion':
-      if (def.options) {
-        result.oneOf = def.options.map(zodToJsonSchema);
-      }
-      break;
-
-    case 'ZodOptional':
-      if (def.innerType) {
-        return zodToJsonSchema(def.innerType);
-      }
-      break;
-
-    case 'ZodNullable':
-      if (def.innerType) {
-        const inner = zodToJsonSchema(def.innerType);
-        return { ...inner, nullable: true };
-      }
-      break;
-
-    case 'ZodDefault':
-      if (def.innerType) {
-        const inner = zodToJsonSchema(def.innerType);
-        if (def.defaultValue) {
-          inner.default = def.defaultValue();
-        }
-        return inner;
-      }
-      break;
-
-    case 'ZodLiteral':
-      // Handle literal types
-      result.enum = [(def as unknown as { value: unknown }).value];
-      break;
-
-    case 'ZodRecord':
-      result.type = 'object';
-      result.additionalProperties = true;
-      break;
-
-    case 'ZodAny':
-    case 'ZodUnknown':
-      // No schema restriction
-      break;
-
-    default:
-      // For unsupported types, return empty schema
-      break;
-  }
-
-  return result;
-}
-
-function applyStringChecks(
-  schema: JsonSchema,
-  checks?: Array<{ kind: string; value?: unknown }>,
-) {
-  if (!checks) return;
-
-  for (const check of checks) {
-    switch (check.kind) {
-      case 'min':
-        schema.minLength = check.value as number;
-        break;
-      case 'max':
-        schema.maxLength = check.value as number;
-        break;
-      case 'email':
-        schema.format = 'email';
-        break;
-      case 'url':
-        schema.format = 'uri';
-        break;
-      case 'uuid':
-        schema.format = 'uuid';
-        break;
-      case 'datetime':
-        schema.format = 'date-time';
-        break;
-      case 'regex':
-        schema.pattern = String((check as unknown as { regex: RegExp }).regex);
-        break;
-    }
-  }
-}
-
-function applyNumberChecks(
-  schema: JsonSchema,
-  checks?: Array<{ kind: string; value?: unknown }>,
-) {
-  if (!checks) return;
-
-  for (const check of checks) {
-    switch (check.kind) {
-      case 'min':
-        schema.minimum = check.value as number;
-        break;
-      case 'max':
-        schema.maximum = check.value as number;
-        break;
-      case 'int':
-        schema.type = 'integer';
-        break;
-    }
-  }
+  const result = toJSONSchema(schema as unknown as $ZodType, {
+    target: 'draft-7', // OpenAPI 3.0 compatible
+    unrepresentable: 'any', // Gracefully handle unsupported types
+  });
+  return result as JsonSchema;
 }
 
 /**

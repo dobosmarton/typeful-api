@@ -2,7 +2,7 @@ import type {
   FastifyInstance,
   FastifyRequest,
   FastifyReply,
-  preHandlerHookHandler,
+  preHandlerAsyncHookHandler,
 } from 'fastify';
 import type { RequestWithLocals } from './types';
 
@@ -21,8 +21,10 @@ export function createPreHandler(
     request: FastifyRequest,
     reply: FastifyReply,
   ) => void | Promise<void>,
-): preHandlerHookHandler {
-  return handler;
+): preHandlerAsyncHookHandler {
+  return async function (request, reply) {
+    await handler.call(this, request, reply);
+  };
 }
 
 /**
@@ -88,7 +90,7 @@ export function mergeLocals<T extends object>(
 export function createLocalsPreHandler<K extends string, V>(
   key: K,
   factory: (request: FastifyRequest) => V | Promise<V>,
-): preHandlerHookHandler {
+): preHandlerAsyncHookHandler {
   return async (request, _reply) => {
     const value = await factory(request);
     mergeLocals(request, { [key]: value } as Record<K, V>);
@@ -108,11 +110,11 @@ export function createLocalsPreHandler<K extends string, V>(
  */
 export function conditionalPreHandler(
   condition: (request: FastifyRequest) => boolean,
-  preHandler: preHandlerHookHandler,
-): preHandlerHookHandler {
-  return async (request, reply) => {
+  preHandler: preHandlerAsyncHookHandler,
+): preHandlerAsyncHookHandler {
+  return async function (request, reply) {
     if (condition(request)) {
-      return preHandler(request, reply);
+      return preHandler.call(this, request, reply);
     }
   };
 }
@@ -130,11 +132,11 @@ export function conditionalPreHandler(
  * ```
  */
 export function composePreHandlers(
-  preHandlers: preHandlerHookHandler[],
-): preHandlerHookHandler {
-  return async (request, reply) => {
+  preHandlers: preHandlerAsyncHookHandler[],
+): preHandlerAsyncHookHandler {
+  return async function (request, reply) {
     for (const handler of preHandlers) {
-      await handler(request, reply);
+      await handler.call(this, request, reply);
       // If reply was sent, stop processing
       if (reply.sent) {
         return;
