@@ -783,6 +783,140 @@ describe('generateSpec', () => {
   });
 });
 
+describe('schema descriptions', () => {
+  it('preserves field descriptions in response schema', () => {
+    const DescribedSchema = z.object({
+      id: z.string().describe('Unique identifier'),
+      name: z.string().describe('Display name'),
+      count: z.number().describe('Total count'),
+    });
+
+    const contract: ApiContract = {
+      v1: {
+        routes: {
+          get: route.get('/test').returns(DescribedSchema),
+        },
+      },
+    };
+
+    const spec = generateSpec(contract, defaultOptions);
+    const responseSchema = spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
+
+    expect(responseSchema?.properties?.id?.description).toBe('Unique identifier');
+    expect(responseSchema?.properties?.name?.description).toBe('Display name');
+    expect(responseSchema?.properties?.count?.description).toBe('Total count');
+  });
+
+  it('preserves field descriptions in request body schema', () => {
+    const CreateSchema = z.object({
+      name: z.string().describe('Product name'),
+      price: z.number().describe('Price in cents'),
+    });
+
+    const contract: ApiContract = {
+      v1: {
+        routes: {
+          create: route.post('/test').body(CreateSchema).returns(z.object({ id: z.string() })),
+        },
+      },
+    };
+
+    const spec = generateSpec(contract, defaultOptions);
+    const bodySchema = spec.paths['/v1/test']?.post?.requestBody?.content['application/json']?.schema;
+
+    expect(bodySchema?.properties?.name?.description).toBe('Product name');
+    expect(bodySchema?.properties?.price?.description).toBe('Price in cents');
+  });
+
+  it('preserves descriptions in query parameter schemas', () => {
+    const QuerySchema = z.object({
+      page: z.number().describe('Page number'),
+      limit: z.number().describe('Items per page'),
+    });
+
+    const contract: ApiContract = {
+      v1: {
+        routes: {
+          list: route.get('/test').query(QuerySchema).returns(z.array(z.object({}))),
+        },
+      },
+    };
+
+    const spec = generateSpec(contract, defaultOptions);
+    const params = spec.paths['/v1/test']?.get?.parameters;
+
+    const pageParam = params?.find((p) => p.name === 'page');
+    const limitParam = params?.find((p) => p.name === 'limit');
+
+    expect(pageParam?.schema?.description).toBe('Page number');
+    expect(limitParam?.schema?.description).toBe('Items per page');
+  });
+
+  it('preserves descriptions in path parameter schemas', () => {
+    const ParamsSchema = z.object({
+      id: z.string().describe('Resource identifier'),
+    });
+
+    const contract: ApiContract = {
+      v1: {
+        routes: {
+          get: route.get('/test/:id').params(ParamsSchema).returns(z.object({})),
+        },
+      },
+    };
+
+    const spec = generateSpec(contract, defaultOptions);
+    const params = spec.paths['/v1/test/{id}']?.get?.parameters;
+
+    const idParam = params?.find((p) => p.name === 'id');
+    expect(idParam?.schema?.description).toBe('Resource identifier');
+  });
+
+  it('preserves nested object descriptions', () => {
+    const NestedSchema = z.object({
+      user: z.object({
+        name: z.string().describe('User name'),
+        email: z.string().describe('Email address'),
+      }).describe('User details'),
+    });
+
+    const contract: ApiContract = {
+      v1: {
+        routes: {
+          get: route.get('/test').returns(NestedSchema),
+        },
+      },
+    };
+
+    const spec = generateSpec(contract, defaultOptions);
+    const responseSchema = spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
+
+    expect(responseSchema?.properties?.user?.description).toBe('User details');
+    expect(responseSchema?.properties?.user?.properties?.name?.description).toBe('User name');
+    expect(responseSchema?.properties?.user?.properties?.email?.description).toBe('Email address');
+  });
+
+  it('preserves array item descriptions', () => {
+    const ArraySchema = z.object({
+      items: z.array(z.string().describe('Item value')).describe('List of items'),
+    });
+
+    const contract: ApiContract = {
+      v1: {
+        routes: {
+          get: route.get('/test').returns(ArraySchema),
+        },
+      },
+    };
+
+    const spec = generateSpec(contract, defaultOptions);
+    const responseSchema = spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
+
+    expect(responseSchema?.properties?.items?.description).toBe('List of items');
+    expect(responseSchema?.properties?.items?.items?.description).toBe('Item value');
+  });
+});
+
 describe('generateSpecJson', () => {
   it('returns valid JSON string', () => {
     const contract: ApiContract = {

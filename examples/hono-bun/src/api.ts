@@ -16,12 +16,12 @@ import { z } from 'zod';
 // ============================================
 
 export const ProductSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1).max(100),
-  description: z.string().optional(),
-  price: z.number().positive(),
-  inStock: z.boolean(),
-  createdAt: z.string().datetime(),
+  id: z.uuid().describe('Unique product identifier'),
+  name: z.string().min(1).max(100).describe('Product display name'),
+  description: z.string().optional().describe('Detailed product description'),
+  price: z.number().positive().describe('Product price in cents'),
+  inStock: z.boolean().describe('Whether the product is currently in stock'),
+  createdAt: z.iso.datetime().describe('ISO 8601 timestamp when the product was created'),
 });
 
 export const CreateProductSchema = ProductSchema.omit({
@@ -32,24 +32,37 @@ export const CreateProductSchema = ProductSchema.omit({
 export const UpdateProductSchema = CreateProductSchema.partial();
 
 export const IdParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid().describe('Resource identifier (UUID format)'),
 });
 
 export const PaginationQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  page: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(1)
+    .describe('Page number for pagination (1-indexed)'),
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .optional()
+    .default(20)
+    .describe('Number of items per page (max 100)'),
 });
 
 export const ProductListResponseSchema = z.object({
-  products: z.array(ProductSchema),
-  total: z.number(),
-  page: z.number(),
-  limit: z.number(),
+  products: z.array(ProductSchema).describe('Array of product items'),
+  total: z.number().describe('Total number of products matching the query'),
+  page: z.number().describe('Current page number'),
+  limit: z.number().describe('Number of items per page'),
 });
 
 export const HealthCheckSchema = z.object({
-  status: z.literal('ok'),
-  timestamp: z.string().datetime(),
+  status: z.literal('ok').describe('Service health status'),
+  timestamp: z.iso.datetime().describe('ISO 8601 timestamp of the health check'),
 });
 
 // ============================================
@@ -62,8 +75,8 @@ export const api = defineApi({
       health: route
         .get('/health')
         .returns(HealthCheckSchema)
-        .summary('Health check endpoint')
-        .tags('system'),
+        .withSummary('Health check endpoint')
+        .withTags('system'),
     },
     children: {
       products: {
@@ -72,36 +85,38 @@ export const api = defineApi({
             .get('/')
             .query(PaginationQuerySchema)
             .returns(ProductListResponseSchema)
-            .summary('List all products')
-            .description('Returns a paginated list of products'),
+            .withSummary('List all products')
+            .withDescription('Returns a paginated list of products'),
 
           get: route
             .get('/:id')
             .params(IdParamsSchema)
             .returns(ProductSchema)
-            .summary('Get a product by ID'),
+            .withSummary('Get a product by ID'),
 
           create: route
             .post('/')
             .body(CreateProductSchema)
-            .returns(ProductSchema)
             .auth('bearer')
-            .summary('Create a new product'),
+            .returns(ProductSchema)
+            .withSummary('Create a new product'),
 
           update: route
             .patch('/:id')
             .params(IdParamsSchema)
             .body(UpdateProductSchema)
-            .returns(ProductSchema)
             .auth('bearer')
-            .summary('Update a product'),
+            .returns(ProductSchema)
+            .withSummary('Update a product'),
 
           delete: route
             .delete('/:id')
             .params(IdParamsSchema)
-            .returns(z.object({ success: z.boolean() }))
             .auth('bearer')
-            .summary('Delete a product'),
+            .returns(
+              z.object({ success: z.boolean().describe('Whether the deletion was successful') }),
+            )
+            .withSummary('Delete a product'),
         },
       },
     },

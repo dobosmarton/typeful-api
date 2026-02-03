@@ -1,15 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { z } from 'zod';
-import { route, defineApi } from '@typi/core';
-import type {
-  FastifyInstance,
-  FastifyRequest,
-  FastifyReply,
-  FastifyPluginCallback,
-  preHandlerAsyncHookHandler,
-} from 'fastify';
-import { createFastifyPlugin } from '../../src/adapter';
 import type { ApiContract } from '@typi/core';
+import { route } from '@typi/core';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { createFastifyPlugin } from '../../src/adapter';
 
 // Test schemas
 const HealthSchema = z.object({ status: z.string() });
@@ -22,7 +16,7 @@ const CreateProductSchema = z.object({
   name: z.string().min(1),
   price: z.number().positive(),
 });
-const IdParamsSchema = z.object({ id: z.string().uuid() });
+const IdParamsSchema = z.object({ id: z.uuid() });
 const PaginationSchema = z.object({
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),

@@ -2,6 +2,62 @@ import type { ZodSchema } from 'zod';
 import type { AuthType, HttpMethod, RouteDefinition } from './types';
 
 /**
+ * A finalized route that can still be extended with metadata methods.
+ * This allows chaining in any order (e.g., .returns().withAuth().withSummary())
+ *
+ * The builder methods use 'with*' prefix to avoid name conflicts with
+ * RouteDefinition value properties, ensuring proper type inference.
+ */
+export type FinalRoute<
+  TBody = never,
+  TQuery = never,
+  TParams = never,
+  TResponse = never,
+> = RouteDefinition<TBody, TQuery, TParams, TResponse> & {
+  withAuth: (type: AuthType) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withSummary: (text: string) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withDescription: (text: string) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withTags: (...tags: string[]) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  markDeprecated: () => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withOperationId: (id: string) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withResponses: (codes: Record<number, ZodSchema>) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+};
+
+/**
+ * Factory function that creates an immutable route object with chainable methods.
+ * Each method returns a new object (immutability preserved).
+ */
+const createFinalRoute = <TBody, TQuery, TParams, TResponse>(
+  config: RouteDefinition<TBody, TQuery, TParams, TResponse>,
+): FinalRoute<TBody, TQuery, TParams, TResponse> => ({
+  // Spread all RouteDefinition properties
+  method: config.method,
+  path: config.path,
+  body: config.body,
+  query: config.query,
+  params: config.params,
+  response: config.response,
+  responses: config.responses,
+  auth: config.auth,
+  summary: config.summary,
+  description: config.description,
+  tags: config.tags,
+  deprecated: config.deprecated,
+  operationId: config.operationId,
+
+  // Builder methods with 'with*' prefix
+  withAuth: (type: AuthType) => createFinalRoute({ ...config, auth: type }),
+  withSummary: (text: string) => createFinalRoute({ ...config, summary: text }),
+  withDescription: (text: string) => createFinalRoute({ ...config, description: text }),
+  withTags: (...tags: string[]) =>
+    createFinalRoute({ ...config, tags: [...(config.tags ?? []), ...tags] }),
+  markDeprecated: () => createFinalRoute({ ...config, deprecated: true }),
+  withOperationId: (id: string) => createFinalRoute({ ...config, operationId: id }),
+  withResponses: (codes: Record<number, ZodSchema>) =>
+    createFinalRoute({ ...config, responses: { ...config.responses, ...codes } }),
+});
+
+/**
  * Builder class for creating type-safe route definitions
  * Uses a fluent API pattern for ergonomic route creation
  *
@@ -9,7 +65,7 @@ import type { AuthType, HttpMethod, RouteDefinition } from './types';
  * ```ts
  * const getUser = route
  *   .get('/users/:id')
- *   .params(z.object({ id: z.string().uuid() }))
+ *   .params(z.object({ id: z.uuid() }))
  *   .returns(UserSchema)
  *   .auth('bearer')
  *   .summary('Get a user by ID');
@@ -69,10 +125,11 @@ class RouteBuilder<
 
   /**
    * Define the success response schema (required)
-   * This completes the route definition
+   * This completes the route definition and returns a FinalRoute
+   * that can still be extended with metadata methods in any order
    */
-  returns<T>(schema: ZodSchema<T>): RouteDefinition<TBody, TQuery, TParams, T> {
-    return {
+  returns<T>(schema: ZodSchema<T>): FinalRoute<TBody, TQuery, TParams, T> {
+    return createFinalRoute({
       method: this._method,
       path: this._path,
       body: this._body as ZodSchema<TBody> | undefined,
@@ -86,7 +143,7 @@ class RouteBuilder<
       tags: this._tags,
       deprecated: this._deprecated,
       operationId: this._operationId,
-    } as const;
+    });
   }
 
   /**

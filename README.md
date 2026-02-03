@@ -42,7 +42,7 @@ import { z } from 'zod';
 
 // Define your schemas
 const ProductSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1),
   price: z.number().positive(),
 });
@@ -50,7 +50,7 @@ const ProductSchema = z.object({
 const CreateProductSchema = ProductSchema.omit({ id: true });
 
 const IdParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 });
 
 // Define your API contract
@@ -260,7 +260,7 @@ route
 // With path params
 route
   .get('/products/:id')
-  .params(z.object({ id: z.string().uuid() }))
+  .params(z.object({ id: z.uuid() }))
   .returns(ProductSchema);
 
 // Mark as deprecated

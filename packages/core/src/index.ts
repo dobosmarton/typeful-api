@@ -12,7 +12,7 @@
  *
  * // Define schemas
  * const ProductSchema = z.object({
- *   id: z.string().uuid(),
+ *   id: z.uuid(),
  *   name: z.string(),
  *   price: z.number(),
  * });
@@ -25,7 +25,7 @@
  *         routes: {
  *           list: route.get('/').returns(z.array(ProductSchema)),
  *           get: route.get('/:id')
- *             .params(z.object({ id: z.string().uuid() }))
+ *             .params(z.object({ id: z.uuid() }))
  *             .returns(ProductSchema),
  *         },
  *       },
@@ -82,3 +82,4 @@ export type {
   VersionedRoutes,
   WithContext,
 } from './types';
+

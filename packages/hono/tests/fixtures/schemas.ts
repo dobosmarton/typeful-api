@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const ProductSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1),
   price: z.number().positive(),
 });
@@ -11,7 +11,7 @@ export const CreateProductSchema = ProductSchema.omit({ id: true });
 export const UpdateProductSchema = CreateProductSchema.partial();
 
 export const IdParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 });
 
 export const PaginationSchema = z.object({

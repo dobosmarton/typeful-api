@@ -64,27 +64,24 @@ export type ApiContract = VersionedRoutes;
 
 /**
  * Extract the body type from a route definition
+ * Uses NonNullable to handle the optional nature of body
  */
-export type InferBody<R extends RouteDefinition> = R['body'] extends ZodSchema<
-  infer T
->
-  ? T
-  : never;
+export type InferBody<R extends RouteDefinition> =
+  NonNullable<R['body']> extends ZodSchema<infer T> ? T : never;
 
 /**
  * Extract the query type from a route definition
+ * Uses NonNullable to handle the optional nature of query
  */
-export type InferQuery<R extends RouteDefinition> = R['query'] extends ZodSchema<
-  infer T
->
-  ? T
-  : never;
+export type InferQuery<R extends RouteDefinition> =
+  NonNullable<R['query']> extends ZodSchema<infer T> ? T : never;
 
 /**
  * Extract the params type from a route definition
+ * Uses NonNullable to handle the optional nature of params
  */
 export type InferParams<R extends RouteDefinition> =
-  R['params'] extends ZodSchema<infer T> ? T : never;
+  NonNullable<R['params']> extends ZodSchema<infer T> ? T : never;
 
 /**
  * Extract the response type from a route definition

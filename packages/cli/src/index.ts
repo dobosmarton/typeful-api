@@ -184,10 +184,13 @@ export async function generateClient(
   }
 
   // Dynamically import openapi-typescript
-  const { default: openapiTS } = await import('openapi-typescript');
+  const { default: openapiTS, astToString } = await import('openapi-typescript');
 
-  // Generate types
-  const output = await openapiTS(specObject as Parameters<typeof openapiTS>[0]);
+  // Generate types (returns AST nodes in v7.x)
+  const ast = await openapiTS(specObject as Parameters<typeof openapiTS>[0]);
+
+  // Convert AST to string
+  const output = astToString(ast);
 
   // Ensure output directory exists
   const outDir = path.dirname(path.resolve(process.cwd(), out));

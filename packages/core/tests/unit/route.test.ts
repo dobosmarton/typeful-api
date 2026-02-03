@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { route } from '../../src/route';
 
@@ -56,7 +56,7 @@ describe('route builder', () => {
     });
 
     it('sets params schema', () => {
-      const paramsSchema = z.object({ id: z.string().uuid() });
+      const paramsSchema = z.object({ id: z.uuid() });
       const getRoute = route.get('/users/:id').params(paramsSchema).returns(z.string());
 
       expect(getRoute.params).toBeDefined();
@@ -104,11 +104,7 @@ describe('route builder', () => {
     });
 
     it('accumulates tags across multiple calls', () => {
-      const getRoute = route
-        .get('/users')
-        .tags('Users')
-        .tags('Admin')
-        .returns(z.string());
+      const getRoute = route.get('/users').tags('Users').tags('Admin').returns(z.string());
       expect(getRoute.tags).toEqual(['Users', 'Admin']);
     });
 
@@ -118,10 +114,7 @@ describe('route builder', () => {
     });
 
     it('sets custom operationId', () => {
-      const getRoute = route
-        .get('/users')
-        .operationId('listAllUsers')
-        .returns(z.string());
+      const getRoute = route.get('/users').operationId('listAllUsers').returns(z.string());
       expect(getRoute.operationId).toBe('listAllUsers');
     });
   });
@@ -245,6 +238,103 @@ describe('route builder', () => {
     it('supports none auth', () => {
       const r = route.get('/').auth('none').returns(z.string());
       expect(r.auth).toBe('none');
+    });
+  });
+
+  describe('order-independent chaining (FinalRoute)', () => {
+    it('allows chaining .withSummary() after .returns()', () => {
+      const r = route.get('/health').returns(z.string()).withSummary('Health check');
+      expect(r.summary).toBe('Health check');
+      expect(r.method).toBe('get');
+    });
+
+    it('allows chaining .withAuth() after .returns()', () => {
+      const r = route.post('/users').returns(z.string()).withAuth('bearer');
+      expect(r.auth).toBe('bearer');
+    });
+
+    it('allows chaining .withTags() after .returns()', () => {
+      const r = route.get('/products').returns(z.string()).withTags('products', 'catalog');
+      expect(r.tags).toEqual(['products', 'catalog']);
+    });
+
+    it('allows chaining .withDescription() after .returns()', () => {
+      const r = route.get('/users').returns(z.string()).withDescription('Returns all users');
+      expect(r.description).toBe('Returns all users');
+    });
+
+    it('allows chaining .markDeprecated() after .returns()', () => {
+      const r = route.get('/old-endpoint').returns(z.string()).markDeprecated();
+      expect(r.deprecated).toBe(true);
+    });
+
+    it('allows chaining .withOperationId() after .returns()', () => {
+      const r = route.get('/users').returns(z.string()).withOperationId('listUsers');
+      expect(r.operationId).toBe('listUsers');
+    });
+
+    it('allows chaining .withResponses() after .returns()', () => {
+      const errorSchema = z.object({ error: z.string() });
+      const r = route.get('/users/:id').returns(z.string()).withResponses({ 404: errorSchema });
+      expect(r.responses?.[404]).toBeDefined();
+    });
+
+    it('allows multiple chained methods after .returns()', () => {
+      const r = route
+        .get('/products')
+        .returns(z.string())
+        .withSummary('List products')
+        .withDescription('Returns a paginated list of products')
+        .withTags('products')
+        .withAuth('bearer');
+
+      expect(r.summary).toBe('List products');
+      expect(r.description).toBe('Returns a paginated list of products');
+      expect(r.tags).toEqual(['products']);
+      expect(r.auth).toBe('bearer');
+    });
+
+    it('maintains immutability after .returns()', () => {
+      const baseRoute = route.get('/users').returns(z.string());
+      const route1 = baseRoute.withSummary('Summary 1');
+      const route2 = baseRoute.withSummary('Summary 2');
+
+      expect(route1.summary).toBe('Summary 1');
+      expect(route2.summary).toBe('Summary 2');
+      expect(baseRoute.summary).toBeUndefined();
+    });
+
+    it('accumulates tags across multiple .withTags() calls after .returns()', () => {
+      const r = route.get('/users').returns(z.string()).withTags('Users').withTags('Admin');
+      expect(r.tags).toEqual(['Users', 'Admin']);
+    });
+
+    it('preserves response schema when chaining after .returns()', () => {
+      const responseSchema = z.object({ id: z.string(), name: z.string() });
+      const r = route
+        .get('/users')
+        .returns(responseSchema)
+        .withSummary('Get users')
+        .withAuth('bearer');
+
+      expect(r.response).toBeDefined();
+      const result = r.response.safeParse({ id: '1', name: 'test' });
+      expect(result.success).toBe(true);
+    });
+
+    it('satisfies RouteDefinition structure for framework adapters', () => {
+      const r = route
+        .get('/health')
+        .returns(z.string())
+        .withSummary('Health check')
+        .withTags('system');
+
+      // FinalRoute should have all RouteDefinition properties
+      expect(r.method).toBe('get');
+      expect(r.path).toBe('/health');
+      expect(r.response).toBeDefined();
+      expect(r.summary).toBe('Health check');
+      expect(r.tags).toEqual(['system']);
     });
   });
 });

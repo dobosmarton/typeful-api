@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { z } from 'zod';
-import { route, defineApi } from '@typi/core';
-import type { Request, Response, NextFunction, Router, RequestHandler } from 'express';
-import { createExpressRouter } from '../../src/adapter';
 import type { ApiContract } from '@typi/core';
+import { route } from '@typi/core';
+import type { Request, RequestHandler, Response, Router } from 'express';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { createExpressRouter } from '../../src/adapter';
 import type { ValidationError } from '../../src/types';
 
 // Mock Express Router
@@ -58,7 +58,7 @@ const CreateProductSchema = z.object({
   name: z.string().min(1),
   price: z.number().positive(),
 });
-const IdParamsSchema = z.object({ id: z.string().uuid() });
+const IdParamsSchema = z.object({ id: z.uuid() });
 const PaginationSchema = z.object({
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
@@ -211,9 +211,7 @@ describe('createExpressRouter', () => {
       // Intentionally omit handler
       createExpressRouter(contract, { v1: {} } as any);
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Missing handler'),
-      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Missing handler'));
 
       warnSpy.mockRestore();
     });
@@ -570,7 +568,9 @@ describe('createExpressRouter', () => {
         },
         v2: {
           routes: {
-            health: route.get('/health').returns(z.object({ status: z.string(), version: z.number() })),
+            health: route
+              .get('/health')
+              .returns(z.object({ status: z.string(), version: z.number() })),
           },
         },
       };
