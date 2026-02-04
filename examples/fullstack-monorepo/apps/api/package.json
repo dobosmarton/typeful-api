@@ -1,18 +1,17 @@
 {
-  "name": "hono-docker-example",
+  "name": "@example/api",
   "version": "0.0.1",
   "private": true,
-  "description": "Hono + Docker example using typi",
+  "description": "API server for fullstack monorepo example",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --dts --clean",
     "start": "node dist/index.js",
-    "docker:build": "docker build -t hono-docker-example .",
-    "docker:run": "docker run -p 3000:3000 hono-docker-example",
+    "build": "tsup src/index.ts --format esm --dts",
     "generate": "pnpm generate:spec && pnpm generate:client",
-    "generate:spec": "typi generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Docker Example API' --api-version '1.0.0'",
-    "generate:client": "typi generate-client --spec ./openapi.json --out ./src/api.generated.d.ts"
+    "generate:spec": "typi generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Fullstack Example API' --api-version '1.0.0'",
+    "generate:client": "typi generate-client --spec ./openapi.json --out ./src/api.generated.d.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",

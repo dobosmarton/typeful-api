@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createJiti } from 'jiti';
 import pc from 'picocolors';
 import { generateSpecJson, type ApiContract, type GenerateSpecOptions } from '@typi/core';
 
@@ -7,7 +8,7 @@ type GenerateSpecCommandOptions = {
   contract: string;
   out: string;
   title: string;
-  version: string;
+  apiVersion: string;
   description?: string;
   server?: string | string[];
   pretty: boolean;
@@ -16,7 +17,7 @@ type GenerateSpecCommandOptions = {
 
 /**
  * Load the API contract from a TypeScript/JavaScript file
- * This uses dynamic import and expects the contract to be a default or named export
+ * Uses jiti to handle TypeScript files at runtime without requiring pre-compilation
  */
 async function loadContract(contractPath: string): Promise<ApiContract> {
   const absolutePath = path.resolve(process.cwd(), contractPath);
@@ -27,39 +28,39 @@ async function loadContract(contractPath: string): Promise<ApiContract> {
   }
 
   try {
-    // For TypeScript files, we need to use a bundler/transpiler
-    // For now, we'll assume the file has been pre-compiled or is JavaScript
-    // In a real implementation, we'd use tsx, ts-node, or esbuild
+    // Use jiti to load TypeScript/ESM files at runtime
+    const jiti = createJiti(import.meta.url, {
+      interopDefault: true,
+      moduleCache: false, // Disable cache for watch mode support
+    });
 
-    // Try to dynamically import the module
-    const fileUrl = `file://${absolutePath}`;
-    const module = await import(fileUrl);
+    const module = await jiti.import(absolutePath);
 
     // Look for common export patterns
-    if (module.api) {
-      return module.api as ApiContract;
-    }
-    if (module.default) {
-      return module.default as ApiContract;
-    }
-    if (module.contract) {
-      return module.contract as ApiContract;
-    }
+    if (module && typeof module === 'object') {
+      const mod = module as Record<string, unknown>;
+      if (mod.api) {
+        return mod.api as ApiContract;
+      }
+      if (mod.default) {
+        return mod.default as ApiContract;
+      }
+      if (mod.contract) {
+        return mod.contract as ApiContract;
+      }
 
-    // If the module itself looks like a contract, return it
-    if (typeof module === 'object' && Object.keys(module).some(k => k.startsWith('v'))) {
-      return module as ApiContract;
+      // If the module itself looks like a contract, return it
+      if (Object.keys(mod).some((k) => k.startsWith('v'))) {
+        return mod as ApiContract;
+      }
     }
 
     throw new Error(
       'Could not find API contract export. Export it as "api", "contract", or default.',
     );
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Cannot use import')) {
-      throw new Error(
-        `Cannot load TypeScript file directly. Please compile to JavaScript first or use a TypeScript loader.\n` +
-        `Tip: You can use "tsx" to run TypeScript files: npx tsx yourscript.ts`,
-      );
+    if (error instanceof Error) {
+      throw new Error(`Failed to load contract: ${error.message}`);
     }
     throw error;
   }
@@ -81,7 +82,7 @@ export async function generateSpecCommand(options: GenerateSpecCommandOptions): 
     const specOptions: GenerateSpecOptions = {
       info: {
         title: options.title,
-        version: options.version,
+        version: options.apiVersion,
         description: options.description,
       },
     };

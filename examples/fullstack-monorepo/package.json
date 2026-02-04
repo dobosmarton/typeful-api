@@ -1,0 +1,18 @@
+{
+  "name": "fullstack-monorepo-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Fullstack monorepo example with React + TanStack Query using typi-generated types",
+  "type": "module",
+  "scripts": {
+    "dev:api": "pnpm --filter @example/api dev",
+    "dev:web": "pnpm --filter @example/web dev",
+    "dev": "pnpm dev:api & pnpm dev:web",
+    "build": "pnpm --filter @example/api build && pnpm --filter @example/web build",
+    "generate": "pnpm --filter @example/api generate && pnpm --filter @example/web generate",
+    "typecheck": "pnpm --filter @example/api typecheck && pnpm --filter @example/web typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

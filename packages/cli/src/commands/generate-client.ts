@@ -37,9 +37,11 @@ export async function generateClientCommand(
 
     // Dynamically import openapi-typescript
     let openapiTS: typeof import('openapi-typescript').default;
+    let astToString: typeof import('openapi-typescript').astToString;
     try {
       const module = await import('openapi-typescript');
       openapiTS = module.default;
+      astToString = module.astToString;
     } catch {
       throw new Error(
         'openapi-typescript is required for client generation. ' +
@@ -47,8 +49,9 @@ export async function generateClientCommand(
       );
     }
 
-    // Generate types
-    const output = await openapiTS(spec as Parameters<typeof openapiTS>[0]);
+    // Generate types (v7 returns AST nodes)
+    const ast = await openapiTS(spec as Parameters<typeof openapiTS>[0]);
+    const output = astToString(ast);
 
     // Ensure output directory exists
     const outDir = path.dirname(path.resolve(process.cwd(), options.out));
@@ -72,7 +75,8 @@ export async function generateClientCommand(
           try {
             const updatedSpecContent = fs.readFileSync(specPath, 'utf-8');
             const updatedSpec = JSON.parse(updatedSpecContent);
-            const updatedOutput = await openapiTS(updatedSpec);
+            const updatedAst = await openapiTS(updatedSpec);
+            const updatedOutput = astToString(updatedAst);
             fs.writeFileSync(outPath, updatedOutput, 'utf-8');
             console.log(pc.green(`✅ Types regenerated`));
           } catch (error) {

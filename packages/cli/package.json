@@ -30,6 +30,7 @@
   "dependencies": {
     "@typi/core": "workspace:*",
     "cac": "^6.7.14",
+    "jiti": "^2.4.2",
     "openapi-typescript": "^7.10.1",
     "picocolors": "^1.1.1"
   },

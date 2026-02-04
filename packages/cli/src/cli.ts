@@ -16,7 +16,7 @@ cli
     default: './openapi.json',
   })
   .option('--title <title>', 'API title', { default: 'API' })
-  .option('--version <version>', 'API version', { default: '1.0.0' })
+  .option('--api-version <version>', 'API version', { default: '1.0.0' })
   .option('--description <description>', 'API description')
   .option('--server <url>', 'Server URL (can be specified multiple times)')
   .option('--pretty', 'Pretty print the output', { default: true })

@@ -1,22 +1,22 @@
 /**
- * Hono Node.js Example
+ * Fullstack Monorepo API Server
  *
- * A complete example demonstrating typi with Hono on Node.js.
- * This example uses the simplified API without Cloudflare bindings.
+ * A Hono API server demonstrating typi with type-safe routes.
+ * This API serves as the backend for the React + TanStack Query frontend.
  *
- * Run with: npm run dev
+ * Run with: pnpm dev
  */
 
 import { serve } from '@hono/node-server';
-import { createHonoRouter, type SimpleEnv } from '@typi/hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { randomUUID } from 'node:crypto';
+import { createHonoRouter, type SimpleEnv } from '@typi/hono';
 import { api, type Product } from './api';
 
 // ============================================
-// Environment Type (simplified - no Bindings)
+// Environment Type
 // ============================================
 
 type AppVariables = {
@@ -32,7 +32,7 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'TypeScript Handbook',
     description: 'Complete guide to TypeScript',
-    price: 29.99,
+    price: 2999,
     inStock: true,
     createdAt: new Date().toISOString(),
   },
@@ -40,8 +40,16 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Node.js in Action',
     description: 'Learn Node.js the practical way',
-    price: 39.99,
+    price: 3999,
     inStock: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '550e8400-e29b-41d4-a716-446655440003',
+    name: 'React Patterns',
+    description: 'Advanced React design patterns',
+    price: 4499,
+    inStock: false,
     createdAt: new Date().toISOString(),
   },
 ];
@@ -50,7 +58,6 @@ const products: Product[] = [
 // Middleware
 // ============================================
 
-// Middleware to inject products "database" into context
 const productsMiddleware = async (
   c: { set: (key: string, value: unknown) => void },
   next: () => Promise<void>,
@@ -60,18 +67,16 @@ const productsMiddleware = async (
 };
 
 // ============================================
-// Router (using simplified API)
+// Router
 // ============================================
 
 const router = createHonoRouter<typeof api, AppVariables>(api, {
   v1: {
-    // Version-level routes
     health: async () => ({
       status: 'ok' as const,
       timestamp: new Date().toISOString(),
     }),
 
-    // Products group
     products: {
       middlewares: [productsMiddleware],
 
@@ -148,7 +153,13 @@ const app = new Hono<SimpleEnv<AppVariables>>();
 
 // Global middleware
 app.use('*', logger());
-app.use('*', cors());
+app.use(
+  '*',
+  cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+  }),
+);
 
 // Mount API router
 app.route('/api', router);
@@ -156,7 +167,7 @@ app.route('/api', router);
 // Root endpoint
 app.get('/', (c) => {
   return c.json({
-    name: 'Hono Node.js Example',
+    name: 'Fullstack Monorepo API',
     version: '1.0.0',
     docs: '/api/v1/health',
   });
@@ -169,7 +180,7 @@ app.get('/', (c) => {
 const port = Number(process.env.PORT) || 3000;
 
 serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`Server running at http://localhost:${info.port}`);
+  console.log(`API server running at http://localhost:${info.port}`);
   console.log(`Health check: http://localhost:${info.port}/api/v1/health`);
   console.log(`Products API: http://localhost:${info.port}/api/v1/products`);
 });
