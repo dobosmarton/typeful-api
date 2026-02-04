@@ -1,6 +1,6 @@
 {
   "name": "@typi/hono",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Hono adapter for typi - works on Node.js, Cloudflare Workers, Deno, Bun, and more",
   "type": "module",
   "main": "./dist/index.js",
@@ -54,7 +54,12 @@
     "deno",
     "bun"
   ],
+  "author": "Marton Dobos",
   "license": "MIT",
+  "homepage": "https://github.com/martondobos/typi#readme",
+  "bugs": {
+    "url": "https://github.com/martondobos/typi/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/martondobos/typi.git",

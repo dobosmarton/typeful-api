@@ -1,6 +1,6 @@
 {
   "name": "@typi/cli",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "CLI for generating OpenAPI specs and client types from typi contracts",
   "type": "module",
   "main": "./dist/index.js",
@@ -49,7 +49,12 @@
     "codegen",
     "typesafe"
   ],
+  "author": "Marton Dobos",
   "license": "MIT",
+  "homepage": "https://github.com/martondobos/typi#readme",
+  "bugs": {
+    "url": "https://github.com/martondobos/typi/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/martondobos/typi.git",

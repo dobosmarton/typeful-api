@@ -1,6 +1,6 @@
 {
   "name": "@typi/express",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Express adapter for typi",
   "type": "module",
   "main": "./dist/index.js",
@@ -48,7 +48,12 @@
     "api",
     "typesafe"
   ],
+  "author": "Marton Dobos",
   "license": "MIT",
+  "homepage": "https://github.com/martondobos/typi#readme",
+  "bugs": {
+    "url": "https://github.com/martondobos/typi/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/martondobos/typi.git",
