@@ -62,27 +62,27 @@ export const api = defineApi({
           list: route
             .get('/')
             .returns(z.array(ProductSchema))
-            .summary('List all products'),
+            .withSummary('List all products'),
 
           get: route
             .get('/:id')
             .params(IdParamsSchema)
             .returns(ProductSchema)
-            .summary('Get a product by ID'),
+            .withSummary('Get a product by ID'),
 
           create: route
             .post('/')
             .body(CreateProductSchema)
             .returns(ProductSchema)
-            .auth('bearer')
-            .summary('Create a new product'),
+            .withAuth('bearer')
+            .withSummary('Create a new product'),
 
           delete: route
             .delete('/:id')
             .params(IdParamsSchema)
             .returns(z.object({ success: z.boolean() }))
-            .auth('bearer')
-            .summary('Delete a product'),
+            .withAuth('bearer')
+            .withSummary('Delete a product'),
         },
       },
     },
@@ -153,22 +153,11 @@ export default app;
 
 ```bash
 # Using CLI
-npx @typi/cli generate-spec \
+typi generate-spec \
   --contract ./src/api.ts \
   --out ./openapi.json \
   --title "My API" \
-  --version "1.0.0"
-
-# Or programmatically
-import { generateSpec } from '@typi/cli';
-import { api } from './api';
-
-await generateSpec({
-  contract: api,
-  out: './openapi.json',
-  title: 'My API',
-  version: '1.0.0',
-});
+  --api-version "1.0.0"
 ```
 
 ## Framework Adapters
@@ -246,16 +235,16 @@ route
   .get('/search')
   .query(z.object({ q: z.string(), page: z.number().optional() }))
   .returns(SearchResultSchema)
-  .summary('Search products');
+  .withSummary('Search products');
 
 // POST request with body and auth
 route
   .post('/products')
   .body(CreateProductSchema)
   .returns(ProductSchema)
-  .auth('bearer')
-  .tags('products', 'write')
-  .summary('Create a product');
+  .withAuth('bearer')
+  .withTags('products', 'write')
+  .withSummary('Create a product');
 
 // With path params
 route
@@ -267,7 +256,7 @@ route
 route
   .get('/legacy/products')
   .returns(z.array(ProductSchema))
-  .deprecated();
+  .markDeprecated();
 ```
 
 ## API Versioning
@@ -325,7 +314,7 @@ typi generate-spec \
   --contract ./src/api.ts \
   --out ./openapi.json \
   --title "My API" \
-  --version "1.0.0" \
+  --api-version "1.0.0" \
   --server https://api.example.com
 
 # Generate TypeScript client types

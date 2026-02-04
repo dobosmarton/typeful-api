@@ -67,8 +67,8 @@ const createFinalRoute = <TBody, TQuery, TParams, TResponse>(
  *   .get('/users/:id')
  *   .params(z.object({ id: z.uuid() }))
  *   .returns(UserSchema)
- *   .auth('bearer')
- *   .summary('Get a user by ID');
+ *   .withAuth('bearer')
+ *   .withSummary('Get a user by ID');
  * ```
  */
 class RouteBuilder<
