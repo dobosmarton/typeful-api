@@ -6,7 +6,7 @@ import type {
   ApiContract,
   RouteDefinition,
   RouteGroup,
-} from '@typi/core';
+} from '@typefulapi/core';
 import type {
   CreateHonoRouterOptions,
   DefaultEnv,

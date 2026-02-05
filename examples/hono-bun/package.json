@@ -2,24 +2,24 @@
   "name": "hono-bun-example",
   "version": "0.0.1",
   "private": true,
-  "description": "Hono + Bun example using typi",
+  "description": "Hono + Bun example using typefulapi",
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "generate": "pnpm generate:spec && pnpm generate:client",
-    "generate:spec": "typi generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Bun Example API' --api-version '1.0.0'",
-    "generate:client": "typi generate-client --spec ./openapi.json --out ./src/api.generated.d.ts"
+    "generate:spec": "typefulapi generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Bun Example API' --api-version '1.0.0'",
+    "generate:client": "typefulapi generate-client --spec ./openapi.json --out ./src/api.generated.d.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.2.0",
-    "@typi/core": "workspace:*",
-    "@typi/hono": "workspace:*",
+    "@typefulapi/core": "workspace:*",
+    "@typefulapi/hono": "workspace:*",
     "hono": "^4.11.4",
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@typi/cli": "workspace:*",
+    "@typefulapi/cli": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.9.3"
   }

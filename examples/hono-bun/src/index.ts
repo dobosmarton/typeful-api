@@ -10,7 +10,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createHonoRouter, type SimpleEnv } from '@typi/hono';
+import { createHonoRouter, type SimpleEnv } from '@typefulapi/hono';
 import { api, type Product } from './api';
 
 // ============================================

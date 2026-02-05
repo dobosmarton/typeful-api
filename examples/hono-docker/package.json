@@ -2,7 +2,7 @@
   "name": "hono-docker-example",
   "version": "0.0.1",
   "private": true,
-  "description": "Hono + Docker example using typi",
+  "description": "Hono + Docker example using typefulapi",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -11,19 +11,19 @@
     "docker:build": "docker build -t hono-docker-example .",
     "docker:run": "docker run -p 3000:3000 hono-docker-example",
     "generate": "pnpm generate:spec && pnpm generate:client",
-    "generate:spec": "typi generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Docker Example API' --api-version '1.0.0'",
-    "generate:client": "typi generate-client --spec ./openapi.json --out ./src/api.generated.d.ts"
+    "generate:spec": "typefulapi generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Docker Example API' --api-version '1.0.0'",
+    "generate:client": "typefulapi generate-client --spec ./openapi.json --out ./src/api.generated.d.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
     "@hono/zod-openapi": "^1.2.0",
-    "@typi/core": "workspace:*",
-    "@typi/hono": "workspace:*",
+    "@typefulapi/core": "workspace:*",
+    "@typefulapi/hono": "workspace:*",
     "hono": "^4.11.4",
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@typi/cli": "workspace:*",
+    "@typefulapi/cli": "workspace:*",
     "@types/node": "^25.2.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",

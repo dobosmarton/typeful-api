@@ -8,7 +8,7 @@
  */
 
 import { serve } from '@hono/node-server';
-import { createHonoRouter, type SimpleEnv } from '@typi/hono';
+import { createHonoRouter, type SimpleEnv } from '@typefulapi/hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';

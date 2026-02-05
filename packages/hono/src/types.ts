@@ -7,7 +7,7 @@ import type {
   InferResponse,
   RouteDefinition,
   RouteGroup,
-} from '@typi/core';
+} from '@typefulapi/core';
 
 /**
  * Compose Hono environment types with additional variables

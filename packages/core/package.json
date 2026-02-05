@@ -1,5 +1,5 @@
 {
-  "name": "@typi/core",
+  "name": "@typefulapi/core",
   "version": "0.1.0",
   "description": "Framework-agnostic core for typesafe OpenAPI-first APIs",
   "type": "module",
@@ -47,13 +47,13 @@
   ],
   "author": "Marton Dobos",
   "license": "MIT",
-  "homepage": "https://github.com/martondobos/typi#readme",
+  "homepage": "https://github.com/dobosmarton/typefulapi#readme",
   "bugs": {
-    "url": "https://github.com/martondobos/typi/issues"
+    "url": "https://github.com/dobosmarton/typefulapi/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/martondobos/typi.git",
+    "url": "https://github.com/dobosmarton/typefulapi.git",
     "directory": "packages/core"
   }
 }

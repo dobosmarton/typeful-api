@@ -1,4 +1,4 @@
-# typi
+# typefulapi
 
 End-to-end type-safe OpenAPI-first APIs with minimal boilerplate.
 
@@ -20,24 +20,24 @@ Define your API contract once with Zod schemas, get full type inference for hand
 
 ```bash
 # Core package (required)
-pnpm add @typi/core zod
+pnpm add @typefulapi/core zod
 
 # Pick your framework adapter
-pnpm add @typi/hono hono @hono/zod-openapi
+pnpm add @typefulapi/hono hono @hono/zod-openapi
 # or
-pnpm add @typi/express express
+pnpm add @typefulapi/express express
 # or
-pnpm add @typi/fastify fastify
+pnpm add @typefulapi/fastify fastify
 
 # Optional: CLI for spec generation
-pnpm add -D @typi/cli
+pnpm add -D @typefulapi/cli
 ```
 
 ### 2. Define Your API Contract
 
 ```typescript
 // src/api.ts
-import { defineApi, route } from '@typi/core';
+import { defineApi, route } from '@typefulapi/core';
 import { z } from 'zod';
 
 // Define your schemas
@@ -95,7 +95,7 @@ export const api = defineApi({
 ```typescript
 // src/server.ts
 import { Hono } from 'hono';
-import { createHonoRouter } from '@typi/hono';
+import { createHonoRouter } from '@typefulapi/hono';
 import { api } from './api';
 
 // Define environment types
@@ -153,7 +153,7 @@ export default app;
 
 ```bash
 # Using CLI
-typi generate-spec \
+typefulapi generate-spec \
   --contract ./src/api.ts \
   --out ./openapi.json \
   --title "My API" \
@@ -165,7 +165,7 @@ typi generate-spec \
 ### Hono
 
 ```typescript
-import { createHonoRouter, WithVariables } from '@typi/hono';
+import { createHonoRouter, WithVariables } from '@typefulapi/hono';
 
 // Compose context types
 type BaseEnv = { Bindings: Env };
@@ -183,7 +183,7 @@ const router = createHonoRouter<typeof api, {
 ### Express
 
 ```typescript
-import { createExpressRouter, getLocals } from '@typi/express';
+import { createExpressRouter, getLocals } from '@typefulapi/express';
 
 const router = createExpressRouter(api, {
   v1: {
@@ -204,7 +204,7 @@ app.use('/api', router);
 ### Fastify
 
 ```typescript
-import { createFastifyPlugin, getLocals } from '@typi/fastify';
+import { createFastifyPlugin, getLocals } from '@typefulapi/fastify';
 
 fastify.register(
   createFastifyPlugin(api, {
@@ -227,7 +227,7 @@ fastify.register(
 The `route` builder provides a fluent API for defining routes:
 
 ```typescript
-import { route } from '@typi/core';
+import { route } from '@typefulapi/core';
 import { z } from 'zod';
 
 // GET request with query params
@@ -310,7 +310,7 @@ const router = createHonoRouter(api, {
 
 ```bash
 # Generate OpenAPI spec from contract
-typi generate-spec \
+typefulapi generate-spec \
   --contract ./src/api.ts \
   --out ./openapi.json \
   --title "My API" \
@@ -318,17 +318,17 @@ typi generate-spec \
   --server https://api.example.com
 
 # Generate TypeScript client types
-typi generate-client \
+typefulapi generate-client \
   --spec ./openapi.json \
   --out ./src/client.d.ts
 
 # Watch mode for development
-typi generate-spec --contract ./src/api.ts --watch
+typefulapi generate-spec --contract ./src/api.ts --watch
 ```
 
 ## Comparison
 
-| Feature | ts-rest | @hono/zod-openapi | Zodios | **typi** |
+| Feature | ts-rest | @hono/zod-openapi | Zodios | **typefulapi** |
 |---------|---------|-------------------|--------|------------------|
 | API Versioning | ❌ | ❌ | ❌ | ✅ First-class |
 | Handler Decoupling | Partial | ❌ | ❌ | ✅ Full |
@@ -341,11 +341,11 @@ typi generate-spec --contract ./src/api.ts --watch
 
 | Package | Description |
 |---------|-------------|
-| `@typi/core` | Framework-agnostic core with route builder and spec generation |
-| `@typi/hono` | Hono adapter with OpenAPI integration |
-| `@typi/express` | Express adapter with validation middleware |
-| `@typi/fastify` | Fastify adapter with preHandler hooks |
-| `@typi/cli` | CLI for spec and client generation |
+| `@typefulapi/core` | Framework-agnostic core with route builder and spec generation |
+| `@typefulapi/hono` | Hono adapter with OpenAPI integration |
+| `@typefulapi/express` | Express adapter with validation middleware |
+| `@typefulapi/fastify` | Fastify adapter with preHandler hooks |
+| `@typefulapi/cli` | CLI for spec and client generation |
 
 ## License
 

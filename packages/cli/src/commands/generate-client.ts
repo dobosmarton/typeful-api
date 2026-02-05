@@ -45,7 +45,7 @@ export async function generateClientCommand(
     } catch {
       throw new Error(
         'openapi-typescript is required for client generation. ' +
-        'It should be installed as a dependency of @typi/cli.',
+        'It should be installed as a dependency of @typefulapi/cli.',
       );
     }
 

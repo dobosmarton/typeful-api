@@ -6,7 +6,7 @@ import type {
   HttpMethod,
   RouteDefinition,
   RouteGroup,
-} from '@typi/core';
+} from '@typefulapi/core';
 import type {
   CreateExpressRouterOptions,
   ExpressHandler,
@@ -204,7 +204,7 @@ function applyGroupHandlers(
  * @example
  * ```ts
  * import express from 'express';
- * import { createExpressRouter } from '@typi/express';
+ * import { createExpressRouter } from '@typefulapi/express';
  * import { api } from './api';
  *
  * const router = createExpressRouter(api, {

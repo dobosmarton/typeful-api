@@ -1,11 +1,11 @@
 {
-  "name": "typi",
+  "name": "typefulapi",
   "version": "0.0.1",
   "private": true,
   "description": "End-to-end typesafe OpenAPI-first API framework",
   "repository": {
     "type": "git",
-    "url": "https://github.com/martondobos/typi.git"
+    "url": "https://github.com/dobosmarton/typefulapi.git"
   },
   "license": "MIT",
   "packageManager": "pnpm@10.28.2",

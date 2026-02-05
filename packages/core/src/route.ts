@@ -236,7 +236,7 @@ class RouteBuilder<
  *
  * @example
  * ```ts
- * import { route } from '@typi/core';
+ * import { route } from '@typefulapi/core';
  *
  * const listProducts = route.get('/products')
  *   .query(z.object({ page: z.number().optional() }))

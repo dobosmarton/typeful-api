@@ -1,5 +1,5 @@
 /**
- * @typi/cli
+ * @typefulapi/cli
  *
  * Command-line tool and programmatic API for generating OpenAPI specs
  * and TypeScript client types from typi contracts.
@@ -8,19 +8,19 @@
  *
  * ```bash
  * # Generate OpenAPI spec from contract
- * npx @typi/cli generate-spec --contract ./src/api.ts --out ./openapi.json
+ * npx @typefulapi/cli generate-spec --contract ./src/api.ts --out ./openapi.json
  *
  * # Generate TypeScript client types from spec
- * npx @typi/cli generate-client --spec ./openapi.json --out ./src/client.d.ts
+ * npx @typefulapi/cli generate-client --spec ./openapi.json --out ./src/client.d.ts
  *
  * # Watch mode for development
- * npx @typi/cli generate-spec --contract ./src/api.ts --watch
+ * npx @typefulapi/cli generate-spec --contract ./src/api.ts --watch
  * ```
  *
  * ## Programmatic Usage
  *
  * ```ts
- * import { generateSpec, generateClient } from '@typi/cli';
+ * import { generateSpec, generateClient } from '@typefulapi/cli';
  *
  * // Generate spec programmatically
  * await generateSpec({
@@ -46,7 +46,7 @@ import {
   generateSpecJson,
   type ApiContract,
   type GenerateSpecOptions,
-} from '@typi/core';
+} from '@typefulapi/core';
 
 export type GenerateSpecProgrammaticOptions = {
   /**
@@ -103,7 +103,7 @@ export type GenerateClientProgrammaticOptions = {
  *
  * @example
  * ```ts
- * import { generateSpec } from '@typi/cli';
+ * import { generateSpec } from '@typefulapi/cli';
  * import { api } from './api';
  *
  * await generateSpec({
@@ -155,7 +155,7 @@ export async function generateSpec(
  *
  * @example
  * ```ts
- * import { generateClient } from '@typi/cli';
+ * import { generateClient } from '@typefulapi/cli';
  *
  * await generateClient({
  *   spec: './openapi.json',
@@ -206,5 +206,5 @@ export async function generateClient(
 }
 
 // Re-export core functions that are useful for CLI scripts
-export { generateSpecJson } from '@typi/core';
-export type { ApiContract, GenerateSpecOptions } from '@typi/core';
+export { generateSpecJson } from '@typefulapi/core';
+export type { ApiContract, GenerateSpecOptions } from '@typefulapi/core';

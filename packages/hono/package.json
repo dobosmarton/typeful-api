@@ -1,7 +1,7 @@
 {
-  "name": "@typi/hono",
+  "name": "@typefulapi/hono",
   "version": "0.1.0",
-  "description": "Hono adapter for typi - works on Node.js, Cloudflare Workers, Deno, Bun, and more",
+  "description": "Hono adapter for typefulapi - works on Node.js, Cloudflare Workers, Deno, Bun, and more",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.2.0",
-    "@typi/core": "workspace:*"
+    "@typefulapi/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
@@ -56,13 +56,13 @@
   ],
   "author": "Marton Dobos",
   "license": "MIT",
-  "homepage": "https://github.com/martondobos/typi#readme",
+  "homepage": "https://github.com/dobosmarton/typefulapi#readme",
   "bugs": {
-    "url": "https://github.com/martondobos/typi/issues"
+    "url": "https://github.com/dobosmarton/typefulapi/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/martondobos/typi.git",
+    "url": "https://github.com/dobosmarton/typefulapi.git",
     "directory": "packages/hono"
   }
 }

@@ -13,7 +13,7 @@ import type {
   InferResponse,
   RouteDefinition,
   RouteGroup,
-} from '@typi/core';
+} from '@typefulapi/core';
 
 /**
  * Typed Fastify request with inferred body, query, and params

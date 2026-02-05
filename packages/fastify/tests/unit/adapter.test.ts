@@ -1,5 +1,5 @@
-import type { ApiContract } from '@typi/core';
-import { route } from '@typi/core';
+import type { ApiContract } from '@typefulapi/core';
+import { route } from '@typefulapi/core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';

@@ -12,7 +12,7 @@ import type {
   HttpMethod,
   RouteDefinition,
   RouteGroup,
-} from '@typi/core';
+} from '@typefulapi/core';
 import type {
   CreateFastifyPluginOptions,
   FastifyHandler,
@@ -181,7 +181,7 @@ function registerGroupRoutes(
  * @example
  * ```ts
  * import Fastify from 'fastify';
- * import { createFastifyPlugin } from '@typi/fastify';
+ * import { createFastifyPlugin } from '@typefulapi/fastify';
  * import { api } from './api';
  *
  * const fastify = Fastify();

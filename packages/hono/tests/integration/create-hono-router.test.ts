@@ -18,7 +18,7 @@ import {
   UserSchema,
 } from '../fixtures/schemas';
 import { z } from 'zod';
-import type { ApiContract } from '@typi/core';
+import type { ApiContract } from '@typefulapi/core';
 
 describe('createHonoRouter', () => {
   describe('basic functionality', () => {

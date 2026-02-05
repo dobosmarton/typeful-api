@@ -1,5 +1,5 @@
 /**
- * @typi/core
+ * @typefulapi/core
  *
  * Framework-agnostic core library for building type-safe OpenAPI-first APIs.
  * Define your API contract once with Zod schemas, get full type inference
@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { defineApi, route, generateSpec } from '@typi/core';
+ * import { defineApi, route, generateSpec } from '@typefulapi/core';
  * import { z } from 'zod';
  *
  * // Define schemas

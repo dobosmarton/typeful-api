@@ -1,4 +1,4 @@
-import type { ApiContract } from '@typi/core';
+import type { ApiContract } from '@typefulapi/core';
 import {
   ProductSchema,
   CreateProductSchema,
