@@ -229,12 +229,7 @@ export function createExpressRouter<C extends ApiContract>(
   options: CreateExpressRouterOptions = {},
 ): Router {
   const router = createRouter();
-  const {
-    middleware = [],
-    registerDocs = true,
-    docsPath = '/api-doc',
-    docsConfig,
-  } = options;
+  const { middleware = [], registerDocs = true, docsPath = '/api-doc', docsConfig } = options;
 
   // Apply global middleware
   if (middleware.length > 0) {

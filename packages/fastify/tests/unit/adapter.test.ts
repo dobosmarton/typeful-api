@@ -691,9 +691,7 @@ describe('createFastifyPlugin', () => {
       await (plugin as Function)(mockFastify, {});
 
       // Check that a GET route was registered at /api-doc
-      const docsRoute = mockFastify._routes.find(
-        (r) => r.url === '/api-doc' && r.method === 'GET',
-      );
+      const docsRoute = mockFastify._routes.find((r) => r.url === '/api-doc' && r.method === 'GET');
       expect(docsRoute).toBeDefined();
     });
 
@@ -747,9 +745,7 @@ describe('createFastifyPlugin', () => {
       const mockFastify = createMockFastify();
       await (plugin as Function)(mockFastify, {});
 
-      const docsRoute = mockFastify._routes.find(
-        (r) => r.url === '/api-doc' && r.method === 'GET',
-      );
+      const docsRoute = mockFastify._routes.find((r) => r.url === '/api-doc' && r.method === 'GET');
       expect(docsRoute).toBeUndefined();
     });
 
@@ -771,9 +767,7 @@ describe('createFastifyPlugin', () => {
       const mockFastify = createMockFastify();
       await (plugin as Function)(mockFastify, {});
 
-      const docsRoute = mockFastify._routes.find(
-        (r) => r.url === '/api-doc' && r.method === 'GET',
-      );
+      const docsRoute = mockFastify._routes.find((r) => r.url === '/api-doc' && r.method === 'GET');
       expect(docsRoute).toBeDefined();
 
       // Call the handler and check the response
@@ -822,9 +816,7 @@ describe('createFastifyPlugin', () => {
       const mockFastify = createMockFastify();
       await (plugin as Function)(mockFastify, {});
 
-      const docsRoute = mockFastify._routes.find(
-        (r) => r.url === '/api-doc' && r.method === 'GET',
-      );
+      const docsRoute = mockFastify._routes.find((r) => r.url === '/api-doc' && r.method === 'GET');
       const mockReply = createMockReply();
       await docsRoute!.handler(createMockRequest(), mockReply);
 

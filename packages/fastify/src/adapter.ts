@@ -196,11 +196,7 @@ export function createFastifyPlugin<C extends ApiContract>(
   handlers: InferFastifyHandlers<C>,
   options: CreateFastifyPluginOptions = {},
 ): FastifyPluginCallback {
-  const {
-    registerDocs = true,
-    docsPath = '/api-doc',
-    docsConfig,
-  } = options;
+  const { registerDocs = true, docsPath = '/api-doc', docsConfig } = options;
 
   const plugin: FastifyPluginCallback = async (fastify, _opts) => {
     // Apply global preHandler
