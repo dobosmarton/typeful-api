@@ -1,5 +1,5 @@
 /**
- * @typefulapi/express
+ * @typeful-api/express
  *
  * Express adapter for typi. Creates fully typed Express routers
  * from API contracts with automatic request validation.
@@ -7,7 +7,7 @@
  * @example
  * ```ts
  * import express from 'express';
- * import { createExpressRouter } from '@typefulapi/express';
+ * import { createExpressRouter } from '@typeful-api/express';
  * import { api } from './api';
  *
  * // Create router with fully typed handlers
@@ -76,4 +76,4 @@ export type {
 } from './types';
 
 // Re-export core types for convenience
-export type { ApiContract, RouteDefinition, RouteGroup } from '@typefulapi/core';
+export type { ApiContract, RouteDefinition, RouteGroup } from '@typeful-api/core';

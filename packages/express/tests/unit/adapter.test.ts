@@ -1,5 +1,5 @@
-import type { ApiContract } from '@typefulapi/core';
-import { route } from '@typefulapi/core';
+import type { ApiContract } from '@typeful-api/core';
+import { route } from '@typeful-api/core';
 import type { Request, RequestHandler, Response, Router } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';

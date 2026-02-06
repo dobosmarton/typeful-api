@@ -1,7 +1,7 @@
 /**
  * Fastify Auth Example
  *
- * A complete example demonstrating typefulapi with Fastify.
+ * A complete example demonstrating typeful-api with Fastify.
  * This example includes:
  * - Type-safe route handlers
  * - Request validation via preHandlers
@@ -13,7 +13,7 @@
 
 import Fastify from 'fastify';
 import { randomUUID } from 'node:crypto';
-import { createFastifyPlugin } from '@typefulapi/fastify';
+import { createFastifyPlugin } from '@typeful-api/fastify';
 import { api, type Product } from './api';
 
 // ============================================

@@ -11,7 +11,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createHonoRouter, type WithVariables } from '@typefulapi/hono';
+import { createHonoRouter, type WithVariables } from '@typeful-api/hono';
 import { api, type Product } from './api';
 
 // ============================================

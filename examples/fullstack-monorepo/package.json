@@ -2,7 +2,7 @@
   "name": "fullstack-monorepo-example",
   "version": "0.0.1",
   "private": true,
-  "description": "Fullstack monorepo example with React + TanStack Query using typefulapi-generated types",
+  "description": "Fullstack monorepo example with React + TanStack Query using typeful-api-generated types",
   "type": "module",
   "scripts": {
     "dev:api": "pnpm --filter @example/api dev",

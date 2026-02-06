@@ -43,7 +43,7 @@ export async function generateClientCommand(options: GenerateClientCommandOption
     } catch {
       throw new Error(
         'openapi-typescript is required for client generation. ' +
-          'It should be installed as a dependency of @typefulapi/cli.',
+          'It should be installed as a dependency of @typeful-api/cli.',
       );
     }
 

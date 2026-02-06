@@ -7,7 +7,7 @@ import type {
   InferResponse,
   RouteDefinition,
   RouteGroup,
-} from '@typefulapi/core';
+} from '@typeful-api/core';
 
 /**
  * Extended Express Request with typed body, query, and params

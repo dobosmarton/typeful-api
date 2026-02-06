@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
 import { __testing } from '../../src/adapter';
-import type { RouteDefinition } from '@typefulapi/core';
+import type { RouteDefinition } from '@typeful-api/core';
 import {
   ProductSchema,
   CreateProductSchema,

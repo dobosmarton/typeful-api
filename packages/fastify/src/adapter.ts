@@ -7,8 +7,8 @@ import type {
   preHandlerAsyncHookHandler,
 } from 'fastify';
 import type { ZodType, ZodError } from 'zod';
-import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typefulapi/core';
-import { generateSpec } from '@typefulapi/core';
+import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typeful-api/core';
+import { generateSpec } from '@typeful-api/core';
 import type { CreateFastifyPluginOptions, FastifyHandler, InferFastifyHandlers } from './types';
 
 /**
@@ -159,7 +159,7 @@ function registerGroupRoutes(
  * @example
  * ```ts
  * import Fastify from 'fastify';
- * import { createFastifyPlugin } from '@typefulapi/fastify';
+ * import { createFastifyPlugin } from '@typeful-api/fastify';
  * import { api } from './api';
  *
  * const fastify = Fastify();

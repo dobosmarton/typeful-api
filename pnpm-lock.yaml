@@ -29,10 +29,10 @@ importers:
 
   examples/express-crud:
     dependencies:
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@typefulapi/express':
+      '@typeful-api/express':
         specifier: workspace:*
         version: link:../../packages/express
       express:
@@ -60,10 +60,10 @@ importers:
 
   examples/fastify-auth:
     dependencies:
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@typefulapi/fastify':
+      '@typeful-api/fastify':
         specifier: workspace:*
         version: link:../../packages/fastify
       fastify:
@@ -103,10 +103,10 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.2.0
         version: 1.2.1(hono@4.11.7)(zod@4.3.6)
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../../../../packages/core
-      '@typefulapi/hono':
+      '@typeful-api/hono':
         specifier: workspace:*
         version: link:../../../../packages/hono
       hono:
@@ -116,7 +116,7 @@ importers:
         specifier: ^4.3.5
         version: 4.3.6
     devDependencies:
-      '@typefulapi/cli':
+      '@typeful-api/cli':
         specifier: workspace:*
         version: link:../../../../packages/cli
       '@types/node':
@@ -168,10 +168,10 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.2.0
         version: 1.2.1(hono@4.11.7)(zod@4.3.6)
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@typefulapi/hono':
+      '@typeful-api/hono':
         specifier: workspace:*
         version: link:../../packages/hono
       hono:
@@ -181,7 +181,7 @@ importers:
         specifier: ^4.3.5
         version: 4.3.6
     devDependencies:
-      '@typefulapi/cli':
+      '@typeful-api/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/bun':
@@ -196,10 +196,10 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.2.0
         version: 1.2.1(hono@4.11.7)(zod@4.3.6)
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@typefulapi/hono':
+      '@typeful-api/hono':
         specifier: workspace:*
         version: link:../../packages/hono
       hono:
@@ -212,7 +212,7 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260116.0
         version: 4.20260131.0
-      '@typefulapi/cli':
+      '@typeful-api/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       typescript:
@@ -230,10 +230,10 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.2.0
         version: 1.2.1(hono@4.11.7)(zod@4.3.6)
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@typefulapi/hono':
+      '@typeful-api/hono':
         specifier: workspace:*
         version: link:../../packages/hono
       hono:
@@ -243,7 +243,7 @@ importers:
         specifier: ^4.3.5
         version: 4.3.6
     devDependencies:
-      '@typefulapi/cli':
+      '@typeful-api/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/node':
@@ -267,10 +267,10 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.2.0
         version: 1.2.1(hono@4.11.7)(zod@4.3.6)
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@typefulapi/hono':
+      '@typeful-api/hono':
         specifier: workspace:*
         version: link:../../packages/hono
       hono:
@@ -280,7 +280,7 @@ importers:
         specifier: ^4.3.5
         version: 4.3.6
     devDependencies:
-      '@typefulapi/cli':
+      '@typeful-api/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/node':
@@ -298,7 +298,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../core
       cac:
@@ -357,7 +357,7 @@ importers:
 
   packages/express:
     dependencies:
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -388,7 +388,7 @@ importers:
 
   packages/fastify:
     dependencies:
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -419,7 +419,7 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.2.0
         version: 1.2.1(hono@4.11.7)(zod@4.3.6)
-      '@typefulapi/core':
+      '@typeful-api/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createJiti } from 'jiti';
 import pc from 'picocolors';
-import { generateSpecJson, type ApiContract, type GenerateSpecOptions } from '@typefulapi/core';
+import { generateSpecJson, type ApiContract, type GenerateSpecOptions } from '@typeful-api/core';
 
 type GenerateSpecCommandOptions = {
   contract: string;

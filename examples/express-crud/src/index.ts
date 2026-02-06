@@ -1,7 +1,7 @@
 /**
  * Express CRUD Example
  *
- * A complete example demonstrating typefulapi with Express.
+ * A complete example demonstrating typeful-api with Express.
  * This example includes:
  * - Type-safe route handlers
  * - Request validation
@@ -13,7 +13,7 @@
 
 import express from 'express';
 import { randomUUID } from 'node:crypto';
-import { createExpressRouter } from '@typefulapi/express';
+import { createExpressRouter } from '@typeful-api/express';
 import { api, type Product } from './api';
 
 // ============================================

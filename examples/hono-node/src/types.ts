@@ -8,7 +8,7 @@
  * Pattern: contract → InferHonoHandlersWithVars → index by path → handler type
  */
 
-import type { InferHonoHandlersWithVars, SimpleEnv } from '@typefulapi/hono';
+import type { InferHonoHandlersWithVars, SimpleEnv } from '@typeful-api/hono';
 import type { Product } from './api';
 import type { api } from './api';
 

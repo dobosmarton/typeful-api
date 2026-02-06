@@ -1,5 +1,5 @@
 /**
- * @typefulapi/hono
+ * @typeful-api/hono
  *
  * Hono adapter for typi. Creates fully typed Hono routers
  * from API contracts with automatic OpenAPI integration.
@@ -9,7 +9,7 @@
  * @example Simple mode (Node.js, Bun, Deno)
  * ```ts
  * import { serve } from '@hono/node-server';
- * import { createHonoRouter } from '@typefulapi/hono';
+ * import { createHonoRouter } from '@typeful-api/hono';
  * import { api } from './api';
  *
  * const router = createHonoRouter(api, {
@@ -96,4 +96,4 @@ export type {
 } from './types';
 
 // Re-export core types for convenience
-export type { ApiContract, RouteDefinition, RouteGroup } from '@typefulapi/core';
+export type { ApiContract, RouteDefinition, RouteGroup } from '@typeful-api/core';

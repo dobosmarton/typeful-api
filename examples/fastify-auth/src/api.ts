@@ -8,7 +8,7 @@
  * - Handler type inference
  */
 
-import { defineApi, route } from '@typefulapi/core';
+import { defineApi, route } from '@typeful-api/core';
 import { z } from 'zod';
 
 // ============================================

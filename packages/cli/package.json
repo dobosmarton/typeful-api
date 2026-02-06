@@ -1,13 +1,13 @@
 {
-  "name": "@typefulapi/cli",
+  "name": "@typeful-api/cli",
   "version": "0.1.0",
-  "description": "CLI for generating OpenAPI specs and client types from typefulapi contracts",
+  "description": "CLI for generating OpenAPI specs and client types from typeful-api contracts",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "typefulapi": "./dist/cli.js"
+    "typeful-api": "./dist/cli.js"
   },
   "exports": {
     ".": {
@@ -28,7 +28,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@typefulapi/core": "workspace:*",
+    "@typeful-api/core": "workspace:*",
     "cac": "^6.7.14",
     "jiti": "^2.4.2",
     "openapi-typescript": "^7.10.1",
@@ -51,13 +51,13 @@
   ],
   "author": "Marton Dobos",
   "license": "MIT",
-  "homepage": "https://github.com/dobosmarton/typefulapi#readme",
+  "homepage": "https://github.com/dobosmarton/typeful-api#readme",
   "bugs": {
-    "url": "https://github.com/dobosmarton/typefulapi/issues"
+    "url": "https://github.com/dobosmarton/typeful-api/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dobosmarton/typefulapi.git",
+    "url": "https://github.com/dobosmarton/typeful-api.git",
     "directory": "packages/cli"
   }
 }

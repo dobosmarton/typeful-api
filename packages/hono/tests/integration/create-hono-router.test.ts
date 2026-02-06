@@ -1,4 +1,4 @@
-import type { ApiContract } from '@typefulapi/core';
+import type { ApiContract } from '@typeful-api/core';
 import type { MiddlewareHandler } from 'hono';
 import { describe, expect, it } from 'vitest';
 import { createHonoRouter } from '../../src/adapter';

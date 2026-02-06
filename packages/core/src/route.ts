@@ -229,7 +229,7 @@ class RouteBuilder<TBody = never, TQuery = never, TParams = never, TResponse = n
  *
  * @example
  * ```ts
- * import { route } from '@typefulapi/core';
+ * import { route } from '@typeful-api/core';
  *
  * const listProducts = route.get('/products')
  *   .query(z.object({ page: z.number().optional() }))

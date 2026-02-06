@@ -1,6 +1,6 @@
-# typefulapi
+# typeful-api
 
-[![npm version](https://img.shields.io/npm/v/@typefulapi/core.svg)](https://www.npmjs.com/package/@typefulapi/core)
+[![npm version](https://img.shields.io/npm/v/@typeful-api/core.svg)](https://www.npmjs.com/package/@typeful-api/core)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -47,17 +47,17 @@ Define your API contract once with Zod schemas, get full type inference for hand
 
 ```bash
 # Core package (required)
-pnpm add @typefulapi/core zod
+pnpm add @typeful-api/core zod
 
 # Pick your framework adapter
-pnpm add @typefulapi/hono hono @hono/zod-openapi
+pnpm add @typeful-api/hono hono @hono/zod-openapi
 # or
-pnpm add @typefulapi/express express
+pnpm add @typeful-api/express express
 # or
-pnpm add @typefulapi/fastify fastify
+pnpm add @typeful-api/fastify fastify
 
 # Optional: CLI for spec generation
-pnpm add -D @typefulapi/cli
+pnpm add -D @typeful-api/cli
 ```
 
 ### 2. Minimal Example
@@ -66,7 +66,7 @@ Here's the simplest possible API to get started:
 
 ```typescript
 // src/api.ts
-import { defineApi, route } from '@typefulapi/core';
+import { defineApi, route } from '@typeful-api/core';
 import { z } from 'zod';
 
 export const api = defineApi({
@@ -88,7 +88,7 @@ export const api = defineApi({
 ```typescript
 // src/server.ts
 import { Hono } from 'hono';
-import { createHonoRouter } from '@typefulapi/hono';
+import { createHonoRouter } from '@typeful-api/hono';
 import { api } from './api';
 
 const router = createHonoRouter(api, {
@@ -113,7 +113,7 @@ For a more complete example with schemas, params, and authentication:
 
 ```typescript
 // src/api.ts
-import { defineApi, route } from '@typefulapi/core';
+import { defineApi, route } from '@typeful-api/core';
 import { z } from 'zod';
 
 // Define your schemas
@@ -168,7 +168,7 @@ export const api = defineApi({
 ```typescript
 // src/server.ts
 import { Hono, HTTPException } from 'hono';
-import { createHonoRouter } from '@typefulapi/hono';
+import { createHonoRouter } from '@typeful-api/hono';
 import { api } from './api';
 
 // Define environment types
@@ -224,11 +224,11 @@ export default app;
 
 ### 5. Handlers in Separate Files
 
-As your API grows, you'll want handlers in their own files. typefulapi makes this easy — derive handler types from the contract and use them to type standalone functions:
+As your API grows, you'll want handlers in their own files. typeful-api makes this easy — derive handler types from the contract and use them to type standalone functions:
 
 ```typescript
 // src/types.ts — derive handler types from the contract
-import type { InferHonoHandlersWithVars } from '@typefulapi/hono';
+import type { InferHonoHandlersWithVars } from '@typeful-api/hono';
 import type { api } from './api';
 
 type AppHandlers = InferHonoHandlersWithVars<typeof api, { db: Database }>;
@@ -261,7 +261,7 @@ export const create: ProductHandlers['create'] = async ({ c, body }) => {
 
 ```typescript
 // src/server.ts — import and wire up
-import { createHonoRouter } from '@typefulapi/hono';
+import { createHonoRouter } from '@typeful-api/hono';
 import { api } from './api';
 import * as products from './handlers/products';
 
@@ -303,7 +303,7 @@ Your API is now available at:
 
 ```bash
 # Using CLI
-typefulapi generate-spec \
+typeful-api generate-spec \
   --contract ./src/api.ts \
   --out ./openapi.json \
   --title "My API" \
@@ -315,7 +315,7 @@ typefulapi generate-spec \
 ### Hono
 
 ```typescript
-import { createHonoRouter, WithVariables } from '@typefulapi/hono';
+import { createHonoRouter, WithVariables } from '@typeful-api/hono';
 
 // Compose context types
 type BaseEnv = { Bindings: Env };
@@ -336,7 +336,7 @@ const router = createHonoRouter<
 ### Express
 
 ```typescript
-import { createExpressRouter, getLocals } from '@typefulapi/express';
+import { createExpressRouter, getLocals } from '@typeful-api/express';
 
 const router = createExpressRouter(api, {
   v1: {
@@ -357,7 +357,7 @@ app.use('/api', router);
 ### Fastify
 
 ```typescript
-import { createFastifyPlugin, getLocals } from '@typefulapi/fastify';
+import { createFastifyPlugin, getLocals } from '@typeful-api/fastify';
 
 fastify.register(
   createFastifyPlugin(api, {
@@ -380,7 +380,7 @@ fastify.register(
 The `route` builder provides a fluent API for defining routes:
 
 ```typescript
-import { route } from '@typefulapi/core';
+import { route } from '@typeful-api/core';
 import { z } from 'zod';
 
 // GET request with query params
@@ -458,7 +458,7 @@ const router = createHonoRouter(api, {
 
 ## Error Handling
 
-typefulapi automatically validates requests against your Zod schemas. Invalid requests return a `400 Bad Request` with validation details.
+typeful-api automatically validates requests against your Zod schemas. Invalid requests return a `400 Bad Request` with validation details.
 
 ### Validation Errors
 
@@ -564,7 +564,7 @@ These map to OpenAPI security schemes in the generated spec.
 
 ```bash
 # Generate OpenAPI spec from contract
-typefulapi generate-spec \
+typeful-api generate-spec \
   --contract ./src/api.ts \
   --out ./openapi.json \
   --title "My API" \
@@ -572,17 +572,17 @@ typefulapi generate-spec \
   --server https://api.example.com
 
 # Generate TypeScript client types
-typefulapi generate-client \
+typeful-api generate-client \
   --spec ./openapi.json \
   --out ./src/client.d.ts
 
 # Watch mode for development
-typefulapi generate-spec --contract ./src/api.ts --watch
+typeful-api generate-spec --contract ./src/api.ts --watch
 ```
 
 ## Comparison
 
-|                             | **typefulapi**          | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                    |
+|                             | \*\*typeful-api\*\*          | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                    |
 | --------------------------- | ----------------------- | --------------------------------- | -------------------- | --------------------------------- | ------------------------- |
 | **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                  | Server-first              |
 | **Validation**              | Zod                     | Zod / Valibot                     | Zod                  | Any (Zod common)                  | TypeBox / Standard Schema |
@@ -597,25 +597,25 @@ typefulapi generate-spec --contract ./src/api.ts --watch
 **How they differ:**
 
 - **tRPC** is the most popular option for TypeScript monorepos, but uses a custom RPC protocol — not REST. If you need standard OpenAPI specs or non-TypeScript clients, tRPC requires third-party addons.
-- **ts-rest** is the closest alternative to typefulapi. It shares the contract-first Zod approach but lacks built-in API versioning and hierarchical middleware.
-- **@hono/zod-openapi** is excellent if you're committed to Hono. typefulapi builds on top of it for Hono and extends the same ideas to Express and Fastify.
+- **ts-rest** is the closest alternative to typeful-api. It shares the contract-first Zod approach but lacks built-in API versioning and hierarchical middleware.
+- **@hono/zod-openapi** is excellent if you're committed to Hono. typeful-api builds on top of it for Hono and extends the same ideas to Express and Fastify.
 - **Elysia** is a fast full framework with great DX, but locked to Bun and not contract-first.
 
 ## Packages
 
 | Package               | Description                                                    |
 | --------------------- | -------------------------------------------------------------- |
-| `@typefulapi/core`    | Framework-agnostic core with route builder and spec generation |
-| `@typefulapi/hono`    | Hono adapter with OpenAPI integration                          |
-| `@typefulapi/express` | Express adapter with validation middleware                     |
-| `@typefulapi/fastify` | Fastify adapter with preHandler hooks                          |
-| `@typefulapi/cli`     | CLI for spec and client generation                             |
+| `@typeful-api/core`    | Framework-agnostic core with route builder and spec generation |
+| `@typeful-api/hono`    | Hono adapter with OpenAPI integration                          |
+| `@typeful-api/express` | Express adapter with validation middleware                     |
+| `@typeful-api/fastify` | Fastify adapter with preHandler hooks                          |
+| `@typeful-api/cli`     | CLI for spec and client generation                             |
 
 ## Resources
 
-- [Examples](https://github.com/dobosmarton/typefulapi/tree/main/examples) - Full working examples for each framework
-- [GitHub Issues](https://github.com/dobosmarton/typefulapi/issues) - Report bugs or request features
-- [Changelog](https://github.com/dobosmarton/typefulapi/blob/main/CHANGELOG.md) - Version history and updates
+- [Examples](https://github.com/dobosmarton/typeful-api/tree/main/examples) - Full working examples for each framework
+- [GitHub Issues](https://github.com/dobosmarton/typeful-api/issues) - Report bugs or request features
+- [Changelog](https://github.com/dobosmarton/typeful-api/blob/main/CHANGELOG.md) - Version history and updates
 
 ## License
 

@@ -1,5 +1,5 @@
 /**
- * @typefulapi/fastify
+ * @typeful-api/fastify
  *
  * Fastify adapter for typi. Creates fully typed Fastify plugins
  * from API contracts with automatic request validation via preHandlers.
@@ -7,7 +7,7 @@
  * @example
  * ```ts
  * import Fastify from 'fastify';
- * import { createFastifyPlugin, getLocals, mergeLocals } from '@typefulapi/fastify';
+ * import { createFastifyPlugin, getLocals, mergeLocals } from '@typeful-api/fastify';
  * import { api } from './api';
  *
  * const fastify = Fastify({ logger: true });
@@ -84,4 +84,4 @@ export type {
 } from './types';
 
 // Re-export core types for convenience
-export type { ApiContract, RouteDefinition, RouteGroup } from '@typefulapi/core';
+export type { ApiContract, RouteDefinition, RouteGroup } from '@typeful-api/core';

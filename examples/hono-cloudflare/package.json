@@ -2,25 +2,25 @@
   "name": "hono-cloudflare-example",
   "version": "0.0.1",
   "private": true,
-  "description": "Hono + Cloudflare Workers example using typefulapi",
+  "description": "Hono + Cloudflare Workers example using typeful-api",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev src/index.ts",
     "build": "wrangler deploy --dry-run",
     "generate": "pnpm generate:spec && pnpm generate:client",
-    "generate:spec": "typefulapi generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Cloudflare Example API' --api-version '1.0.0'",
-    "generate:client": "typefulapi generate-client --spec ./openapi.json --out ./src/api.generated.d.ts"
+    "generate:spec": "typeful-api generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Cloudflare Example API' --api-version '1.0.0'",
+    "generate:client": "typeful-api generate-client --spec ./openapi.json --out ./src/api.generated.d.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.2.0",
-    "@typefulapi/core": "workspace:*",
-    "@typefulapi/hono": "workspace:*",
+    "@typeful-api/core": "workspace:*",
+    "@typeful-api/hono": "workspace:*",
     "hono": "^4.11.4",
     "zod": "^4.3.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260116.0",
-    "@typefulapi/cli": "workspace:*",
+    "@typeful-api/cli": "workspace:*",
     "typescript": "^5.9.3",
     "wrangler": "^4.59.2"
   }

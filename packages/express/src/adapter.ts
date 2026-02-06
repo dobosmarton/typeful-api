@@ -1,5 +1,5 @@
-import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typefulapi/core';
-import { generateSpec } from '@typefulapi/core';
+import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typeful-api/core';
+import { generateSpec } from '@typeful-api/core';
 import type { NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { Router as createRouter } from 'express';
 import type { ZodError } from 'zod';
@@ -194,7 +194,7 @@ function applyGroupHandlers(
  * @example
  * ```ts
  * import express from 'express';
- * import { createExpressRouter } from '@typefulapi/express';
+ * import { createExpressRouter } from '@typeful-api/express';
  * import { api } from './api';
  *
  * const router = createExpressRouter(api, {

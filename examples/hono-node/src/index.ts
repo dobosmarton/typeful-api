@@ -10,7 +10,7 @@
  */
 
 import { serve } from '@hono/node-server';
-import { createHonoRouter } from '@typefulapi/hono';
+import { createHonoRouter } from '@typeful-api/hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';

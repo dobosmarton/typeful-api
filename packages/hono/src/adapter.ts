@@ -1,6 +1,6 @@
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
 import { OpenAPIHono } from '@hono/zod-openapi';
-import type { ApiContract, RouteDefinition, RouteGroup } from '@typefulapi/core';
+import type { ApiContract, RouteDefinition, RouteGroup } from '@typeful-api/core';
 import type { Context, Env, MiddlewareHandler } from 'hono';
 import type { ZodObject } from 'zod';
 import type {

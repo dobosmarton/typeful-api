@@ -2,7 +2,7 @@
   "name": "express-crud-example",
   "version": "0.0.1",
   "private": true,
-  "description": "Express CRUD example using typefulapi",
+  "description": "Express CRUD example using typeful-api",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@typefulapi/core": "workspace:*",
-    "@typefulapi/express": "workspace:*",
+    "@typeful-api/core": "workspace:*",
+    "@typeful-api/express": "workspace:*",
     "express": "^5.2.1",
     "zod": "^4.3.5"
   },
