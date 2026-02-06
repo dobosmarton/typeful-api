@@ -65,13 +65,18 @@ export type InferExpressGroupHandlers<G extends RouteGroup> = (G['routes'] exten
 export type InferExpressHandlers<C extends ApiContract> = {
   [VK in keyof C]: {
     middleware?: RequestHandler[];
-  } & (C[VK]['children'] extends Record<string, RouteGroup>
+  } & (C[VK]['routes'] extends Record<string, RouteDefinition>
     ? {
-        [CK in keyof C[VK]['children']]: InferExpressGroupHandlers<C[VK]['children'][CK]> & {
-          middleware?: RequestHandler[];
-        };
+        [K in keyof C[VK]['routes']]: ExpressHandler<C[VK]['routes'][K]>;
       }
-    : object);
+    : object) &
+    (C[VK]['children'] extends Record<string, RouteGroup>
+      ? {
+          [CK in keyof C[VK]['children']]: InferExpressGroupHandlers<C[VK]['children'][CK]> & {
+            middleware?: RequestHandler[];
+          };
+        }
+      : object);
 };
 
 /**
@@ -110,6 +115,34 @@ export type CreateExpressRouterOptions = {
     res: Response,
     next: NextFunction,
   ) => void;
+
+  /**
+   * Whether to register an OpenAPI documentation endpoint
+   * @default true
+   */
+  registerDocs?: boolean;
+
+  /**
+   * Path for the OpenAPI JSON endpoint
+   * @default '/api-doc'
+   */
+  docsPath?: string;
+
+  /**
+   * OpenAPI documentation configuration.
+   * If not provided, defaults to title 'API Documentation' and version '1.0.0'
+   */
+  docsConfig?: {
+    info: {
+      title: string;
+      version: string;
+      description?: string;
+    };
+    servers?: Array<{
+      url: string;
+      description?: string;
+    }>;
+  };
 };
 
 /**

@@ -1,4 +1,5 @@
 import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typefulapi/core';
+import { generateSpec } from '@typefulapi/core';
 import type { NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { Router as createRouter } from 'express';
 import type { ZodError } from 'zod';
@@ -228,7 +229,12 @@ export function createExpressRouter<C extends ApiContract>(
   options: CreateExpressRouterOptions = {},
 ): Router {
   const router = createRouter();
-  const { middleware = [] } = options;
+  const {
+    middleware = [],
+    registerDocs = true,
+    docsPath = '/api-doc',
+    docsConfig,
+  } = options;
 
   // Apply global middleware
   if (middleware.length > 0) {
@@ -273,6 +279,21 @@ export function createExpressRouter<C extends ApiContract>(
     }
 
     router.use(`/${version}`, versionRouter);
+  }
+
+  // Register OpenAPI documentation route
+  if (registerDocs) {
+    const spec = generateSpec(contract, {
+      info: docsConfig?.info ?? {
+        title: 'API Documentation',
+        version: '1.0.0',
+      },
+      ...(docsConfig?.servers && { servers: docsConfig.servers }),
+    });
+
+    router.get(docsPath, (_req: Request, res: Response) => {
+      res.json(spec);
+    });
   }
 
   return router;

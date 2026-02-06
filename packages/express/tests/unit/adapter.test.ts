@@ -14,6 +14,8 @@ function createMockRouter() {
     handlers: RequestHandler[];
   }> = [];
 
+  const middlewares: Array<unknown[]> = [];
+
   const mockRouter = {
     get: vi.fn((path: string, ...handlers: RequestHandler[]) => {
       routes.push({ method: 'get', path, handlers });
@@ -35,11 +37,18 @@ function createMockRouter() {
       routes.push({ method: 'delete', path, handlers });
       return mockRouter;
     }),
-    use: vi.fn(),
+    use: vi.fn((...args: unknown[]) => {
+      middlewares.push(args);
+      return mockRouter;
+    }),
     _routes: routes,
+    _middlewares: middlewares,
   };
 
-  return mockRouter as unknown as Router & { _routes: typeof routes };
+  return mockRouter as unknown as Router & {
+    _routes: typeof routes;
+    _middlewares: typeof middlewares;
+  };
 }
 
 // Mock Express module
@@ -626,6 +635,169 @@ describe('createExpressRouter', () => {
       });
 
       expect(router).toBeDefined();
+    });
+  });
+
+  describe('docs registration', () => {
+    it('registers docs route at /api-doc by default', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const router = createExpressRouter(contract, {
+        v1: {
+          health: async () => ({ status: 'ok' }),
+        },
+      });
+
+      // The router.get should have been called with '/api-doc'
+      const mockRouter = router as unknown as { get: ReturnType<typeof vi.fn> };
+      const getCalls = mockRouter.get.mock.calls;
+      const docsCall = getCalls.find((call: unknown[]) => call[0] === '/api-doc');
+      expect(docsCall).toBeDefined();
+    });
+
+    it('uses custom docsPath', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const router = createExpressRouter(
+        contract,
+        {
+          v1: {
+            health: async () => ({ status: 'ok' }),
+          },
+        },
+        { docsPath: '/docs/openapi' },
+      );
+
+      const mockRouter = router as unknown as { get: ReturnType<typeof vi.fn> };
+      const getCalls = mockRouter.get.mock.calls;
+      const docsCall = getCalls.find((call: unknown[]) => call[0] === '/docs/openapi');
+      expect(docsCall).toBeDefined();
+    });
+
+    it('disables docs route when registerDocs is false', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const router = createExpressRouter(
+        contract,
+        {
+          v1: {
+            health: async () => ({ status: 'ok' }),
+          },
+        },
+        { registerDocs: false },
+      );
+
+      const mockRouter = router as unknown as { get: ReturnType<typeof vi.fn> };
+      const getCalls = mockRouter.get.mock.calls;
+      const docsCall = getCalls.find((call: unknown[]) => call[0] === '/api-doc');
+      expect(docsCall).toBeUndefined();
+    });
+
+    it('serves JSON response from docs handler', async () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const router = createExpressRouter(contract, {
+        v1: {
+          health: async () => ({ status: 'ok' }),
+        },
+      });
+
+      const mockRouter = router as unknown as { get: ReturnType<typeof vi.fn> };
+      const getCalls = mockRouter.get.mock.calls;
+      const docsCall = getCalls.find((call: unknown[]) => call[0] === '/api-doc');
+      expect(docsCall).toBeDefined();
+
+      // Call the handler and check the response
+      const handler = docsCall![1] as RequestHandler;
+      const mockReq = createMockRequest();
+      const mockRes = createMockResponse();
+      const mockNext = vi.fn();
+
+      handler(mockReq, mockRes, mockNext);
+
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          openapi: '3.0.0',
+          info: expect.objectContaining({
+            title: 'API Documentation',
+            version: '1.0.0',
+          }),
+          paths: expect.any(Object),
+        }),
+      );
+    });
+
+    it('uses custom docsConfig info', async () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const router = createExpressRouter(
+        contract,
+        {
+          v1: {
+            health: async () => ({ status: 'ok' }),
+          },
+        },
+        {
+          docsConfig: {
+            info: {
+              title: 'My Custom API',
+              version: '2.0.0',
+              description: 'Custom description',
+            },
+          },
+        },
+      );
+
+      const mockRouter = router as unknown as { get: ReturnType<typeof vi.fn> };
+      const getCalls = mockRouter.get.mock.calls;
+      const docsCall = getCalls.find((call: unknown[]) => call[0] === '/api-doc');
+      const handler = docsCall![1] as RequestHandler;
+
+      const mockReq = createMockRequest();
+      const mockRes = createMockResponse();
+      const mockNext = vi.fn();
+
+      handler(mockReq, mockRes, mockNext);
+
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          info: expect.objectContaining({
+            title: 'My Custom API',
+            version: '2.0.0',
+            description: 'Custom description',
+          }),
+        }),
+      );
     });
   });
 });

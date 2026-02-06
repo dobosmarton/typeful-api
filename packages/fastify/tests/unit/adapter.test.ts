@@ -67,6 +67,10 @@ function createMockFastify(): FastifyInstance {
         handler: config.handler,
       });
     }),
+    get: vi.fn((url: string, handler: Function) => {
+      routes.push({ method: 'GET', url, handler });
+      return mockFastify;
+    }),
     log: {
       warn: vi.fn(),
       error: vi.fn(),
@@ -664,6 +668,175 @@ describe('createFastifyPlugin', () => {
       });
 
       expect(plugin).toBeDefined();
+    });
+  });
+
+  describe('docs registration', () => {
+    it('registers docs route at /api-doc by default', async () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const plugin = createFastifyPlugin(contract, {
+        v1: {
+          health: async () => ({ status: 'ok' }),
+        },
+      });
+
+      const mockFastify = createMockFastify();
+      await (plugin as Function)(mockFastify, {});
+
+      // Check that a GET route was registered at /api-doc
+      const docsRoute = mockFastify._routes.find(
+        (r) => r.url === '/api-doc' && r.method === 'GET',
+      );
+      expect(docsRoute).toBeDefined();
+    });
+
+    it('uses custom docsPath', async () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const plugin = createFastifyPlugin(
+        contract,
+        {
+          v1: {
+            health: async () => ({ status: 'ok' }),
+          },
+        },
+        { docsPath: '/docs/openapi' },
+      );
+
+      const mockFastify = createMockFastify();
+      await (plugin as Function)(mockFastify, {});
+
+      const docsRoute = mockFastify._routes.find(
+        (r) => r.url === '/docs/openapi' && r.method === 'GET',
+      );
+      expect(docsRoute).toBeDefined();
+    });
+
+    it('disables docs route when registerDocs is false', async () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const plugin = createFastifyPlugin(
+        contract,
+        {
+          v1: {
+            health: async () => ({ status: 'ok' }),
+          },
+        },
+        { registerDocs: false },
+      );
+
+      const mockFastify = createMockFastify();
+      await (plugin as Function)(mockFastify, {});
+
+      const docsRoute = mockFastify._routes.find(
+        (r) => r.url === '/api-doc' && r.method === 'GET',
+      );
+      expect(docsRoute).toBeUndefined();
+    });
+
+    it('serves spec from docs handler', async () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const plugin = createFastifyPlugin(contract, {
+        v1: {
+          health: async () => ({ status: 'ok' }),
+        },
+      });
+
+      const mockFastify = createMockFastify();
+      await (plugin as Function)(mockFastify, {});
+
+      const docsRoute = mockFastify._routes.find(
+        (r) => r.url === '/api-doc' && r.method === 'GET',
+      );
+      expect(docsRoute).toBeDefined();
+
+      // Call the handler and check the response
+      const mockReply = createMockReply();
+      await docsRoute!.handler(createMockRequest(), mockReply);
+
+      expect(mockReply.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          openapi: '3.0.0',
+          info: expect.objectContaining({
+            title: 'API Documentation',
+            version: '1.0.0',
+          }),
+          paths: expect.any(Object),
+        }),
+      );
+    });
+
+    it('uses custom docsConfig info', async () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const plugin = createFastifyPlugin(
+        contract,
+        {
+          v1: {
+            health: async () => ({ status: 'ok' }),
+          },
+        },
+        {
+          docsConfig: {
+            info: {
+              title: 'My Custom API',
+              version: '2.0.0',
+              description: 'Custom description',
+            },
+          },
+        },
+      );
+
+      const mockFastify = createMockFastify();
+      await (plugin as Function)(mockFastify, {});
+
+      const docsRoute = mockFastify._routes.find(
+        (r) => r.url === '/api-doc' && r.method === 'GET',
+      );
+      const mockReply = createMockReply();
+      await docsRoute!.handler(createMockRequest(), mockReply);
+
+      expect(mockReply.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          info: expect.objectContaining({
+            title: 'My Custom API',
+            version: '2.0.0',
+            description: 'Custom description',
+          }),
+        }),
+      );
     });
   });
 });

@@ -64,13 +64,18 @@ export type InferFastifyGroupHandlers<G extends RouteGroup> = (G['routes'] exten
 export type InferFastifyHandlers<C extends ApiContract> = {
   [VK in keyof C]: {
     preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
-  } & (C[VK]['children'] extends Record<string, RouteGroup>
+  } & (C[VK]['routes'] extends Record<string, RouteDefinition>
     ? {
-        [CK in keyof C[VK]['children']]: InferFastifyGroupHandlers<C[VK]['children'][CK]> & {
-          preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
-        };
+        [K in keyof C[VK]['routes']]: FastifyHandler<C[VK]['routes'][K]>;
       }
-    : object);
+    : object) &
+    (C[VK]['children'] extends Record<string, RouteGroup>
+      ? {
+          [CK in keyof C[VK]['children']]: InferFastifyGroupHandlers<C[VK]['children'][CK]> & {
+            preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
+          };
+        }
+      : object);
 };
 
 /**
@@ -98,6 +103,34 @@ export type CreateFastifyPluginOptions = {
    * Custom error handler for validation errors
    */
   errorHandler?: (error: Error, request: FastifyRequest, reply: FastifyReply) => void;
+
+  /**
+   * Whether to register an OpenAPI documentation endpoint
+   * @default true
+   */
+  registerDocs?: boolean;
+
+  /**
+   * Path for the OpenAPI JSON endpoint
+   * @default '/api-doc'
+   */
+  docsPath?: string;
+
+  /**
+   * OpenAPI documentation configuration.
+   * If not provided, defaults to title 'API Documentation' and version '1.0.0'
+   */
+  docsConfig?: {
+    info: {
+      title: string;
+      version: string;
+      description?: string;
+    };
+    servers?: Array<{
+      url: string;
+      description?: string;
+    }>;
+  };
 };
 
 /**

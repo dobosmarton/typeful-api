@@ -1,0 +1,25 @@
+{
+  "name": "fastify-auth-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Fastify auth example using typefulapi",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@typefulapi/core": "workspace:*",
+    "@typefulapi/fastify": "workspace:*",
+    "fastify": "^5.7.2",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

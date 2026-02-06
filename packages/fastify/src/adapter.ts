@@ -8,6 +8,7 @@ import type {
 } from 'fastify';
 import type { ZodType, ZodError } from 'zod';
 import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typefulapi/core';
+import { generateSpec } from '@typefulapi/core';
 import type { CreateFastifyPluginOptions, FastifyHandler, InferFastifyHandlers } from './types';
 
 /**
@@ -195,6 +196,12 @@ export function createFastifyPlugin<C extends ApiContract>(
   handlers: InferFastifyHandlers<C>,
   options: CreateFastifyPluginOptions = {},
 ): FastifyPluginCallback {
+  const {
+    registerDocs = true,
+    docsPath = '/api-doc',
+    docsConfig,
+  } = options;
+
   const plugin: FastifyPluginCallback = async (fastify, _opts) => {
     // Apply global preHandler
     if (options.preHandler) {
@@ -269,6 +276,21 @@ export function createFastifyPlugin<C extends ApiContract>(
         },
         { prefix: `/${version}` },
       );
+    }
+
+    // Register OpenAPI documentation route
+    if (registerDocs) {
+      const spec = generateSpec(contract, {
+        info: docsConfig?.info ?? {
+          title: 'API Documentation',
+          version: '1.0.0',
+        },
+        ...(docsConfig?.servers && { servers: docsConfig.servers }),
+      });
+
+      fastify.get(docsPath, async (_request: FastifyRequest, reply: FastifyReply) => {
+        return reply.send(spec);
+      });
     }
   };
 
