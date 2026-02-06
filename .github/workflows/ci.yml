@@ -42,7 +42,7 @@ jobs:
         run: pnpm --filter './packages/*' build
 
       - name: Generate example specs and types
-        run: pnpm -r generate
+        run: pnpm --filter './examples/hono-*' -r generate && pnpm --filter fullstack-monorepo-example generate
 
       - name: Build
         run: pnpm build
