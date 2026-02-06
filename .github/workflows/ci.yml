@@ -41,6 +41,9 @@ jobs:
       - name: Build packages
         run: pnpm --filter './packages/*' build
 
+      - name: Rebuild bin links
+        run: pnpm install --frozen-lockfile
+
       - name: Generate example specs and types
         run: pnpm --filter './examples/hono-*' -r generate && pnpm --filter fullstack-monorepo-example generate
 
