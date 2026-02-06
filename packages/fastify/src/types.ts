@@ -1,5 +1,4 @@
 import type {
-  FastifyInstance,
   FastifyRequest,
   FastifyReply,
   FastifyPluginCallback,
@@ -45,19 +44,19 @@ export type FastifyHandler<R extends RouteDefinition> = (
 /**
  * Recursively infer handler types from a route group for Fastify
  */
-export type InferFastifyGroupHandlers<G extends RouteGroup> =
-  (G['routes'] extends Record<string, RouteDefinition>
+export type InferFastifyGroupHandlers<G extends RouteGroup> = (G['routes'] extends Record<
+  string,
+  RouteDefinition
+>
+  ? {
+      [K in keyof G['routes']]: FastifyHandler<G['routes'][K]>;
+    }
+  : object) &
+  (G['children'] extends Record<string, RouteGroup>
     ? {
-        [K in keyof G['routes']]: FastifyHandler<G['routes'][K]>;
+        [K in keyof G['children']]: InferFastifyGroupHandlers<G['children'][K]>;
       }
-    : object) &
-    (G['children'] extends Record<string, RouteGroup>
-      ? {
-          [K in keyof G['children']]: InferFastifyGroupHandlers<
-            G['children'][K]
-          >;
-        }
-      : object);
+    : object);
 
 /**
  * Infer all handlers from an API contract for Fastify
@@ -67,9 +66,7 @@ export type InferFastifyHandlers<C extends ApiContract> = {
     preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
   } & (C[VK]['children'] extends Record<string, RouteGroup>
     ? {
-        [CK in keyof C[VK]['children']]: InferFastifyGroupHandlers<
-          C[VK]['children'][CK]
-        > & {
+        [CK in keyof C[VK]['children']]: InferFastifyGroupHandlers<C[VK]['children'][CK]> & {
           preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
         };
       }
@@ -118,4 +115,5 @@ export type RequestWithLocals<T> = FastifyRequest & FastifyLocals<T>;
 /**
  * Type helper for Fastify plugin with typed options
  */
-export type TypedFastifyPlugin<T extends Record<string, unknown> = Record<string, unknown>> = FastifyPluginCallback<T>;
+export type TypedFastifyPlugin<T extends Record<string, unknown> = Record<string, unknown>> =
+  FastifyPluginCallback<T>;

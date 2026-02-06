@@ -11,9 +11,7 @@ type GenerateClientCommandOptions = {
 /**
  * Generate TypeScript client types from OpenAPI spec using openapi-typescript
  */
-export async function generateClientCommand(
-  options: GenerateClientCommandOptions,
-): Promise<void> {
+export async function generateClientCommand(options: GenerateClientCommandOptions): Promise<void> {
   console.log(pc.cyan('🔧 Generating TypeScript client types...'));
   console.log(pc.gray(`  Spec: ${options.spec}`));
   console.log(pc.gray(`  Output: ${options.out}`));
@@ -45,7 +43,7 @@ export async function generateClientCommand(
     } catch {
       throw new Error(
         'openapi-typescript is required for client generation. ' +
-        'It should be installed as a dependency of @typefulapi/cli.',
+          'It should be installed as a dependency of @typefulapi/cli.',
       );
     }
 

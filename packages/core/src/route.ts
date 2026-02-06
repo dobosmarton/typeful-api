@@ -1,4 +1,4 @@
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 import type { AuthType, HttpMethod, RouteDefinition } from './types';
 
 /**
@@ -20,7 +20,7 @@ export type FinalRoute<
   withTags: (...tags: string[]) => FinalRoute<TBody, TQuery, TParams, TResponse>;
   markDeprecated: () => FinalRoute<TBody, TQuery, TParams, TResponse>;
   withOperationId: (id: string) => FinalRoute<TBody, TQuery, TParams, TResponse>;
-  withResponses: (codes: Record<number, ZodSchema>) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withResponses: (codes: Record<number, ZodType>) => FinalRoute<TBody, TQuery, TParams, TResponse>;
 };
 
 /**
@@ -53,7 +53,7 @@ const createFinalRoute = <TBody, TQuery, TParams, TResponse>(
     createFinalRoute({ ...config, tags: [...(config.tags ?? []), ...tags] }),
   markDeprecated: () => createFinalRoute({ ...config, deprecated: true }),
   withOperationId: (id: string) => createFinalRoute({ ...config, operationId: id }),
-  withResponses: (codes: Record<number, ZodSchema>) =>
+  withResponses: (codes: Record<number, ZodType>) =>
     createFinalRoute({ ...config, responses: { ...config.responses, ...codes } }),
 });
 
@@ -71,19 +71,14 @@ const createFinalRoute = <TBody, TQuery, TParams, TResponse>(
  *   .withSummary('Get a user by ID');
  * ```
  */
-class RouteBuilder<
-  TBody = never,
-  TQuery = never,
-  TParams = never,
-  TResponse = never,
-> {
+class RouteBuilder<TBody = never, TQuery = never, TParams = never, TResponse = never> {
   private readonly _method: HttpMethod;
   private readonly _path: string;
-  private _body?: ZodSchema<TBody>;
-  private _query?: ZodSchema<TQuery>;
-  private _params?: ZodSchema<TParams>;
-  private _response?: ZodSchema<TResponse>;
-  private _responses?: Record<number, ZodSchema>;
+  private _body?: ZodType<TBody>;
+  private _query?: ZodType<TQuery>;
+  private _params?: ZodType<TParams>;
+  private _response?: ZodType<TResponse>;
+  private _responses?: Record<number, ZodType>;
   private _auth?: AuthType;
   private _summary?: string;
   private _description?: string;
@@ -99,27 +94,27 @@ class RouteBuilder<
   /**
    * Define the request body schema (for POST, PUT, PATCH)
    */
-  body<T>(schema: ZodSchema<T>): RouteBuilder<T, TQuery, TParams, TResponse> {
+  body<T>(schema: ZodType<T>): RouteBuilder<T, TQuery, TParams, TResponse> {
     const builder = this._clone<T, TQuery, TParams, TResponse>();
-    builder._body = schema as unknown as ZodSchema<T>;
+    builder._body = schema as unknown as ZodType<T>;
     return builder;
   }
 
   /**
    * Define the query parameters schema
    */
-  query<T>(schema: ZodSchema<T>): RouteBuilder<TBody, T, TParams, TResponse> {
+  query<T>(schema: ZodType<T>): RouteBuilder<TBody, T, TParams, TResponse> {
     const builder = this._clone<TBody, T, TParams, TResponse>();
-    builder._query = schema as unknown as ZodSchema<T>;
+    builder._query = schema as unknown as ZodType<T>;
     return builder;
   }
 
   /**
    * Define the path parameters schema
    */
-  params<T>(schema: ZodSchema<T>): RouteBuilder<TBody, TQuery, T, TResponse> {
+  params<T>(schema: ZodType<T>): RouteBuilder<TBody, TQuery, T, TResponse> {
     const builder = this._clone<TBody, TQuery, T, TResponse>();
-    builder._params = schema as unknown as ZodSchema<T>;
+    builder._params = schema as unknown as ZodType<T>;
     return builder;
   }
 
@@ -128,13 +123,13 @@ class RouteBuilder<
    * This completes the route definition and returns a FinalRoute
    * that can still be extended with metadata methods in any order
    */
-  returns<T>(schema: ZodSchema<T>): FinalRoute<TBody, TQuery, TParams, T> {
+  returns<T>(schema: ZodType<T>): FinalRoute<TBody, TQuery, TParams, T> {
     return createFinalRoute({
       method: this._method,
       path: this._path,
-      body: this._body as ZodSchema<TBody> | undefined,
-      query: this._query as ZodSchema<TQuery> | undefined,
-      params: this._params as ZodSchema<TParams> | undefined,
+      body: this._body as ZodType<TBody> | undefined,
+      query: this._query as ZodType<TQuery> | undefined,
+      params: this._params as ZodType<TParams> | undefined,
       response: schema,
       responses: this._responses,
       auth: this._auth,
@@ -149,9 +144,7 @@ class RouteBuilder<
   /**
    * Add additional response schemas for different status codes
    */
-  withResponses(
-    codes: Record<number, ZodSchema>,
-  ): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+  withResponses(codes: Record<number, ZodType>): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._responses = { ...this._responses, ...codes };
     return builder;
@@ -216,10 +209,10 @@ class RouteBuilder<
    */
   private _clone<B, Q, P, R>(): RouteBuilder<B, Q, P, R> {
     const builder = new RouteBuilder<B, Q, P, R>(this._method, this._path);
-    builder._body = this._body as unknown as ZodSchema<B> | undefined;
-    builder._query = this._query as unknown as ZodSchema<Q> | undefined;
-    builder._params = this._params as unknown as ZodSchema<P> | undefined;
-    builder._response = this._response as unknown as ZodSchema<R> | undefined;
+    builder._body = this._body as unknown as ZodType<B> | undefined;
+    builder._query = this._query as unknown as ZodType<Q> | undefined;
+    builder._params = this._params as unknown as ZodType<P> | undefined;
+    builder._response = this._response as unknown as ZodType<R> | undefined;
     builder._responses = this._responses;
     builder._auth = this._auth;
     builder._summary = this._summary;

@@ -82,11 +82,7 @@ describe('Express middleware helpers', () => {
       const middleware = createTypedMiddleware(handler);
       await middleware(req, res, next);
 
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({ path: '/test' }),
-        res,
-        next,
-      );
+      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ path: '/test' }), res, next);
     });
   });
 

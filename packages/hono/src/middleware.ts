@@ -108,11 +108,7 @@ export function conditionalMiddleware<E extends Env>(
  * });
  * ```
  */
-export function createVariableMiddleware<
-  E extends Env,
-  K extends string,
-  V,
->(
+export function createVariableMiddleware<E extends Env, K extends string, V>(
   key: K,
   factory: (c: Context<E>) => V | Promise<V>,
 ): MiddlewareHandler<WithVariables<E, Record<K, V>>> {

@@ -1,12 +1,7 @@
-import type { Router, RequestHandler, Request, Response, NextFunction } from 'express';
+import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typefulapi/core';
+import type { NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { Router as createRouter } from 'express';
-import type { ZodSchema, ZodError } from 'zod';
-import type {
-  ApiContract,
-  HttpMethod,
-  RouteDefinition,
-  RouteGroup,
-} from '@typefulapi/core';
+import type { ZodError } from 'zod';
 import type {
   CreateExpressRouterOptions,
   ExpressHandler,
@@ -60,7 +55,7 @@ function createValidationMiddleware(
     try {
       // Validate body
       if (validateBody && route.body && ['post', 'put', 'patch'].includes(route.method)) {
-        const result = (route.body as ZodSchema).safeParse(req.body);
+        const result = route.body.safeParse(req.body);
         if (!result.success) {
           return onError(zodToValidationError(result.error, 'body'), req, res, next);
         }
@@ -69,7 +64,7 @@ function createValidationMiddleware(
 
       // Validate query
       if (validateQuery && route.query) {
-        const result = (route.query as ZodSchema).safeParse(req.query);
+        const result = route.query.safeParse(req.query);
         if (!result.success) {
           return onError(zodToValidationError(result.error, 'query'), req, res, next);
         }
@@ -80,7 +75,7 @@ function createValidationMiddleware(
 
       // Validate params
       if (validateParams && route.params) {
-        const result = (route.params as ZodSchema).safeParse(req.params);
+        const result = route.params.safeParse(req.params);
         if (!result.success) {
           return onError(zodToValidationError(result.error, 'params'), req, res, next);
         }
@@ -143,9 +138,7 @@ function applyGroupHandlers(
     for (const [name, route] of Object.entries(group.routes)) {
       const handler = h[name] as ExpressHandler<RouteDefinition> | undefined;
       if (!handler) {
-        console.warn(
-          `Missing handler for route: ${version}/${groupPath.join('/')}/${name}`,
-        );
+        console.warn(`Missing handler for route: ${version}/${groupPath.join('/')}/${name}`);
         continue;
       }
 
@@ -184,14 +177,10 @@ function applyGroupHandlers(
       const childHandlers = h[childName];
       const childRouter = createRouter();
 
-      applyGroupHandlers(
-        childGroup,
-        childHandlers ?? {},
-        childRouter,
-        options,
-        version,
-        [...groupPath, childName],
-      );
+      applyGroupHandlers(childGroup, childHandlers ?? {}, childRouter, options, version, [
+        ...groupPath,
+        childName,
+      ]);
 
       router.use(`/${childName}`, childRouter);
     }
@@ -263,14 +252,9 @@ export function createExpressRouter<C extends ApiContract>(
         const groupHandlers = (versionHandlers as Record<string, unknown>)[groupName];
         const groupRouter = createRouter();
 
-        applyGroupHandlers(
-          groupDef,
-          groupHandlers ?? {},
-          groupRouter,
-          options,
-          version,
-          [groupName],
-        );
+        applyGroupHandlers(groupDef, groupHandlers ?? {}, groupRouter, options, version, [
+          groupName,
+        ]);
 
         versionRouter.use(`/${groupName}`, groupRouter);
       }

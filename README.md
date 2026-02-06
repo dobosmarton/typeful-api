@@ -135,10 +135,7 @@ export const api = defineApi({
     children: {
       products: {
         routes: {
-          list: route
-            .get('/')
-            .returns(z.array(ProductSchema))
-            .withSummary('List all products'),
+          list: route.get('/').returns(z.array(ProductSchema)).withSummary('List all products'),
 
           get: route
             .get('/:id')
@@ -239,6 +236,7 @@ npx tsx src/server.ts
 ```
 
 Your API is now available at:
+
 - `GET /api/v1/products` - List all products
 - `GET /api/v1/products/:id` - Get a product
 - `POST /api/v1/products` - Create a product (requires auth)
@@ -267,12 +265,15 @@ type BaseEnv = { Bindings: Env };
 type WithDb = WithVariables<BaseEnv, { db: Database }>;
 type WithAuth = WithVariables<WithDb, { user: User }>;
 
-const router = createHonoRouter<typeof api, {
-  v1: {
-    products: WithDb;
-    users: WithAuth;
-  };
-}>(api, handlers);
+const router = createHonoRouter<
+  typeof api,
+  {
+    v1: {
+      products: WithDb;
+      users: WithAuth;
+    };
+  }
+>(api, handlers);
 ```
 
 ### Express
@@ -313,7 +314,7 @@ fastify.register(
       },
     },
   }),
-  { prefix: '/api' }
+  { prefix: '/api' },
 );
 ```
 
@@ -348,10 +349,7 @@ route
   .returns(ProductSchema);
 
 // Mark as deprecated
-route
-  .get('/legacy/products')
-  .returns(z.array(ProductSchema))
-  .markDeprecated();
+route.get('/legacy/products').returns(z.array(ProductSchema)).markDeprecated();
 ```
 
 ## API Versioning
@@ -458,7 +456,7 @@ get: async ({ c, params }) => {
     throw new HTTPException(404, { message: 'Product not found' });
   }
   return product;
-}
+};
 ```
 
 ## Authentication
@@ -472,7 +470,7 @@ route
   .post('/products')
   .body(CreateProductSchema)
   .returns(ProductSchema)
-  .withAuth('bearer')  // Requires Bearer token
+  .withAuth('bearer') // Requires Bearer token
   .withSummary('Create a product');
 ```
 
@@ -490,7 +488,7 @@ const router = createHonoRouter(api, {
   v1: {
     middlewares: [authMiddleware], // Apply to all v1 routes
     products: {
-      list: handler,   // Public (if not marked withAuth)
+      list: handler, // Public (if not marked withAuth)
       create: handler, // Protected by middleware
     },
   },
@@ -527,24 +525,24 @@ typefulapi generate-spec --contract ./src/api.ts --watch
 
 ## Comparison
 
-| Feature | ts-rest | @hono/zod-openapi | Zodios | **typefulapi** |
-|---------|---------|-------------------|--------|------------------|
-| API Versioning | ❌ | ❌ | ❌ | ✅ First-class |
-| Handler Decoupling | Partial | ❌ | ❌ | ✅ Full |
-| Hierarchical Middleware | ❌ | ❌ | ❌ | ✅ Native |
-| Client Generation | Built-in | Manual | Built-in | ✅ Automatic |
-| OpenAPI Portable | ❌ | ✅ | ✅ | ✅ |
-| Framework Agnostic | Partial | ❌ | ❌ | ✅ Hono/Express/Fastify |
+| Feature                 | ts-rest  | @hono/zod-openapi | Zodios   | **typefulapi**          |
+| ----------------------- | -------- | ----------------- | -------- | ----------------------- |
+| API Versioning          | ❌       | ❌                | ❌       | ✅ First-class          |
+| Handler Decoupling      | Partial  | ❌                | ❌       | ✅ Full                 |
+| Hierarchical Middleware | ❌       | ❌                | ❌       | ✅ Native               |
+| Client Generation       | Built-in | Manual            | Built-in | ✅ Automatic            |
+| OpenAPI Portable        | ❌       | ✅                | ✅       | ✅                      |
+| Framework Agnostic      | Partial  | ❌                | ❌       | ✅ Hono/Express/Fastify |
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@typefulapi/core` | Framework-agnostic core with route builder and spec generation |
-| `@typefulapi/hono` | Hono adapter with OpenAPI integration |
-| `@typefulapi/express` | Express adapter with validation middleware |
-| `@typefulapi/fastify` | Fastify adapter with preHandler hooks |
-| `@typefulapi/cli` | CLI for spec and client generation |
+| Package               | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `@typefulapi/core`    | Framework-agnostic core with route builder and spec generation |
+| `@typefulapi/hono`    | Hono adapter with OpenAPI integration                          |
+| `@typefulapi/express` | Express adapter with validation middleware                     |
+| `@typefulapi/fastify` | Fastify adapter with preHandler hooks                          |
+| `@typefulapi/cli`     | CLI for spec and client generation                             |
 
 ## Resources
 

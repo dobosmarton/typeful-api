@@ -89,9 +89,7 @@ export async function generateSpecCommand(options: GenerateSpecCommandOptions): 
 
     // Add servers if specified
     if (options.server) {
-      const servers = Array.isArray(options.server)
-        ? options.server
-        : [options.server];
+      const servers = Array.isArray(options.server) ? options.server : [options.server];
       specOptions.servers = servers.map((url) => ({ url }));
     }
 

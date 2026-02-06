@@ -1,24 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import type { ApiContract } from '@typefulapi/core';
 import type { MiddlewareHandler } from 'hono';
+import { describe, expect, it } from 'vitest';
 import { createHonoRouter } from '../../src/adapter';
-import { request, spyOnConsoleWarn } from '../setup';
 import {
-  minimalContract,
-  fullContract,
-  nestedContract,
-  emptyContract,
   directRoutesContract,
+  emptyContract,
+  fullContract,
+  minimalContract,
+  nestedContract,
   pathNormalizationContract,
 } from '../fixtures/contracts';
-import {
-  ProductSchema,
-  CreateProductSchema,
-  PaginationSchema,
-  HealthSchema,
-  UserSchema,
-} from '../fixtures/schemas';
-import { z } from 'zod';
-import type { ApiContract } from '@typefulapi/core';
+import { HealthSchema } from '../fixtures/schemas';
+import { request, spyOnConsoleWarn } from '../setup';
 
 describe('createHonoRouter', () => {
   describe('basic functionality', () => {
@@ -387,11 +380,7 @@ describe('createHonoRouter', () => {
         },
       });
 
-      const res = await request(
-        router,
-        'GET',
-        '/v1/products/550e8400-e29b-41d4-a716-446655440000',
-      );
+      const res = await request(router, 'GET', '/v1/products/550e8400-e29b-41d4-a716-446655440000');
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.id).toBe('550e8400-e29b-41d4-a716-446655440000');
@@ -571,6 +560,7 @@ describe('createHonoRouter', () => {
 
         createHonoRouter(incompleteContract, {
           v1: {
+            // @ts-expect-error - missing handler for 'missing' route
             test: {
               // missing handler for 'missing' route
             },
@@ -702,19 +692,16 @@ describe('createHonoRouter', () => {
         await next();
       };
 
-      const router = createHonoRouter<typeof minimalContract, SharedVars>(
-        minimalContract,
-        {
-          v1: {
-            middlewares: [setRequestId],
-            health: {
-              check: ({ c }) => ({
-                status: `request: ${c.get('requestId')}`,
-              }),
-            },
+      const router = createHonoRouter<typeof minimalContract, SharedVars>(minimalContract, {
+        v1: {
+          middlewares: [setRequestId],
+          health: {
+            check: ({ c }) => ({
+              status: `request: ${c.get('requestId')}`,
+            }),
           },
         },
-      );
+      });
 
       const res = await request(router, 'GET', '/v1/health');
       expect(res.status).toBe(200);
@@ -733,7 +720,7 @@ describe('createHonoRouter', () => {
             create: () => ({ id: '123', name: 'New', price: 20 }),
             update: () => ({ id: '123', name: 'Updated', price: 30 }),
             patch: () => ({ id: '123', name: 'Patched', price: 30 }),
-            delete: ({ params }) => ({ success: true }),
+            delete: () => ({ success: true }),
           },
           users: {
             list: () => [],
@@ -791,6 +778,131 @@ describe('createHonoRouter', () => {
 
       const res = await request(router, 'GET', '/v1/health');
       expect(res.status).toBe(500);
+    });
+  });
+
+  describe('docs registration', () => {
+    it('registers docs route at /api-doc by default', async () => {
+      const router = createHonoRouter(minimalContract, {
+        v1: {
+          health: {
+            check: () => ({ status: 'ok' }),
+          },
+        },
+      });
+
+      const res = await request(router, 'GET', '/api-doc');
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.openapi).toBe('3.0.0');
+      expect(body.info.title).toBe('API Documentation');
+      expect(body.info.version).toBe('1.0.0');
+    });
+
+    it('includes registered routes in the spec', async () => {
+      const router = createHonoRouter(minimalContract, {
+        v1: {
+          health: {
+            check: () => ({ status: 'ok' }),
+          },
+        },
+      });
+
+      const res = await request(router, 'GET', '/api-doc');
+      const body = await res.json();
+      expect(body.paths).toBeDefined();
+      expect(Object.keys(body.paths).length).toBeGreaterThan(0);
+    });
+
+    it('uses custom docsPath', async () => {
+      const router = createHonoRouter(
+        minimalContract,
+        {
+          v1: {
+            health: {
+              check: () => ({ status: 'ok' }),
+            },
+          },
+        },
+        { docsPath: '/docs/api-doc' },
+      );
+
+      const res = await request(router, 'GET', '/docs/api-doc');
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.openapi).toBe('3.0.0');
+
+      // Default path should not exist
+      const defaultRes = await request(router, 'GET', '/api-doc');
+      expect(defaultRes.status).toBe(404);
+    });
+
+    it('disables docs route when registerDocs is false', async () => {
+      const router = createHonoRouter(
+        minimalContract,
+        {
+          v1: {
+            health: {
+              check: () => ({ status: 'ok' }),
+            },
+          },
+        },
+        { registerDocs: false },
+      );
+
+      const res = await request(router, 'GET', '/api-doc');
+      expect(res.status).toBe(404);
+    });
+
+    it('uses custom docsConfig info', async () => {
+      const router = createHonoRouter(
+        minimalContract,
+        {
+          v1: {
+            health: {
+              check: () => ({ status: 'ok' }),
+            },
+          },
+        },
+        {
+          docsConfig: {
+            info: {
+              title: 'My Custom API',
+              version: '2.0.0',
+              description: 'Custom description',
+            },
+          },
+        },
+      );
+
+      const res = await request(router, 'GET', '/api-doc');
+      const body = await res.json();
+      expect(body.info.title).toBe('My Custom API');
+      expect(body.info.version).toBe('2.0.0');
+      expect(body.info.description).toBe('Custom description');
+    });
+
+    it('respects basePath for docs route', async () => {
+      const router = createHonoRouter(
+        minimalContract,
+        {
+          v1: {
+            health: {
+              check: () => ({ status: 'ok' }),
+            },
+          },
+        },
+        { basePath: '/api' },
+      );
+
+      const res = await request(router, 'GET', '/api/api-doc');
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.openapi).toBe('3.0.0');
+
+      // Without basePath should 404
+      const resNoBase = await request(router, 'GET', '/api-doc');
+      expect(resNoBase.status).toBe(404);
     });
   });
 });

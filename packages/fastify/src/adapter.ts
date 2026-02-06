@@ -6,18 +6,9 @@ import type {
   RouteShorthandOptions,
   preHandlerAsyncHookHandler,
 } from 'fastify';
-import type { ZodSchema, ZodError } from 'zod';
-import type {
-  ApiContract,
-  HttpMethod,
-  RouteDefinition,
-  RouteGroup,
-} from '@typefulapi/core';
-import type {
-  CreateFastifyPluginOptions,
-  FastifyHandler,
-  InferFastifyHandlers,
-} from './types';
+import type { ZodType, ZodError } from 'zod';
+import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typefulapi/core';
+import type { CreateFastifyPluginOptions, FastifyHandler, InferFastifyHandlers } from './types';
 
 /**
  * Convert Zod error to Fastify-compatible error format
@@ -37,13 +28,11 @@ function formatZodError(error: ZodError): object {
 /**
  * Create a validation preHandler for a route
  */
-function createValidationPreHandler(
-  route: RouteDefinition,
-): preHandlerAsyncHookHandler {
+function createValidationPreHandler(route: RouteDefinition): preHandlerAsyncHookHandler {
   return async (request, reply) => {
     // Validate body
     if (route.body && ['post', 'put', 'patch'].includes(route.method)) {
-      const result = (route.body as ZodSchema).safeParse(request.body);
+      const result = (route.body as ZodType).safeParse(request.body);
       if (!result.success) {
         return reply.status(422).send(formatZodError(result.error));
       }
@@ -52,7 +41,7 @@ function createValidationPreHandler(
 
     // Validate query
     if (route.query) {
-      const result = (route.query as ZodSchema).safeParse(request.query);
+      const result = (route.query as ZodType).safeParse(request.query);
       if (!result.success) {
         return reply.status(422).send(formatZodError(result.error));
       }
@@ -61,7 +50,7 @@ function createValidationPreHandler(
 
     // Validate params
     if (route.params) {
-      const result = (route.params as ZodSchema).safeParse(request.params);
+      const result = (route.params as ZodType).safeParse(request.params);
       if (!result.success) {
         return reply.status(422).send(formatZodError(result.error));
       }
@@ -109,9 +98,7 @@ function registerGroupRoutes(
     for (const [name, route] of Object.entries(group.routes)) {
       const handler = h[name] as FastifyHandler<RouteDefinition> | undefined;
       if (!handler) {
-        fastify.log.warn(
-          `Missing handler for route: ${version}/${groupPath.join('/')}/${name}`,
-        );
+        fastify.log.warn(`Missing handler for route: ${version}/${groupPath.join('/')}/${name}`);
         continue;
       }
 
@@ -120,17 +107,11 @@ function registerGroupRoutes(
 
       // Build route options
       const routeOptions: RouteShorthandOptions = {
-        preHandler: [
-          ...groupPreHandlers,
-          createValidationPreHandler(route),
-        ],
+        preHandler: [...groupPreHandlers, createValidationPreHandler(route)],
       };
 
       // Create the actual handler
-      const fastifyHandler = async (
-        request: FastifyRequest,
-        reply: FastifyReply,
-      ) => {
+      const fastifyHandler = async (request: FastifyRequest, reply: FastifyReply) => {
         const ctx = {
           request,
           reply,
@@ -160,14 +141,10 @@ function registerGroupRoutes(
 
       fastify.register(
         async (childFastify) => {
-          registerGroupRoutes(
-            childFastify,
-            childGroup,
-            childHandlers ?? {},
-            options,
-            version,
-            [...groupPath, childName],
-          );
+          registerGroupRoutes(childFastify, childGroup, childHandlers ?? {}, options, version, [
+            ...groupPath,
+            childName,
+          ]);
         },
         { prefix: `/${childName}` },
       );

@@ -15,11 +15,7 @@ import type { WithLocals } from './types';
  * ```
  */
 export function createTypedMiddleware<TLocals>(
-  handler: (
-    req: WithLocals<TLocals>,
-    res: Response,
-    next: NextFunction,
-  ) => void | Promise<void>,
+  handler: (req: WithLocals<TLocals>, res: Response, next: NextFunction) => void | Promise<void>,
 ): RequestHandler {
   return (req, res, next) => {
     // Ensure locals exists on request (custom property for request-scoped data)
@@ -45,9 +41,7 @@ export function createTypedMiddleware<TLocals>(
  * app.use(middleware);
  * ```
  */
-export function composeMiddleware(
-  middlewares: RequestHandler[],
-): RequestHandler {
+export function composeMiddleware(middlewares: RequestHandler[]): RequestHandler {
   return (req, res, next) => {
     let index = 0;
 

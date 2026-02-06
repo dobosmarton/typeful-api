@@ -12,6 +12,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { randomUUID } from 'node:crypto';
+import { swaggerUI } from '@hono/swagger-ui';
 import { createHonoRouter, type SimpleEnv } from '@typefulapi/hono';
 import { api, type Product } from './api';
 
@@ -70,80 +71,91 @@ const productsMiddleware = async (
 // Router
 // ============================================
 
-const router = createHonoRouter<typeof api, AppVariables>(api, {
-  v1: {
-    health: async () => ({
-      status: 'ok' as const,
-      timestamp: new Date().toISOString(),
-    }),
+const router = createHonoRouter<typeof api, AppVariables>(
+  api,
+  {
+    v1: {
+      health: async () => ({
+        status: 'ok' as const,
+        timestamp: new Date().toISOString(),
+      }),
 
-    products: {
-      middlewares: [productsMiddleware],
+      products: {
+        middlewares: [productsMiddleware],
 
-      list: async ({ c, query }) => {
-        const allProducts = c.get('products');
-        const { page, limit } = query;
-        const start = (page - 1) * limit;
-        const paginatedProducts = allProducts.slice(start, start + limit);
+        list: async ({ c, query }) => {
+          const allProducts = c.get('products');
+          const { page, limit } = query;
+          const start = (page - 1) * limit;
+          const paginatedProducts = allProducts.slice(start, start + limit);
 
-        return {
-          products: paginatedProducts,
-          total: allProducts.length,
-          page,
-          limit,
-        };
-      },
+          return {
+            products: paginatedProducts,
+            total: allProducts.length,
+            page,
+            limit,
+          };
+        },
 
-      get: async ({ c, params }) => {
-        const allProducts = c.get('products');
-        const product = allProducts.find((p) => p.id === params.id);
+        get: async ({ c, params }) => {
+          const allProducts = c.get('products');
+          const product = allProducts.find((p) => p.id === params.id);
 
-        if (!product) {
-          throw new Error('Product not found');
-        }
+          if (!product) {
+            throw new Error('Product not found');
+          }
 
-        return product;
-      },
+          return product;
+        },
 
-      create: async ({ c, body }) => {
-        const allProducts = c.get('products');
-        const newProduct: Product = {
-          id: randomUUID(),
-          ...body,
-          createdAt: new Date().toISOString(),
-        };
+        create: async ({ c, body }) => {
+          const allProducts = c.get('products');
+          const newProduct: Product = {
+            id: randomUUID(),
+            ...body,
+            createdAt: new Date().toISOString(),
+          };
 
-        allProducts.push(newProduct);
-        return newProduct;
-      },
+          allProducts.push(newProduct);
+          return newProduct;
+        },
 
-      update: async ({ c, params, body }) => {
-        const allProducts = c.get('products');
-        const index = allProducts.findIndex((p) => p.id === params.id);
+        update: async ({ c, params, body }) => {
+          const allProducts = c.get('products');
+          const index = allProducts.findIndex((p) => p.id === params.id);
 
-        if (index === -1) {
-          throw new Error('Product not found');
-        }
+          if (index === -1) {
+            throw new Error('Product not found');
+          }
 
-        const updated = { ...allProducts[index]!, ...body };
-        allProducts[index] = updated;
-        return updated;
-      },
+          const updated = { ...allProducts[index]!, ...body };
+          allProducts[index] = updated;
+          return updated;
+        },
 
-      delete: async ({ c, params }) => {
-        const allProducts = c.get('products');
-        const index = allProducts.findIndex((p) => p.id === params.id);
+        delete: async ({ c, params }) => {
+          const allProducts = c.get('products');
+          const index = allProducts.findIndex((p) => p.id === params.id);
 
-        if (index === -1) {
-          throw new Error('Product not found');
-        }
+          if (index === -1) {
+            throw new Error('Product not found');
+          }
 
-        allProducts.splice(index, 1);
-        return { success: true };
+          allProducts.splice(index, 1);
+          return { success: true };
+        },
       },
     },
   },
-});
+  {
+    docsConfig: {
+      info: {
+        title: 'Fullstack Monorepo API',
+        version: '1.0.0',
+      },
+    },
+  },
+);
 
 // ============================================
 // Main App
@@ -164,12 +176,15 @@ app.use(
 // Mount API router
 app.route('/api', router);
 
+// Swagger UI — install @hono/swagger-ui and point it to the OpenAPI JSON endpoint
+app.get('/api/api-reference', swaggerUI({ url: '/api/api-doc' }));
+
 // Root endpoint
 app.get('/', (c) => {
   return c.json({
     name: 'Fullstack Monorepo API',
     version: '1.0.0',
-    docs: '/api/v1/health',
+    docs: '/api/api-reference',
   });
 });
 
@@ -183,4 +198,5 @@ serve({ fetch: app.fetch, port }, (info) => {
   console.log(`API server running at http://localhost:${info.port}`);
   console.log(`Health check: http://localhost:${info.port}/api/v1/health`);
   console.log(`Products API: http://localhost:${info.port}/api/v1/products`);
+  console.log(`API Docs: http://localhost:${info.port}/api/api-reference`);
 });

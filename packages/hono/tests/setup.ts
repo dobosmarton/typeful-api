@@ -37,7 +37,7 @@ export const request = async <E extends Env>(
 
   const req = new Request(`http://localhost${path}`, init);
   return app.fetch(req);
-}
+};
 
 /**
  * Result of spying on console.warn
@@ -96,9 +96,7 @@ type MockContext<V extends Record<string, unknown>> = {
 export const createMockContext = <V extends Record<string, unknown> = Record<string, unknown>>(
   overrides: MockContextOptions<V> = {},
 ): MockContext<V> => {
-  const variables = new Map<string, unknown>(
-    Object.entries(overrides.variables ?? {}),
-  );
+  const variables = new Map<string, unknown>(Object.entries(overrides.variables ?? {}));
 
   return {
     req: {

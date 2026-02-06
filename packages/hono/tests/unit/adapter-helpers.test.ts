@@ -12,11 +12,7 @@ import {
   HealthSchema,
   ErrorSchema,
 } from '../fixtures/schemas';
-import {
-  allAuthContract,
-  minimalContract,
-  nestedContract,
-} from '../fixtures/contracts';
+import { allAuthContract, minimalContract, nestedContract } from '../fixtures/contracts';
 
 const { toRouteConfig, registerSecuritySchemes } = __testing;
 
@@ -486,9 +482,7 @@ describe('adapter helpers', () => {
       const registry = app.openAPIRegistry;
       const definitions = registry.definitions;
 
-      const bearerScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Bearer'
-      );
+      const bearerScheme = definitions.find((d) => d.type === 'component' && d.name === 'Bearer');
       expect(bearerScheme).toBeDefined();
     });
 
@@ -516,9 +510,7 @@ describe('adapter helpers', () => {
       const registry = app.openAPIRegistry;
       const definitions = registry.definitions;
 
-      const apiKeyScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'ApiKey'
-      );
+      const apiKeyScheme = definitions.find((d) => d.type === 'component' && d.name === 'ApiKey');
       expect(apiKeyScheme).toBeDefined();
     });
 
@@ -546,9 +538,7 @@ describe('adapter helpers', () => {
       const registry = app.openAPIRegistry;
       const definitions = registry.definitions;
 
-      const basicScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Basic'
-      );
+      const basicScheme = definitions.find((d) => d.type === 'component' && d.name === 'Basic');
       expect(basicScheme).toBeDefined();
     });
 
@@ -560,15 +550,9 @@ describe('adapter helpers', () => {
       const registry = app.openAPIRegistry;
       const definitions = registry.definitions;
 
-      const bearerScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Bearer'
-      );
-      const apiKeyScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'ApiKey'
-      );
-      const basicScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Basic'
-      );
+      const bearerScheme = definitions.find((d) => d.type === 'component' && d.name === 'Bearer');
+      const apiKeyScheme = definitions.find((d) => d.type === 'component' && d.name === 'ApiKey');
+      const basicScheme = definitions.find((d) => d.type === 'component' && d.name === 'Basic');
 
       expect(bearerScheme).toBeDefined();
       expect(apiKeyScheme).toBeDefined();
@@ -584,8 +568,9 @@ describe('adapter helpers', () => {
       const definitions = registry.definitions;
 
       const securitySchemes = definitions.filter(
-        (d) => d.type === 'component' &&
-          (d.name === 'Bearer' || d.name === 'ApiKey' || d.name === 'Basic')
+        (d) =>
+          d.type === 'component' &&
+          (d.name === 'Bearer' || d.name === 'ApiKey' || d.name === 'Basic'),
       );
       expect(securitySchemes).toHaveLength(0);
     });
@@ -622,9 +607,7 @@ describe('adapter helpers', () => {
       const registry = app.openAPIRegistry;
       const definitions = registry.definitions;
 
-      const bearerScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Bearer'
-      );
+      const bearerScheme = definitions.find((d) => d.type === 'component' && d.name === 'Bearer');
       expect(bearerScheme).toBeDefined();
     });
 
@@ -666,12 +649,8 @@ describe('adapter helpers', () => {
       const registry = app.openAPIRegistry;
       const definitions = registry.definitions;
 
-      const bearerScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Bearer'
-      );
-      const apiKeyScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'ApiKey'
-      );
+      const bearerScheme = definitions.find((d) => d.type === 'component' && d.name === 'Bearer');
+      const apiKeyScheme = definitions.find((d) => d.type === 'component' && d.name === 'ApiKey');
 
       expect(bearerScheme).toBeDefined();
       expect(apiKeyScheme).toBeDefined();
@@ -718,7 +697,7 @@ describe('adapter helpers', () => {
       const definitions = registry.definitions;
 
       const bearerSchemes = definitions.filter(
-        (d) => d.type === 'component' && d.name === 'Bearer'
+        (d) => d.type === 'component' && d.name === 'Bearer',
       );
       expect(bearerSchemes).toHaveLength(1);
     });

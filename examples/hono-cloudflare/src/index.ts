@@ -59,7 +59,10 @@ const products: Product[] = [
 // ============================================
 
 // Middleware to inject products "database" into context
-const productsMiddleware = async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
+const productsMiddleware = async (
+  c: { set: (key: string, value: unknown) => void },
+  next: () => Promise<void>,
+) => {
   c.set('products', products);
   await next();
 };
@@ -68,82 +71,93 @@ const productsMiddleware = async (c: { set: (key: string, value: unknown) => voi
 // Router
 // ============================================
 
-const router = createHonoRouter<typeof api, EnvMap>(api, {
-  v1: {
-    // Version-level routes
-    health: async () => ({
-      status: 'ok' as const,
-      timestamp: new Date().toISOString(),
-    }),
+const router = createHonoRouter<typeof api, EnvMap>(
+  api,
+  {
+    v1: {
+      // Version-level routes
+      health: async () => ({
+        status: 'ok' as const,
+        timestamp: new Date().toISOString(),
+      }),
 
-    // Products group
-    products: {
-      middlewares: [productsMiddleware],
+      // Products group
+      products: {
+        middlewares: [productsMiddleware],
 
-      list: async ({ c, query }) => {
-        const allProducts = c.get('products');
-        const { page, limit } = query;
-        const start = (page - 1) * limit;
-        const paginatedProducts = allProducts.slice(start, start + limit);
+        list: async ({ c, query }) => {
+          const allProducts = c.get('products');
+          const { page, limit } = query;
+          const start = (page - 1) * limit;
+          const paginatedProducts = allProducts.slice(start, start + limit);
 
-        return {
-          products: paginatedProducts,
-          total: allProducts.length,
-          page,
-          limit,
-        };
-      },
+          return {
+            products: paginatedProducts,
+            total: allProducts.length,
+            page,
+            limit,
+          };
+        },
 
-      get: async ({ c, params }) => {
-        const allProducts = c.get('products');
-        const product = allProducts.find((p) => p.id === params.id);
+        get: async ({ c, params }) => {
+          const allProducts = c.get('products');
+          const product = allProducts.find((p) => p.id === params.id);
 
-        if (!product) {
-          throw new Error('Product not found');
-        }
+          if (!product) {
+            throw new Error('Product not found');
+          }
 
-        return product;
-      },
+          return product;
+        },
 
-      create: async ({ c, body }) => {
-        const allProducts = c.get('products');
-        const newProduct: Product = {
-          id: crypto.randomUUID(),
-          ...body,
-          createdAt: new Date().toISOString(),
-        };
+        create: async ({ c, body }) => {
+          const allProducts = c.get('products');
+          const newProduct: Product = {
+            id: crypto.randomUUID(),
+            ...body,
+            createdAt: new Date().toISOString(),
+          };
 
-        allProducts.push(newProduct);
-        return newProduct;
-      },
+          allProducts.push(newProduct);
+          return newProduct;
+        },
 
-      update: async ({ c, params, body }) => {
-        const allProducts = c.get('products');
-        const index = allProducts.findIndex((p) => p.id === params.id);
+        update: async ({ c, params, body }) => {
+          const allProducts = c.get('products');
+          const index = allProducts.findIndex((p) => p.id === params.id);
 
-        if (index === -1) {
-          throw new Error('Product not found');
-        }
+          if (index === -1) {
+            throw new Error('Product not found');
+          }
 
-        const updated = { ...allProducts[index]!, ...body };
-        allProducts[index] = updated;
-        return updated;
-      },
+          const updated = { ...allProducts[index]!, ...body };
+          allProducts[index] = updated;
+          return updated;
+        },
 
-      delete: async ({ c, params }) => {
-        const allProducts = c.get('products');
-        const index = allProducts.findIndex((p) => p.id === params.id);
+        delete: async ({ c, params }) => {
+          const allProducts = c.get('products');
+          const index = allProducts.findIndex((p) => p.id === params.id);
 
-        if (index === -1) {
-          throw new Error('Product not found');
-        }
+          if (index === -1) {
+            throw new Error('Product not found');
+          }
 
-        allProducts.splice(index, 1);
-        return { success: true };
+          allProducts.splice(index, 1);
+          return { success: true };
+        },
       },
     },
   },
-});
+  {
+    docsConfig: {
+      info: {
+        title: 'Hono Cloudflare Example API',
+        version: '1.0.0',
+      },
+    },
+  },
+);
 
 // ============================================
 // Main App
@@ -163,7 +177,7 @@ app.get('/', (c) => {
   return c.json({
     name: 'Hono Basic Example',
     version: '1.0.0',
-    docs: '/api/v1/health',
+    docs: '/api/api-doc',
   });
 });
 

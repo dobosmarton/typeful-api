@@ -51,20 +51,19 @@ export type HonoHandler<R extends RouteDefinition, E extends Env> = (
 /**
  * Recursively infer handler types from a route group for Hono
  */
-export type InferHonoGroupHandlers<G extends RouteGroup, E extends Env> =
-  (G['routes'] extends Record<string, RouteDefinition>
+export type InferHonoGroupHandlers<
+  G extends RouteGroup,
+  E extends Env,
+> = (G['routes'] extends Record<string, RouteDefinition>
+  ? {
+      [K in keyof G['routes']]: HonoHandler<G['routes'][K], E>;
+    }
+  : object) &
+  (G['children'] extends Record<string, RouteGroup>
     ? {
-        [K in keyof G['routes']]: HonoHandler<G['routes'][K], E>;
+        [K in keyof G['children']]: InferHonoGroupHandlers<G['children'][K], E>;
       }
-    : object) &
-    (G['children'] extends Record<string, RouteGroup>
-      ? {
-          [K in keyof G['children']]: InferHonoGroupHandlers<
-            G['children'][K],
-            E
-          >;
-        }
-      : object);
+    : object);
 
 /**
  * Per-version environment mapping for type-safe handler registration
@@ -78,10 +77,7 @@ export type VersionEnvMap<V extends ApiContract> = {
 /**
  * Infer all handlers from an API contract for Hono with per-group environments
  */
-export type InferHonoHandlers<
-  C extends ApiContract,
-  M extends VersionEnvMap<C>,
-> = {
+export type InferHonoHandlers<C extends ApiContract, M extends VersionEnvMap<C>> = {
   [VK in keyof C]: {
     middlewares?: MiddlewareHandler[];
   } & (C[VK]['children'] extends Record<string, RouteGroup>
@@ -164,10 +160,7 @@ export type InferSimpleHonoHandlers<C extends ApiContract> = {
  * const router = createHonoRouter<typeof api, Vars>(api, handlers);
  * ```
  */
-export type InferHonoHandlersWithVars<
-  C extends ApiContract,
-  V extends Record<string, unknown>,
-> = {
+export type InferHonoHandlersWithVars<C extends ApiContract, V extends Record<string, unknown>> = {
   [VK in keyof C]: {
     middlewares?: MiddlewareHandler[];
   } & (C[VK]['routes'] extends Record<string, RouteDefinition>
@@ -209,7 +202,20 @@ export type CreateHonoRouterOptions = {
 
   /**
    * Path for OpenAPI JSON endpoint
-   * @default '/openapi.json'
+   * @default '/api-doc'
    */
   docsPath?: string;
+
+  /**
+   * OpenAPI document configuration (info, servers, etc.)
+   * If not provided, defaults to title 'API Documentation' and version '1.0.0'
+   */
+  docsConfig?: {
+    info: {
+      title: string;
+      version: string;
+      description?: string;
+    };
+    servers?: Array<{ url: string; description?: string }>;
+  };
 };

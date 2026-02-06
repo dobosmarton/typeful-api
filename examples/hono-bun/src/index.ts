@@ -61,82 +61,93 @@ const productsMiddleware = async (
 // Router (using simplified API)
 // ============================================
 
-const router = createHonoRouter<typeof api, AppVariables>(api, {
-  v1: {
-    // Version-level routes
-    health: async () => ({
-      status: 'ok' as const,
-      timestamp: new Date().toISOString(),
-    }),
+const router = createHonoRouter<typeof api, AppVariables>(
+  api,
+  {
+    v1: {
+      // Version-level routes
+      health: async () => ({
+        status: 'ok' as const,
+        timestamp: new Date().toISOString(),
+      }),
 
-    // Products group
-    products: {
-      middlewares: [productsMiddleware],
+      // Products group
+      products: {
+        middlewares: [productsMiddleware],
 
-      list: async ({ c, query }) => {
-        const allProducts = c.get('products');
-        const { page, limit } = query;
-        const start = (page - 1) * limit;
-        const paginatedProducts = allProducts.slice(start, start + limit);
+        list: async ({ c, query }) => {
+          const allProducts = c.get('products');
+          const { page, limit } = query;
+          const start = (page - 1) * limit;
+          const paginatedProducts = allProducts.slice(start, start + limit);
 
-        return {
-          products: paginatedProducts,
-          total: allProducts.length,
-          page,
-          limit,
-        };
-      },
+          return {
+            products: paginatedProducts,
+            total: allProducts.length,
+            page,
+            limit,
+          };
+        },
 
-      get: async ({ c, params }) => {
-        const allProducts = c.get('products');
-        const product = allProducts.find((p) => p.id === params.id);
+        get: async ({ c, params }) => {
+          const allProducts = c.get('products');
+          const product = allProducts.find((p) => p.id === params.id);
 
-        if (!product) {
-          throw new Error('Product not found');
-        }
+          if (!product) {
+            throw new Error('Product not found');
+          }
 
-        return product;
-      },
+          return product;
+        },
 
-      create: async ({ c, body }) => {
-        const allProducts = c.get('products');
-        const newProduct: Product = {
-          id: crypto.randomUUID(),
-          ...body,
-          createdAt: new Date().toISOString(),
-        };
+        create: async ({ c, body }) => {
+          const allProducts = c.get('products');
+          const newProduct: Product = {
+            id: crypto.randomUUID(),
+            ...body,
+            createdAt: new Date().toISOString(),
+          };
 
-        allProducts.push(newProduct);
-        return newProduct;
-      },
+          allProducts.push(newProduct);
+          return newProduct;
+        },
 
-      update: async ({ c, params, body }) => {
-        const allProducts = c.get('products');
-        const index = allProducts.findIndex((p) => p.id === params.id);
+        update: async ({ c, params, body }) => {
+          const allProducts = c.get('products');
+          const index = allProducts.findIndex((p) => p.id === params.id);
 
-        if (index === -1) {
-          throw new Error('Product not found');
-        }
+          if (index === -1) {
+            throw new Error('Product not found');
+          }
 
-        const updated = { ...allProducts[index]!, ...body };
-        allProducts[index] = updated;
-        return updated;
-      },
+          const updated = { ...allProducts[index]!, ...body };
+          allProducts[index] = updated;
+          return updated;
+        },
 
-      delete: async ({ c, params }) => {
-        const allProducts = c.get('products');
-        const index = allProducts.findIndex((p) => p.id === params.id);
+        delete: async ({ c, params }) => {
+          const allProducts = c.get('products');
+          const index = allProducts.findIndex((p) => p.id === params.id);
 
-        if (index === -1) {
-          throw new Error('Product not found');
-        }
+          if (index === -1) {
+            throw new Error('Product not found');
+          }
 
-        allProducts.splice(index, 1);
-        return { success: true };
+          allProducts.splice(index, 1);
+          return { success: true };
+        },
       },
     },
   },
-});
+  {
+    docsConfig: {
+      info: {
+        title: 'Hono Bun Example API',
+        version: '1.0.0',
+      },
+    },
+  },
+);
 
 // ============================================
 // Main App
@@ -157,7 +168,7 @@ app.get('/', (c) => {
     name: 'Hono Bun Example',
     version: '1.0.0',
     runtime: 'Bun',
-    docs: '/api/v1/health',
+    docs: '/api/api-doc',
   });
 });
 
@@ -170,6 +181,7 @@ const port = Number(process.env.PORT) || 3000;
 console.log(`Server running at http://localhost:${port}`);
 console.log(`Health check: http://localhost:${port}/api/v1/health`);
 console.log(`Products API: http://localhost:${port}/api/v1/products`);
+console.log(`API Docs: http://localhost:${port}/api/api-doc`);
 
 export default {
   port,

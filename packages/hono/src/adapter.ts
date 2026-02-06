@@ -1,12 +1,8 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import type { ApiContract, RouteDefinition, RouteGroup } from '@typefulapi/core';
 import type { Context, Env, MiddlewareHandler } from 'hono';
 import type { ZodObject } from 'zod';
-import type {
-  ApiContract,
-  RouteDefinition,
-  RouteGroup,
-} from '@typefulapi/core';
 import type {
   CreateHonoRouterOptions,
   DefaultEnv,
@@ -26,9 +22,7 @@ function toRouteConfig(
   version: string,
   groupPath: string[],
 ): RouteConfig {
-  const normalizedPath = route.path.startsWith('/')
-    ? route.path
-    : `/${route.path}`;
+  const normalizedPath = route.path.startsWith('/') ? route.path : `/${route.path}`;
 
   const config: RouteConfig = {
     method: route.method,
@@ -104,11 +98,7 @@ function toRouteConfig(
   // Security
   if (route.auth && route.auth !== 'none') {
     const schemeName =
-      route.auth === 'bearer'
-        ? 'Bearer'
-        : route.auth === 'apiKey'
-          ? 'ApiKey'
-          : 'Basic';
+      route.auth === 'bearer' ? 'Bearer' : route.auth === 'apiKey' ? 'ApiKey' : 'Basic';
     config.security = [{ [schemeName]: [] }];
   }
 
@@ -176,9 +166,7 @@ function applyGroupHandlers<E extends Env>(
 
       const handler = h[name] as UserHandler | undefined;
       if (!handler) {
-        console.warn(
-          `Missing handler for route: ${version}/${groupPath.join('/')}/${name}`,
-        );
+        console.warn(`Missing handler for route: ${version}/${groupPath.join('/')}/${name}`);
         continue;
       }
 
@@ -204,13 +192,7 @@ function applyGroupHandlers<E extends Env>(
       const childHandlers: HandlerRecord = (h[childName] as HandlerRecord) ?? {};
       const childApp = new OpenAPIHono<E>();
 
-      applyGroupHandlers(
-        childGroup,
-        childHandlers,
-        childApp,
-        version,
-        [...groupPath, childName],
-      );
+      applyGroupHandlers(childGroup, childHandlers, childApp, version, [...groupPath, childName]);
 
       target.route(`/${childName}`, childApp);
     }
@@ -220,10 +202,7 @@ function applyGroupHandlers<E extends Env>(
 /**
  * Register security schemes based on auth types used in the contract
  */
-function registerSecuritySchemes<E extends Env>(
-  app: OpenAPIHono<E>,
-  contract: ApiContract,
-): void {
+function registerSecuritySchemes<E extends Env>(app: OpenAPIHono<E>, contract: ApiContract): void {
   const authTypes = new Set<string>();
 
   // Collect all auth types from the contract
@@ -306,20 +285,14 @@ export function createHonoRouter<C extends ApiContract>(
 ): OpenAPIHono<DefaultEnv>;
 
 // Overload 2: Shared variables mode - single type for all handlers
-export function createHonoRouter<
-  C extends ApiContract,
-  V extends Record<string, unknown>,
->(
+export function createHonoRouter<C extends ApiContract, V extends Record<string, unknown>>(
   contract: C,
   handlers: InferHonoHandlersWithVars<C, V>,
   options?: CreateHonoRouterOptions,
 ): OpenAPIHono<SimpleEnv<V>>;
 
 // Overload 3: Full mode - per-group environment mapping (backward compatible)
-export function createHonoRouter<
-  C extends ApiContract,
-  M extends VersionEnvMap<C>,
->(
+export function createHonoRouter<C extends ApiContract, M extends VersionEnvMap<C>>(
   contract: C,
   handlers: InferHonoHandlers<C, M>,
   options?: CreateHonoRouterOptions,
@@ -332,7 +305,13 @@ export function createHonoRouter(
   options: CreateHonoRouterOptions = {},
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): OpenAPIHono<any> {
-  const { basePath = '', middleware = [] } = options;
+  const {
+    basePath = '',
+    middleware = [],
+    registerDocs = true,
+    docsPath = '/api-doc',
+    docsConfig,
+  } = options;
 
   const app = basePath ? new OpenAPIHono().basePath(basePath) : new OpenAPIHono();
 
@@ -363,9 +342,7 @@ export function createHonoRouter(
         const groupHandlers: HandlerRecord = (versionHandlers[groupName] as HandlerRecord) ?? {};
         const groupApp = new OpenAPIHono();
 
-        applyGroupHandlers(groupDef, groupHandlers, groupApp, version, [
-          groupName,
-        ]);
+        applyGroupHandlers(groupDef, groupHandlers, groupApp, version, [groupName]);
 
         versionApp.route(`/${groupName}`, groupApp);
       }
@@ -373,16 +350,22 @@ export function createHonoRouter(
 
     // Process direct routes on version (if any)
     if (versionGroup.routes) {
-      applyGroupHandlers(
-        { routes: versionGroup.routes },
-        versionHandlers,
-        versionApp,
-        version,
-        [],
-      );
+      applyGroupHandlers({ routes: versionGroup.routes }, versionHandlers, versionApp, version, []);
     }
 
     app.route(`/${version}`, versionApp);
+  }
+
+  // Register OpenAPI documentation route
+  if (registerDocs) {
+    app.doc(docsPath, {
+      openapi: '3.0.0',
+      info: docsConfig?.info ?? {
+        title: 'API Documentation',
+        version: '1.0.0',
+      },
+      ...(docsConfig?.servers && { servers: docsConfig.servers }),
+    });
   }
 
   return app;

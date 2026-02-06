@@ -1,13 +1,8 @@
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 import { toJSONSchema } from 'zod/v4/core';
 import type { $ZodType } from 'zod/v4/core';
 import { extractTags, flattenRoutes } from './contract';
-import type {
-  ApiContract,
-  AuthType,
-  GenerateSpecOptions,
-  RouteDefinition,
-} from './types';
+import type { ApiContract, AuthType, GenerateSpecOptions, RouteDefinition } from './types';
 
 /**
  * OpenAPI 3.0 document structure
@@ -127,7 +122,7 @@ type JsonSchema = {
 /**
  * Convert a Zod schema to JSON Schema using Zod v4's native conversion
  */
-function zodToJsonSchema(schema: ZodSchema): JsonSchema {
+function zodToJsonSchema(schema: ZodType): JsonSchema {
   const result = toJSONSchema(schema as unknown as $ZodType, {
     target: 'draft-7', // OpenAPI 3.0 compatible
     unrepresentable: 'any', // Gracefully handle unsupported types
@@ -224,10 +219,7 @@ function generateParameters(route: RouteDefinition): Parameter[] {
  * });
  * ```
  */
-export function generateSpec(
-  contract: ApiContract,
-  options: GenerateSpecOptions,
-): OpenApiDocument {
+export function generateSpec(contract: ApiContract, options: GenerateSpecOptions): OpenApiDocument {
   const flatRoutes = flattenRoutes(contract);
   const allTags = extractTags(contract);
 
@@ -319,11 +311,7 @@ export function generateSpec(
     if (route.auth && route.auth !== 'none') {
       usedSecuritySchemes.add(route.auth);
       const schemeName =
-        route.auth === 'bearer'
-          ? 'Bearer'
-          : route.auth === 'apiKey'
-            ? 'ApiKey'
-            : 'Basic';
+        route.auth === 'bearer' ? 'Bearer' : route.auth === 'apiKey' ? 'ApiKey' : 'Basic';
       operation.security = [{ [schemeName]: [] }];
     }
 
@@ -348,8 +336,7 @@ export function generateSpec(
   for (const auth of usedSecuritySchemes) {
     const scheme = getSecurityScheme(auth);
     if (scheme && doc.components?.securitySchemes) {
-      const schemeName =
-        auth === 'bearer' ? 'Bearer' : auth === 'apiKey' ? 'ApiKey' : 'Basic';
+      const schemeName = auth === 'bearer' ? 'Bearer' : auth === 'apiKey' ? 'ApiKey' : 'Basic';
       doc.components.securitySchemes[schemeName] = scheme;
     }
   }

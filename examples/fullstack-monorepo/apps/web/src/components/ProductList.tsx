@@ -12,19 +12,11 @@ export const ProductList = () => {
   const { data, isLoading, error } = useQuery(productQueries.all());
 
   if (isLoading) {
-    return (
-      <div style={styles.loading}>
-        Loading products...
-      </div>
-    );
+    return <div style={styles.loading}>Loading products...</div>;
   }
 
   if (error) {
-    return (
-      <div style={styles.error}>
-        Error: {error.message}
-      </div>
-    );
+    return <div style={styles.error}>Error: {error.message}</div>;
   }
 
   if (!data) {
@@ -56,14 +48,10 @@ export const ProductList = () => {
               </span>
             </div>
 
-            {product.description && (
-              <p style={styles.description}>{product.description}</p>
-            )}
+            {product.description && <p style={styles.description}>{product.description}</p>}
 
             <div style={styles.cardFooter}>
-              <span style={styles.price}>
-                ${(product.price / 100).toFixed(2)}
-              </span>
+              <span style={styles.price}>${(product.price / 100).toFixed(2)}</span>
               <span style={styles.date}>
                 Added {new Date(product.createdAt).toLocaleDateString()}
               </span>

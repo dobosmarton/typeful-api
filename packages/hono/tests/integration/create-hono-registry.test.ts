@@ -93,9 +93,7 @@ describe('createHonoRegistry', () => {
 
       // Should have the deeply nested route
       const nestedRoute = routes.find(
-        (r) =>
-          r.type === 'route' &&
-          r.route.operationId === 'v1_api_admin_users_list',
+        (r) => r.type === 'route' && r.route.operationId === 'v1_api_admin_users_list',
       );
       expect(nestedRoute).toBeDefined();
     });
@@ -118,9 +116,7 @@ describe('createHonoRegistry', () => {
       const registry = createHonoRegistry(allAuthContract);
 
       const definitions = registry.openAPIRegistry.definitions;
-      const bearerScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Bearer',
-      );
+      const bearerScheme = definitions.find((d) => d.type === 'component' && d.name === 'Bearer');
 
       expect(bearerScheme).toBeDefined();
     });
@@ -129,9 +125,7 @@ describe('createHonoRegistry', () => {
       const registry = createHonoRegistry(allAuthContract);
 
       const definitions = registry.openAPIRegistry.definitions;
-      const apiKeyScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'ApiKey',
-      );
+      const apiKeyScheme = definitions.find((d) => d.type === 'component' && d.name === 'ApiKey');
 
       expect(apiKeyScheme).toBeDefined();
     });
@@ -140,9 +134,7 @@ describe('createHonoRegistry', () => {
       const registry = createHonoRegistry(allAuthContract);
 
       const definitions = registry.openAPIRegistry.definitions;
-      const basicScheme = definitions.find(
-        (d) => d.type === 'component' && d.name === 'Basic',
-      );
+      const basicScheme = definitions.find((d) => d.type === 'component' && d.name === 'Basic');
 
       expect(basicScheme).toBeDefined();
     });
@@ -300,8 +292,7 @@ describe('createHonoRegistry', () => {
       const routes = definitions.filter((d) => d.type === 'route');
 
       const createRoute = routes.find(
-        (r) =>
-          r.type === 'route' && r.route.operationId === 'v1_products_create',
+        (r) => r.type === 'route' && r.route.operationId === 'v1_products_create',
       );
 
       expect(createRoute).toBeDefined();
@@ -317,8 +308,7 @@ describe('createHonoRegistry', () => {
       const routes = definitions.filter((d) => d.type === 'route');
 
       const listRoute = routes.find(
-        (r) =>
-          r.type === 'route' && r.route.operationId === 'v1_products_list',
+        (r) => r.type === 'route' && r.route.operationId === 'v1_products_list',
       );
 
       expect(listRoute).toBeDefined();

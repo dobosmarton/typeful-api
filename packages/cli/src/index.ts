@@ -42,11 +42,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  generateSpecJson,
-  type ApiContract,
-  type GenerateSpecOptions,
-} from '@typefulapi/core';
+import { generateSpecJson, type ApiContract, type GenerateSpecOptions } from '@typefulapi/core';
 
 export type GenerateSpecProgrammaticOptions = {
   /**
@@ -116,9 +112,7 @@ export type GenerateClientProgrammaticOptions = {
  * });
  * ```
  */
-export async function generateSpec(
-  options: GenerateSpecProgrammaticOptions,
-): Promise<string> {
+export async function generateSpec(options: GenerateSpecProgrammaticOptions): Promise<string> {
   const { contract, out, title, version, description, servers, pretty = true } = options;
 
   // Build spec options
@@ -163,9 +157,7 @@ export async function generateSpec(
  * });
  * ```
  */
-export async function generateClient(
-  options: GenerateClientProgrammaticOptions,
-): Promise<string> {
+export async function generateClient(options: GenerateClientProgrammaticOptions): Promise<string> {
   const { spec, out } = options;
 
   let specObject: object;

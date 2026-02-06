@@ -317,7 +317,10 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            list: route.get('/products').withOperationId('getAllProducts').returns(z.array(ProductSchema)),
+            list: route
+              .get('/products')
+              .withOperationId('getAllProducts')
+              .returns(z.array(ProductSchema)),
           },
         },
       };
@@ -332,7 +335,10 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            list: route.get('/products').withSummary('Get all products').returns(z.array(ProductSchema)),
+            list: route
+              .get('/products')
+              .withSummary('Get all products')
+              .returns(z.array(ProductSchema)),
           },
         },
       };
@@ -365,7 +371,10 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            list: route.get('/products').withTags('Products', 'Catalog').returns(z.array(ProductSchema)),
+            list: route
+              .get('/products')
+              .withTags('Products', 'Catalog')
+              .returns(z.array(ProductSchema)),
           },
         },
       };
@@ -800,7 +809,8 @@ describe('schema descriptions', () => {
     };
 
     const spec = generateSpec(contract, defaultOptions);
-    const responseSchema = spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
+    const responseSchema =
+      spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
 
     expect(responseSchema?.properties?.id?.description).toBe('Unique identifier');
     expect(responseSchema?.properties?.name?.description).toBe('Display name');
@@ -816,13 +826,17 @@ describe('schema descriptions', () => {
     const contract: ApiContract = {
       v1: {
         routes: {
-          create: route.post('/test').body(CreateSchema).returns(z.object({ id: z.string() })),
+          create: route
+            .post('/test')
+            .body(CreateSchema)
+            .returns(z.object({ id: z.string() })),
         },
       },
     };
 
     const spec = generateSpec(contract, defaultOptions);
-    const bodySchema = spec.paths['/v1/test']?.post?.requestBody?.content['application/json']?.schema;
+    const bodySchema =
+      spec.paths['/v1/test']?.post?.requestBody?.content['application/json']?.schema;
 
     expect(bodySchema?.properties?.name?.description).toBe('Product name');
     expect(bodySchema?.properties?.price?.description).toBe('Price in cents');
@@ -837,7 +851,10 @@ describe('schema descriptions', () => {
     const contract: ApiContract = {
       v1: {
         routes: {
-          list: route.get('/test').query(QuerySchema).returns(z.array(z.object({}))),
+          list: route
+            .get('/test')
+            .query(QuerySchema)
+            .returns(z.array(z.object({}))),
         },
       },
     };
@@ -874,10 +891,12 @@ describe('schema descriptions', () => {
 
   it('preserves nested object descriptions', () => {
     const NestedSchema = z.object({
-      user: z.object({
-        name: z.string().describe('User name'),
-        email: z.string().describe('Email address'),
-      }).describe('User details'),
+      user: z
+        .object({
+          name: z.string().describe('User name'),
+          email: z.string().describe('Email address'),
+        })
+        .describe('User details'),
     });
 
     const contract: ApiContract = {
@@ -889,7 +908,8 @@ describe('schema descriptions', () => {
     };
 
     const spec = generateSpec(contract, defaultOptions);
-    const responseSchema = spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
+    const responseSchema =
+      spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
 
     expect(responseSchema?.properties?.user?.description).toBe('User details');
     expect(responseSchema?.properties?.user?.properties?.name?.description).toBe('User name');
@@ -910,7 +930,8 @@ describe('schema descriptions', () => {
     };
 
     const spec = generateSpec(contract, defaultOptions);
-    const responseSchema = spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
+    const responseSchema =
+      spec.paths['/v1/test']?.get?.responses['200']?.content?.['application/json']?.schema;
 
     expect(responseSchema?.properties?.items?.description).toBe('List of items');
     expect(responseSchema?.properties?.items?.items?.description).toBe('Item value');

@@ -45,19 +45,19 @@ export type ExpressHandler<R extends RouteDefinition> = (
 /**
  * Recursively infer handler types from a route group for Express
  */
-export type InferExpressGroupHandlers<G extends RouteGroup> =
-  (G['routes'] extends Record<string, RouteDefinition>
+export type InferExpressGroupHandlers<G extends RouteGroup> = (G['routes'] extends Record<
+  string,
+  RouteDefinition
+>
+  ? {
+      [K in keyof G['routes']]: ExpressHandler<G['routes'][K]>;
+    }
+  : object) &
+  (G['children'] extends Record<string, RouteGroup>
     ? {
-        [K in keyof G['routes']]: ExpressHandler<G['routes'][K]>;
+        [K in keyof G['children']]: InferExpressGroupHandlers<G['children'][K]>;
       }
-    : object) &
-    (G['children'] extends Record<string, RouteGroup>
-      ? {
-          [K in keyof G['children']]: InferExpressGroupHandlers<
-            G['children'][K]
-          >;
-        }
-      : object);
+    : object);
 
 /**
  * Infer all handlers from an API contract for Express
@@ -67,9 +67,7 @@ export type InferExpressHandlers<C extends ApiContract> = {
     middleware?: RequestHandler[];
   } & (C[VK]['children'] extends Record<string, RouteGroup>
     ? {
-        [CK in keyof C[VK]['children']]: InferExpressGroupHandlers<
-          C[VK]['children'][CK]
-        > & {
+        [CK in keyof C[VK]['children']]: InferExpressGroupHandlers<C[VK]['children'][CK]> & {
           middleware?: RequestHandler[];
         };
       }

@@ -17,10 +17,7 @@ import type { RequestWithLocals } from './types';
  * ```
  */
 export function createPreHandler(
-  handler: (
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) => void | Promise<void>,
+  handler: (request: FastifyRequest, reply: FastifyReply) => void | Promise<void>,
 ): preHandlerAsyncHookHandler {
   return async function (request, reply) {
     await handler.call(this, request, reply);
@@ -69,10 +66,7 @@ export function setLocals<T>(request: FastifyRequest, locals: T): void {
  * });
  * ```
  */
-export function mergeLocals<T extends object>(
-  request: FastifyRequest,
-  locals: T,
-): void {
+export function mergeLocals<T extends object>(request: FastifyRequest, locals: T): void {
   const existing = (request as RequestWithLocals<object>).locals ?? {};
   (request as RequestWithLocals<object>).locals = { ...existing, ...locals };
 }
@@ -160,10 +154,7 @@ export function composePreHandlers(
  * // Now fastify.db and fastify.config are available
  * ```
  */
-export function decorateInstance<T extends object>(
-  fastify: FastifyInstance,
-  decorations: T,
-): void {
+export function decorateInstance<T extends object>(fastify: FastifyInstance, decorations: T): void {
   for (const [key, value] of Object.entries(decorations)) {
     fastify.decorate(key, value);
   }

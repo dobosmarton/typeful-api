@@ -1,4 +1,4 @@
-import type { ZodSchema, z } from 'zod';
+import type { ZodType } from 'zod';
 
 /**
  * Supported HTTP methods
@@ -24,11 +24,11 @@ export type RouteDefinition<
 > = {
   readonly method: HttpMethod;
   readonly path: string;
-  readonly body?: ZodSchema<TBody>;
-  readonly query?: ZodSchema<TQuery>;
-  readonly params?: ZodSchema<TParams>;
-  readonly response: ZodSchema<TResponse>;
-  readonly responses?: Record<number, ZodSchema>;
+  readonly body?: ZodType<TBody>;
+  readonly query?: ZodType<TQuery>;
+  readonly params?: ZodType<TParams>;
+  readonly response: ZodType<TResponse>;
+  readonly responses?: Record<number, ZodType>;
   readonly auth?: AuthType;
   readonly summary?: string;
   readonly description?: string;
@@ -67,27 +67,27 @@ export type ApiContract = VersionedRoutes;
  * Uses NonNullable to handle the optional nature of body
  */
 export type InferBody<R extends RouteDefinition> =
-  NonNullable<R['body']> extends ZodSchema<infer T> ? T : never;
+  NonNullable<R['body']> extends ZodType<infer T> ? T : never;
 
 /**
  * Extract the query type from a route definition
  * Uses NonNullable to handle the optional nature of query
  */
 export type InferQuery<R extends RouteDefinition> =
-  NonNullable<R['query']> extends ZodSchema<infer T> ? T : never;
+  NonNullable<R['query']> extends ZodType<infer T> ? T : never;
 
 /**
  * Extract the params type from a route definition
  * Uses NonNullable to handle the optional nature of params
  */
 export type InferParams<R extends RouteDefinition> =
-  NonNullable<R['params']> extends ZodSchema<infer T> ? T : never;
+  NonNullable<R['params']> extends ZodType<infer T> ? T : never;
 
 /**
  * Extract the response type from a route definition
  */
 export type InferResponse<R extends RouteDefinition> =
-  R['response'] extends ZodSchema<infer T> ? T : never;
+  R['response'] extends ZodType<infer T> ? T : never;
 
 /**
  * Context object passed to handlers, containing typed request data

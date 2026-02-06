@@ -76,8 +76,4 @@ export type {
 } from './types';
 
 // Re-export core types for convenience
-export type {
-  ApiContract,
-  RouteDefinition,
-  RouteGroup,
-} from '@typefulapi/core';
+export type { ApiContract, RouteDefinition, RouteGroup } from '@typefulapi/core';

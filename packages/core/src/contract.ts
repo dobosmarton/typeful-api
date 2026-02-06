@@ -116,11 +116,7 @@ export function isRouteDefinition(value: unknown): value is RouteDefinition {
  * Helper to check if a value is a RouteGroup
  */
 export function isRouteGroup(value: unknown): value is RouteGroup {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    ('routes' in value || 'children' in value)
-  );
+  return typeof value === 'object' && value !== null && ('routes' in value || 'children' in value);
 }
 
 /**
@@ -154,9 +150,7 @@ export function flattenRoutes(
     // Process routes at this level
     if (group.routes) {
       for (const [name, route] of Object.entries(group.routes)) {
-        const routePath = route.path.startsWith('/')
-          ? route.path
-          : `/${route.path}`;
+        const routePath = route.path.startsWith('/') ? route.path : `/${route.path}`;
         const fullPath =
           `${basePath}/${version}${pathPrefix}${routePath}`
             .replace(/\/+/g, '/')
@@ -175,12 +169,7 @@ export function flattenRoutes(
     // Recurse into children
     if (group.children) {
       for (const [childName, childGroup] of Object.entries(group.children)) {
-        traverseGroup(
-          childGroup,
-          version,
-          [...groupPath, childName],
-          `${pathPrefix}/${childName}`,
-        );
+        traverseGroup(childGroup, version, [...groupPath, childName], `${pathPrefix}/${childName}`);
       }
     }
   }

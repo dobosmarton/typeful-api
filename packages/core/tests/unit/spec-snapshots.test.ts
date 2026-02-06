@@ -31,7 +31,14 @@ describe('OpenAPI spec snapshots', () => {
                 .query(
                   z.object({
                     page: z.number().int().positive().optional().default(1).describe('Page number'),
-                    limit: z.number().int().positive().max(100).optional().default(20).describe('Items per page'),
+                    limit: z
+                      .number()
+                      .int()
+                      .positive()
+                      .max(100)
+                      .optional()
+                      .default(20)
+                      .describe('Items per page'),
                   }),
                 )
                 .returns(
@@ -140,9 +147,7 @@ describe('OpenAPI spec snapshots', () => {
         version: '2.0.0',
         description: 'API with multiple versions and auth schemes',
       },
-      servers: [
-        { url: 'https://api.example.com', description: 'Production' },
-      ],
+      servers: [{ url: 'https://api.example.com', description: 'Production' }],
     });
 
     expect(json).toMatchSnapshot();
@@ -162,9 +167,9 @@ describe('OpenAPI spec snapshots', () => {
             children: {
               users: {
                 routes: {
-                  list: route.get('/').returns(
-                    z.array(z.object({ id: z.string(), name: z.string() })),
-                  ),
+                  list: route
+                    .get('/')
+                    .returns(z.array(z.object({ id: z.string(), name: z.string() }))),
                 },
                 children: {
                   roles: {

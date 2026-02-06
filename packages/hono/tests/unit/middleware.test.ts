@@ -243,10 +243,7 @@ describe('middleware', () => {
         await next();
       };
 
-      const conditional = conditionalMiddleware<TestEnv>(
-        () => true,
-        authMiddleware,
-      );
+      const conditional = conditionalMiddleware<TestEnv>(() => true, authMiddleware);
 
       const app = new Hono<TestEnv>();
       app.use(conditional);
@@ -265,10 +262,7 @@ describe('middleware', () => {
         await next();
       };
 
-      const conditional = conditionalMiddleware<TestEnv>(
-        () => false,
-        authMiddleware,
-      );
+      const conditional = conditionalMiddleware<TestEnv>(() => false, authMiddleware);
 
       const app = new Hono<TestEnv>();
       app.use(conditional);
@@ -312,10 +306,7 @@ describe('middleware', () => {
         await next();
       };
 
-      const conditional = conditionalMiddleware(
-        (c) => c.req.method === 'POST',
-        loggingMiddleware,
-      );
+      const conditional = conditionalMiddleware((c) => c.req.method === 'POST', loggingMiddleware);
 
       const app = new Hono();
       app.use(conditional);
@@ -388,12 +379,9 @@ describe('middleware', () => {
     it('propagates errors from factory function', async () => {
       type BaseEnv = Env;
 
-      const failingMiddleware = createVariableMiddleware<BaseEnv, 'fail', never>(
-        'fail',
-        () => {
-          throw new Error('Factory error');
-        },
-      );
+      const failingMiddleware = createVariableMiddleware<BaseEnv, 'fail', never>('fail', () => {
+        throw new Error('Factory error');
+      });
 
       const app = new Hono();
       app.use(failingMiddleware);
