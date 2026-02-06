@@ -582,7 +582,7 @@ typeful-api generate-spec --contract ./src/api.ts --watch
 
 ## Comparison
 
-|                             | \*\*typeful-api\*\*          | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                    |
+|                             | \*\*typeful-api\*\*     | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                    |
 | --------------------------- | ----------------------- | --------------------------------- | -------------------- | --------------------------------- | ------------------------- |
 | **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                  | Server-first              |
 | **Validation**              | Zod                     | Zod / Valibot                     | Zod                  | Any (Zod common)                  | TypeBox / Standard Schema |
@@ -603,8 +603,8 @@ typeful-api generate-spec --contract ./src/api.ts --watch
 
 ## Packages
 
-| Package               | Description                                                    |
-| --------------------- | -------------------------------------------------------------- |
+| Package                | Description                                                    |
+| ---------------------- | -------------------------------------------------------------- |
 | `@typeful-api/core`    | Framework-agnostic core with route builder and spec generation |
 | `@typeful-api/hono`    | Hono adapter with OpenAPI integration                          |
 | `@typeful-api/express` | Express adapter with validation middleware                     |
