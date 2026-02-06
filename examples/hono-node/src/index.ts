@@ -1,33 +1,29 @@
 /**
- * Hono Node.js Example
+ * Hono Node.js Example — Separate Handlers Pattern
  *
- * A complete example demonstrating typi with Hono on Node.js.
- * This example uses the simplified API without Cloudflare bindings.
+ * Demonstrates how to define API handlers in separate files
+ * with full type safety derived from the contract.
+ *
+ * Type flow: api.ts (contract) → types.ts (derived types) → handlers/*.ts (typed handlers)
  *
  * Run with: npm run dev
  */
 
 import { serve } from '@hono/node-server';
-import { createHonoRouter, type SimpleEnv } from '@typefulapi/hono';
+import { createHonoRouter } from '@typefulapi/hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { randomUUID } from 'node:crypto';
 import { api, type Product } from './api';
-
-// ============================================
-// Environment Type (simplified - no Bindings)
-// ============================================
-
-type AppVariables = {
-  products: Product[];
-};
+import { health } from './handlers/health';
+import * as products from './handlers/products';
+import type { AppEnv, AppVariables } from './types';
 
 // ============================================
 // In-Memory Database (for demo purposes)
 // ============================================
 
-const products: Product[] = [
+const initialProducts: Product[] = [
   {
     id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'TypeScript Handbook',
@@ -50,94 +46,30 @@ const products: Product[] = [
 // Middleware
 // ============================================
 
-// Middleware to inject products "database" into context
 const productsMiddleware = async (
   c: { set: (key: string, value: unknown) => void },
   next: () => Promise<void>,
 ) => {
-  c.set('products', products);
+  c.set('products', initialProducts);
   await next();
 };
 
 // ============================================
-// Router (using simplified API)
+// Router — handlers imported from separate files
 // ============================================
 
 const router = createHonoRouter<typeof api, AppVariables>(
   api,
   {
     v1: {
-      // Version-level routes
-      health: async () => ({
-        status: 'ok' as const,
-        timestamp: new Date().toISOString(),
-      }),
-
-      // Products group
+      health,
       products: {
         middlewares: [productsMiddleware],
-
-        list: async ({ c, query }) => {
-          const allProducts = c.get('products');
-          const { page, limit } = query;
-          const start = (page - 1) * limit;
-          const paginatedProducts = allProducts.slice(start, start + limit);
-
-          return {
-            products: paginatedProducts,
-            total: allProducts.length,
-            page,
-            limit,
-          };
-        },
-
-        get: async ({ c, params }) => {
-          const allProducts = c.get('products');
-          const product = allProducts.find((p) => p.id === params.id);
-
-          if (!product) {
-            throw new Error('Product not found');
-          }
-
-          return product;
-        },
-
-        create: async ({ c, body }) => {
-          const allProducts = c.get('products');
-          const newProduct: Product = {
-            id: randomUUID(),
-            ...body,
-            createdAt: new Date().toISOString(),
-          };
-
-          allProducts.push(newProduct);
-          return newProduct;
-        },
-
-        update: async ({ c, params, body }) => {
-          const allProducts = c.get('products');
-          const index = allProducts.findIndex((p) => p.id === params.id);
-
-          if (index === -1) {
-            throw new Error('Product not found');
-          }
-
-          const updated = { ...allProducts[index]!, ...body };
-          allProducts[index] = updated;
-          return updated;
-        },
-
-        delete: async ({ c, params }) => {
-          const allProducts = c.get('products');
-          const index = allProducts.findIndex((p) => p.id === params.id);
-
-          if (index === -1) {
-            throw new Error('Product not found');
-          }
-
-          allProducts.splice(index, 1);
-          return { success: true };
-        },
+        list: products.list,
+        get: products.get,
+        create: products.create,
+        update: products.update,
+        delete: products.deleteProduct,
       },
     },
   },
@@ -155,7 +87,7 @@ const router = createHonoRouter<typeof api, AppVariables>(
 // Main App
 // ============================================
 
-const app = new Hono<SimpleEnv<AppVariables>>();
+const app = new Hono<AppEnv>();
 
 // Global middleware
 app.use('*', logger());
