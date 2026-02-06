@@ -38,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build packages
+        run: pnpm --filter './packages/*' build
+
+      - name: Generate example specs and types
+        run: pnpm -r generate
+
       - name: Build
         run: pnpm build
 
@@ -49,3 +55,6 @@ jobs:
 
       - name: Type check
         run: pnpm check-types
+
+      - name: Typecheck fullstack example
+        run: pnpm --filter fullstack-monorepo-example typecheck

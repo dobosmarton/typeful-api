@@ -32,7 +32,8 @@ pnpm-debug.log*
 # Generated files
 openapi.json
 *.d.ts
-!src/**/*.d.ts
+!**/src/**/*.d.ts
+*.generated.d.ts
 
 # Test coverage
 coverage/
