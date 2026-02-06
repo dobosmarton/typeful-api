@@ -8,12 +8,12 @@
  */
 
 import { serve } from '@hono/node-server';
+import { swaggerUI } from '@hono/swagger-ui';
+import { createHonoRouter, type SimpleEnv } from '@typefulapi/hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { randomUUID } from 'node:crypto';
-import { swaggerUI } from '@hono/swagger-ui';
-import { createHonoRouter, type SimpleEnv } from '@typefulapi/hono';
 import { api, type Product } from './api';
 
 // ============================================
@@ -198,5 +198,6 @@ serve({ fetch: app.fetch, port }, (info) => {
   console.log(`API server running at http://localhost:${info.port}`);
   console.log(`Health check: http://localhost:${info.port}/api/v1/health`);
   console.log(`Products API: http://localhost:${info.port}/api/v1/products`);
-  console.log(`API Docs: http://localhost:${info.port}/api/api-reference`);
+  console.log(`API Docs: http://localhost:${info.port}/api/api-doc`);
+  console.log(`Swagger UI: http://localhost:${info.port}/api/api-reference`);
 });
