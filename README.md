@@ -1,7 +1,7 @@
 # typefulapi
 
 [![npm version](https://img.shields.io/npm/v/@typefulapi/core.svg)](https://www.npmjs.com/package/@typefulapi/core)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 End-to-end type-safe OpenAPI-first APIs with minimal boilerplate.
@@ -36,8 +36,8 @@ Define your API contract once with Zod schemas, get full type inference for hand
 
 ## Prerequisites
 
-- **Node.js** 18+ or **Bun** 1.0+
-- **TypeScript** 5.0+ with strict mode enabled
+- **Node.js** 20+ or **Bun** 1.0+
+- **TypeScript** 5.5+ with strict mode enabled
 - **Package manager**: npm, pnpm, yarn, or bun
 - One of: **Hono**, **Express**, or **Fastify**
 
@@ -118,7 +118,7 @@ import { z } from 'zod';
 
 // Define your schemas
 const ProductSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1),
   price: z.number().positive(),
 });
@@ -126,7 +126,7 @@ const ProductSchema = z.object({
 const CreateProductSchema = ProductSchema.omit({ id: true });
 
 const IdParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 });
 
 // Define your API contract
@@ -222,7 +222,64 @@ app.route('/api', router);
 export default app;
 ```
 
-### 5. Run Your Server
+### 5. Handlers in Separate Files
+
+As your API grows, you'll want handlers in their own files. typefulapi makes this easy — derive handler types from the contract and use them to type standalone functions:
+
+```typescript
+// src/types.ts — derive handler types from the contract
+import type { InferHonoHandlersWithVars } from '@typefulapi/hono';
+import type { api } from './api';
+
+type AppHandlers = InferHonoHandlersWithVars<typeof api, { db: Database }>;
+
+// Index into the handler map to get types for each group
+export type ProductHandlers = AppHandlers['v1']['products'];
+```
+
+```typescript
+// src/handlers/products.ts — fully typed, autocompletion works
+import type { ProductHandlers } from '../types';
+
+export const list: ProductHandlers['list'] = async ({ c }) => {
+  const db = c.get('db');
+  return await db.products.findMany();
+};
+
+export const get: ProductHandlers['get'] = async ({ c, params }) => {
+  const db = c.get('db');
+  const product = await db.products.find(params.id);
+  if (!product) throw new HTTPException(404);
+  return product;
+};
+
+export const create: ProductHandlers['create'] = async ({ c, body }) => {
+  const db = c.get('db');
+  return await db.products.create({ id: crypto.randomUUID(), ...body });
+};
+```
+
+```typescript
+// src/server.ts — import and wire up
+import { createHonoRouter } from '@typefulapi/hono';
+import { api } from './api';
+import * as products from './handlers/products';
+
+const router = createHonoRouter<typeof api, { db: Database }>(api, {
+  v1: {
+    products: {
+      list: products.list,
+      get: products.get,
+      create: products.create,
+      delete: products.deleteProduct,
+    },
+  },
+});
+```
+
+The type flows automatically: **contract → `InferHonoHandlersWithVars` → indexed handler type → typed function**. Change a Zod schema and every handler's types update with it.
+
+### 6. Run Your Server
 
 ```bash
 # Using Bun
@@ -242,7 +299,7 @@ Your API is now available at:
 - `POST /api/v1/products` - Create a product (requires auth)
 - `DELETE /api/v1/products/:id` - Delete a product (requires auth)
 
-### 6. Generate OpenAPI Spec
+### 7. Generate OpenAPI Spec
 
 ```bash
 # Using CLI
@@ -345,7 +402,7 @@ route
 // With path params
 route
   .get('/products/:id')
-  .params(z.object({ id: z.string().uuid() }))
+  .params(z.object({ id: z.uuid() }))
   .returns(ProductSchema);
 
 // Mark as deprecated
@@ -438,7 +495,7 @@ route
   .get('/:id')
   .params(IdParamsSchema)
   .returns(ProductSchema)
-  .errors({ 404: NotFoundError })
+  .withResponses({ 404: NotFoundError })
   .withSummary('Get a product');
 ```
 
@@ -525,14 +582,24 @@ typefulapi generate-spec --contract ./src/api.ts --watch
 
 ## Comparison
 
-| Feature                 | ts-rest  | @hono/zod-openapi | Zodios   | **typefulapi**          |
-| ----------------------- | -------- | ----------------- | -------- | ----------------------- |
-| API Versioning          | ❌       | ❌                | ❌       | ✅ First-class          |
-| Handler Decoupling      | Partial  | ❌                | ❌       | ✅ Full                 |
-| Hierarchical Middleware | ❌       | ❌                | ❌       | ✅ Native               |
-| Client Generation       | Built-in | Manual            | Built-in | ✅ Automatic            |
-| OpenAPI Portable        | ❌       | ✅                | ✅       | ✅                      |
-| Framework Agnostic      | Partial  | ❌                | ❌       | ✅ Hono/Express/Fastify |
+|                             | **typefulapi**          | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                    |
+| --------------------------- | ----------------------- | --------------------------------- | -------------------- | --------------------------------- | ------------------------- |
+| **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                  | Server-first              |
+| **Validation**              | Zod                     | Zod / Valibot                     | Zod                  | Any (Zod common)                  | TypeBox / Standard Schema |
+| **OpenAPI generation**      | ✅ Portable             | ✅ Portable                       | ✅ Portable          | ❌ Third-party only               | ✅ Via plugin             |
+| **Framework support**       | Hono, Express, Fastify  | Express, Fastify, Next.js, NestJS | Hono only            | Express, Fastify, Next.js, Lambda | Bun only                  |
+| **API versioning**          | ✅ First-class          | ❌ Manual                         | ❌ Manual            | ❌ Manual                         | ❌ Manual                 |
+| **Hierarchical middleware** | ✅ Native               | ❌ Per-route only                 | ✅ Via Hono          | ✅ Type-safe pipes                | ✅ Guard system           |
+| **Handler decoupling**      | ✅ Typed separate files | ✅ With caveats                   | ✅ Routes + handlers | ✅ Standard                       | ⚠️ Tricky (chaining)      |
+| **Built-in client**         | ✅ CLI generation       | ✅ Fetch-based                    | ❌ Use external      | ✅ Type-inferred                  | ✅ Eden Treaty            |
+| **REST / OpenAPI native**   | ✅                      | ✅                                | ✅                   | ❌ Custom RPC                     | ✅                        |
+
+**How they differ:**
+
+- **tRPC** is the most popular option for TypeScript monorepos, but uses a custom RPC protocol — not REST. If you need standard OpenAPI specs or non-TypeScript clients, tRPC requires third-party addons.
+- **ts-rest** is the closest alternative to typefulapi. It shares the contract-first Zod approach but lacks built-in API versioning and hierarchical middleware.
+- **@hono/zod-openapi** is excellent if you're committed to Hono. typefulapi builds on top of it for Hono and extends the same ideas to Express and Fastify.
+- **Elysia** is a fast full framework with great DX, but locked to Bun and not contract-first.
 
 ## Packages
 
@@ -546,14 +613,9 @@ typefulapi generate-spec --contract ./src/api.ts --watch
 
 ## Resources
 
-- [Examples Repository](https://github.com/typefulapi/examples) - Full working examples for each framework
-- [API Reference](https://typefulapi.dev/docs) - Detailed API documentation
-- [GitHub Issues](https://github.com/typefulapi/typefulapi/issues) - Report bugs or request features
-- [Changelog](https://github.com/typefulapi/typefulapi/blob/main/CHANGELOG.md) - Version history and updates
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) before submitting a PR.
+- [Examples](https://github.com/dobosmarton/typefulapi/tree/main/examples) - Full working examples for each framework
+- [GitHub Issues](https://github.com/dobosmarton/typefulapi/issues) - Report bugs or request features
+- [Changelog](https://github.com/dobosmarton/typefulapi/blob/main/CHANGELOG.md) - Version history and updates
 
 ## License
 
