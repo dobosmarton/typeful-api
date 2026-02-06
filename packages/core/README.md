@@ -72,8 +72,7 @@ const api = defineApi({
 import { generateSpec } from '@typeful-api/core';
 
 const spec = generateSpec(api, {
-  title: 'My API',
-  version: '1.0.0',
+  info: { title: 'My API', version: '1.0.0' },
 });
 ```
 

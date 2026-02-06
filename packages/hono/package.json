@@ -1,6 +1,6 @@
 {
   "name": "@typeful-api/hono",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hono adapter for typeful-api - works on Node.js, Cloudflare Workers, Deno, Bun, and more",
   "type": "module",
   "main": "./dist/index.js",

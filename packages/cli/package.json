@@ -1,6 +1,6 @@
 {
   "name": "@typeful-api/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for generating OpenAPI specs and client types from typeful-api contracts",
   "type": "module",
   "main": "./dist/index.js",

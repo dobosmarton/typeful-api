@@ -34,6 +34,7 @@ typeful-api generate-spec \
 | `--out <path>`           | Output path for the generated spec                      |
 | `--title <string>`       | API title in the spec                                   |
 | `--api-version <string>` | API version in the spec                                 |
+| `--description <string>` | API description                                         |
 | `--server <url>`         | Server URL to include in the spec                       |
 | `--watch`                | Watch for changes and regenerate                        |
 
@@ -53,6 +54,7 @@ typeful-api generate-client \
 | --------------- | --------------------------------------- |
 | `--spec <path>` | Path to the OpenAPI spec (JSON or YAML) |
 | `--out <path>`  | Output path for the generated types     |
+| `--watch`       | Watch for changes and regenerate        |
 
 ## Programmatic API
 
@@ -60,13 +62,14 @@ You can also use the CLI as a library:
 
 ```typescript
 import { generateSpec, generateClient } from '@typeful-api/cli';
+import { api } from './api';
 
 // Generate OpenAPI spec
 await generateSpec({
-  contract: './src/api.ts',
+  contract: api,
   out: './openapi.json',
   title: 'My API',
-  apiVersion: '1.0.0',
+  version: '1.0.0',
 });
 
 // Generate TypeScript client types
