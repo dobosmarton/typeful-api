@@ -149,7 +149,7 @@ class RouteBuilder<
   /**
    * Add additional response schemas for different status codes
    */
-  responses(
+  withResponses(
     codes: Record<number, ZodSchema>,
   ): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
@@ -160,7 +160,7 @@ class RouteBuilder<
   /**
    * Set the authentication type for this route
    */
-  auth(type: AuthType): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+  withAuth(type: AuthType): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._auth = type;
     return builder;
@@ -169,7 +169,7 @@ class RouteBuilder<
   /**
    * Add a short summary for OpenAPI docs
    */
-  summary(text: string): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+  withSummary(text: string): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._summary = text;
     return builder;
@@ -178,7 +178,7 @@ class RouteBuilder<
   /**
    * Add a detailed description for OpenAPI docs
    */
-  description(text: string): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+  withDescription(text: string): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._description = text;
     return builder;
@@ -187,7 +187,7 @@ class RouteBuilder<
   /**
    * Add tags for grouping in OpenAPI docs
    */
-  tags(...tags: string[]): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+  withTags(...tags: string[]): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._tags = [...(this._tags ?? []), ...tags];
     return builder;
@@ -196,7 +196,7 @@ class RouteBuilder<
   /**
    * Mark the route as deprecated
    */
-  deprecated(): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+  markDeprecated(): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._deprecated = true;
     return builder;
@@ -205,7 +205,7 @@ class RouteBuilder<
   /**
    * Set a custom operation ID for OpenAPI docs
    */
-  operationId(id: string): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+  withOperationId(id: string): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._operationId = id;
     return builder;
@@ -244,8 +244,8 @@ class RouteBuilder<
  *
  * const createProduct = route.post('/products')
  *   .body(ProductInputSchema)
- *   .returns(ProductSchema)
- *   .auth('bearer');
+ *   .withAuth('bearer')
+ *   .returns(ProductSchema);
  * ```
  */
 export const route = {

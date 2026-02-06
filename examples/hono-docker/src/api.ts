@@ -97,7 +97,7 @@ export const api = defineApi({
           create: route
             .post('/')
             .body(CreateProductSchema)
-            .auth('bearer')
+            .withAuth('bearer')
             .returns(ProductSchema)
             .withSummary('Create a new product'),
 
@@ -105,14 +105,14 @@ export const api = defineApi({
             .patch('/:id')
             .params(IdParamsSchema)
             .body(UpdateProductSchema)
-            .auth('bearer')
+            .withAuth('bearer')
             .returns(ProductSchema)
             .withSummary('Update a product'),
 
           delete: route
             .delete('/:id')
             .params(IdParamsSchema)
-            .auth('bearer')
+            .withAuth('bearer')
             .returns(
               z.object({ success: z.boolean().describe('Whether the deletion was successful') }),
             )

@@ -82,12 +82,12 @@ export function defineVersions<T extends VersionedRoutes>(versions: T): T {
  *         routes: {
  *           list: route.get('/').returns(z.array(ProductSchema)),
  *           get: route.get('/:id').params(IdParams).returns(ProductSchema),
- *           create: route.post('/').body(CreateProduct).returns(ProductSchema).auth('bearer'),
+ *           create: route.post('/').body(CreateProduct).returns(ProductSchema).withAuth('bearer'),
  *         },
  *       },
  *       users: {
  *         routes: {
- *           me: route.get('/me').returns(UserSchema).auth('bearer'),
+ *           me: route.get('/me').returns(UserSchema).withAuth('bearer'),
  *         },
  *       },
  *     },

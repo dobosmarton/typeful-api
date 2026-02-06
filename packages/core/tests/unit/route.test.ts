@@ -76,45 +76,45 @@ describe('route builder', () => {
 
   describe('metadata', () => {
     it('sets auth type', () => {
-      const getRoute = route.get('/users').auth('bearer').returns(z.string());
+      const getRoute = route.get('/users').withAuth('bearer').returns(z.string());
       expect(getRoute.auth).toBe('bearer');
     });
 
     it('sets summary', () => {
-      const getRoute = route.get('/users').summary('Get all users').returns(z.string());
+      const getRoute = route.get('/users').withSummary('Get all users').returns(z.string());
       expect(getRoute.summary).toBe('Get all users');
     });
 
     it('sets description', () => {
       const getRoute = route
         .get('/users')
-        .description('Returns a list of all users in the system')
+        .withDescription('Returns a list of all users in the system')
         .returns(z.string());
       expect(getRoute.description).toBe('Returns a list of all users in the system');
     });
 
     it('sets single tag', () => {
-      const getRoute = route.get('/users').tags('Users').returns(z.string());
+      const getRoute = route.get('/users').withTags('Users').returns(z.string());
       expect(getRoute.tags).toEqual(['Users']);
     });
 
     it('sets multiple tags', () => {
-      const getRoute = route.get('/users').tags('Users', 'Admin').returns(z.string());
+      const getRoute = route.get('/users').withTags('Users', 'Admin').returns(z.string());
       expect(getRoute.tags).toEqual(['Users', 'Admin']);
     });
 
     it('accumulates tags across multiple calls', () => {
-      const getRoute = route.get('/users').tags('Users').tags('Admin').returns(z.string());
+      const getRoute = route.get('/users').withTags('Users').withTags('Admin').returns(z.string());
       expect(getRoute.tags).toEqual(['Users', 'Admin']);
     });
 
     it('sets deprecated flag', () => {
-      const getRoute = route.get('/users').deprecated().returns(z.string());
+      const getRoute = route.get('/users').markDeprecated().returns(z.string());
       expect(getRoute.deprecated).toBe(true);
     });
 
     it('sets custom operationId', () => {
-      const getRoute = route.get('/users').operationId('listAllUsers').returns(z.string());
+      const getRoute = route.get('/users').withOperationId('listAllUsers').returns(z.string());
       expect(getRoute.operationId).toBe('listAllUsers');
     });
   });
@@ -124,7 +124,7 @@ describe('route builder', () => {
       const errorSchema = z.object({ error: z.string() });
       const getRoute = route
         .get('/users/:id')
-        .responses({ 404: errorSchema, 500: errorSchema })
+        .withResponses({ 404: errorSchema, 500: errorSchema })
         .returns(z.string());
 
       expect(getRoute.responses).toBeDefined();
@@ -138,8 +138,8 @@ describe('route builder', () => {
 
       const getRoute = route
         .get('/users/:id')
-        .responses({ 404: notFoundSchema })
-        .responses({ 500: serverErrorSchema })
+        .withResponses({ 404: notFoundSchema })
+        .withResponses({ 500: serverErrorSchema })
         .returns(z.string());
 
       expect(getRoute.responses?.[404]).toBeDefined();
@@ -160,12 +160,12 @@ describe('route builder', () => {
         .body(bodySchema)
         .query(querySchema)
         .params(paramsSchema)
-        .auth('bearer')
-        .summary('Update a user')
-        .description('Updates an existing user by ID')
-        .tags('Users', 'Admin')
-        .operationId('updateUser')
-        .responses({ 404: errorSchema })
+        .withAuth('bearer')
+        .withSummary('Update a user')
+        .withDescription('Updates an existing user by ID')
+        .withTags('Users', 'Admin')
+        .withOperationId('updateUser')
+        .withResponses({ 404: errorSchema })
         .returns(responseSchema);
 
       expect(fullRoute.method).toBe('post');
@@ -202,17 +202,17 @@ describe('route builder', () => {
 
   describe('builder immutability', () => {
     it('does not mutate original builder when chaining', () => {
-      const baseBuilder = route.get('/users').summary('Base summary');
-      const derivedRoute1 = baseBuilder.tags('Tag1').returns(z.string());
-      const derivedRoute2 = baseBuilder.tags('Tag2').returns(z.string());
+      const baseBuilder = route.get('/users').withSummary('Base summary');
+      const derivedRoute1 = baseBuilder.withTags('Tag1').returns(z.string());
+      const derivedRoute2 = baseBuilder.withTags('Tag2').returns(z.string());
 
       expect(derivedRoute1.tags).toEqual(['Tag1']);
       expect(derivedRoute2.tags).toEqual(['Tag2']);
     });
 
     it('does not share state between different routes', () => {
-      const route1 = route.get('/route1').auth('bearer').returns(z.string());
-      const route2 = route.get('/route2').auth('apiKey').returns(z.string());
+      const route1 = route.get('/route1').withAuth('bearer').returns(z.string());
+      const route2 = route.get('/route2').withAuth('apiKey').returns(z.string());
 
       expect(route1.auth).toBe('bearer');
       expect(route2.auth).toBe('apiKey');
@@ -221,22 +221,22 @@ describe('route builder', () => {
 
   describe('auth types', () => {
     it('supports bearer auth', () => {
-      const r = route.get('/').auth('bearer').returns(z.string());
+      const r = route.get('/').withAuth('bearer').returns(z.string());
       expect(r.auth).toBe('bearer');
     });
 
     it('supports apiKey auth', () => {
-      const r = route.get('/').auth('apiKey').returns(z.string());
+      const r = route.get('/').withAuth('apiKey').returns(z.string());
       expect(r.auth).toBe('apiKey');
     });
 
     it('supports basic auth', () => {
-      const r = route.get('/').auth('basic').returns(z.string());
+      const r = route.get('/').withAuth('basic').returns(z.string());
       expect(r.auth).toBe('basic');
     });
 
     it('supports none auth', () => {
-      const r = route.get('/').auth('none').returns(z.string());
+      const r = route.get('/').withAuth('none').returns(z.string());
       expect(r.auth).toBe('none');
     });
   });

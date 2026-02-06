@@ -317,7 +317,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            list: route.get('/products').operationId('getAllProducts').returns(z.array(ProductSchema)),
+            list: route.get('/products').withOperationId('getAllProducts').returns(z.array(ProductSchema)),
           },
         },
       };
@@ -332,7 +332,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            list: route.get('/products').summary('Get all products').returns(z.array(ProductSchema)),
+            list: route.get('/products').withSummary('Get all products').returns(z.array(ProductSchema)),
           },
         },
       };
@@ -349,7 +349,7 @@ describe('generateSpec', () => {
           routes: {
             list: route
               .get('/products')
-              .description('Returns a paginated list of all products')
+              .withDescription('Returns a paginated list of all products')
               .returns(z.array(ProductSchema)),
           },
         },
@@ -365,7 +365,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            list: route.get('/products').tags('Products', 'Catalog').returns(z.array(ProductSchema)),
+            list: route.get('/products').withTags('Products', 'Catalog').returns(z.array(ProductSchema)),
           },
         },
       };
@@ -399,7 +399,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            oldRoute: route.get('/old').deprecated().returns(HealthSchema),
+            oldRoute: route.get('/old').markDeprecated().returns(HealthSchema),
           },
         },
       };
@@ -589,7 +589,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            protected: route.get('/protected').auth('bearer').returns(HealthSchema),
+            protected: route.get('/protected').withAuth('bearer').returns(HealthSchema),
           },
         },
       };
@@ -610,7 +610,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            protected: route.get('/protected').auth('apiKey').returns(HealthSchema),
+            protected: route.get('/protected').withAuth('apiKey').returns(HealthSchema),
           },
         },
       };
@@ -631,7 +631,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            protected: route.get('/protected').auth('basic').returns(HealthSchema),
+            protected: route.get('/protected').withAuth('basic').returns(HealthSchema),
           },
         },
       };
@@ -651,7 +651,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            public: route.get('/public').auth('none').returns(HealthSchema),
+            public: route.get('/public').withAuth('none').returns(HealthSchema),
           },
         },
       };
@@ -681,7 +681,7 @@ describe('generateSpec', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            bearer: route.get('/bearer').auth('bearer').returns(HealthSchema),
+            bearer: route.get('/bearer').withAuth('bearer').returns(HealthSchema),
             // No apiKey or basic auth routes
           },
         },
@@ -720,7 +720,7 @@ describe('generateSpec', () => {
             get: route
               .get('/products/:id')
               .params(IdParamsSchema)
-              .responses({
+              .withResponses({
                 404: ErrorSchema,
                 500: ErrorSchema,
               })

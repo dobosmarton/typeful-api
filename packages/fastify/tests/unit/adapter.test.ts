@@ -644,7 +644,7 @@ describe('createFastifyPlugin', () => {
             get: route
               .get('/products/:id')
               .params(IdParamsSchema)
-              .responses({
+              .withResponses({
                 404: ErrorSchema,
                 500: ErrorSchema,
               })

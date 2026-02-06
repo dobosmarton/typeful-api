@@ -398,7 +398,7 @@ describe('contract helpers', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            health: route.get('/health').tags('Health').returns(HealthSchema),
+            health: route.get('/health').withTags('Health').returns(HealthSchema),
           },
         },
       };
@@ -434,7 +434,7 @@ describe('contract helpers', () => {
             products: {
               tags: ['Products'],
               routes: {
-                list: route.get('/').tags('List').returns(ProductSchema),
+                list: route.get('/').withTags('List').returns(ProductSchema),
               },
             },
           },
@@ -454,7 +454,7 @@ describe('contract helpers', () => {
             products: {
               tags: ['API'],
               routes: {
-                list: route.get('/').tags('API').returns(ProductSchema),
+                list: route.get('/').withTags('API').returns(ProductSchema),
               },
             },
           },
@@ -470,9 +470,9 @@ describe('contract helpers', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            c: route.get('/c').tags('Zebra').returns(HealthSchema),
-            b: route.get('/b').tags('Apple').returns(HealthSchema),
-            a: route.get('/a').tags('Mango').returns(HealthSchema),
+            c: route.get('/c').withTags('Zebra').returns(HealthSchema),
+            b: route.get('/b').withTags('Apple').returns(HealthSchema),
+            a: route.get('/a').withTags('Mango').returns(HealthSchema),
           },
         },
       };
@@ -509,7 +509,7 @@ describe('contract helpers', () => {
                     level3: {
                       tags: ['Level3'],
                       routes: {
-                        deep: route.get('/').tags('DeepRoute').returns(HealthSchema),
+                        deep: route.get('/').withTags('DeepRoute').returns(HealthSchema),
                       },
                     },
                   },
@@ -532,12 +532,12 @@ describe('contract helpers', () => {
       const contract: ApiContract = {
         v1: {
           routes: {
-            health: route.get('/health').tags('V1').returns(HealthSchema),
+            health: route.get('/health').withTags('V1').returns(HealthSchema),
           },
         },
         v2: {
           routes: {
-            health: route.get('/health').tags('V2').returns(HealthSchema),
+            health: route.get('/health').withTags('V2').returns(HealthSchema),
           },
         },
       };
