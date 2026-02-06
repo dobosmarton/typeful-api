@@ -215,7 +215,7 @@ describe('generateSpec', () => {
 
       const spec = generateSpec(contract, defaultOptions);
 
-      expect(spec.paths['/v1/admin/users/']).toBeDefined();
+      expect(spec.paths['/v1/admin/users']).toBeDefined();
     });
   });
 
@@ -308,7 +308,7 @@ describe('generateSpec', () => {
       };
 
       const spec = generateSpec(contract, defaultOptions);
-      const operation = spec.paths['/v1/products/']?.get;
+      const operation = spec.paths['/v1/products']?.get;
 
       expect(operation?.operationId).toBe('v1_products_list');
     });
@@ -390,7 +390,7 @@ describe('generateSpec', () => {
       };
 
       const spec = generateSpec(contract, defaultOptions);
-      const operation = spec.paths['/v1/products/']?.get;
+      const operation = spec.paths['/v1/products']?.get;
 
       expect(operation?.tags).toEqual(['products']);
     });

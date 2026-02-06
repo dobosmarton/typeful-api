@@ -257,7 +257,7 @@ describe('contract helpers', () => {
         group: ['products'],
         name: 'list',
         route: expect.objectContaining({ method: 'get', path: '/' }),
-        fullPath: '/v1/products/',
+        fullPath: '/v1/products',
       });
       expect(flattened[1]).toEqual({
         version: 'v1',
@@ -297,7 +297,7 @@ describe('contract helpers', () => {
         group: ['admin', 'users', 'roles'],
         name: 'list',
         route: expect.objectContaining({ method: 'get', path: '/' }),
-        fullPath: '/v1/admin/users/roles/',
+        fullPath: '/v1/admin/users/roles',
       });
     });
 

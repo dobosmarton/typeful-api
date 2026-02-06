@@ -19,7 +19,7 @@ export const productQueries = {
     queryOptions({
       queryKey: ['products', params ?? {}],
       queryFn: async () => {
-        const { data, error } = await apiClient.GET('/v1/products/', {
+        const { data, error } = await apiClient.GET('/v1/products', {
           params: {
             query: {
               page: params?.page ?? 1,

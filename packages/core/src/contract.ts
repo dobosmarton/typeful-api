@@ -157,10 +157,10 @@ export function flattenRoutes(
         const routePath = route.path.startsWith('/')
           ? route.path
           : `/${route.path}`;
-        const fullPath = `${basePath}/${version}${pathPrefix}${routePath}`.replace(
-          /\/+/g,
-          '/',
-        );
+        const fullPath =
+          `${basePath}/${version}${pathPrefix}${routePath}`
+            .replace(/\/+/g, '/')
+            .replace(/\/$/, '') || '/';
 
         result.push({
           version,
