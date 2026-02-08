@@ -120,11 +120,13 @@ function toRouteConfig(
 }
 
 /**
- * Handler record type used internally for recursive processing
+ * Constraint type for handler groups passed to the recursive registrar.
+ * Generic `H extends HonoGroupHandlers` allows additional properties
+ * beyond the constraint — no index signature needed.
  */
-type HandlerRecord = {
+type HonoGroupHandlers = {
   middlewares?: MiddlewareHandler[];
-} & Record<string, unknown>;
+};
 
 /**
  * Recursively apply handlers to a route group.
@@ -133,24 +135,22 @@ type HandlerRecord = {
  * comes from the implementation signature which uses a wider type to
  * accommodate all overload signatures.
  */
-function applyGroupHandlers<E extends Env>(
+const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
   group: RouteGroup,
-  handlers: HandlerRecord,
+  handlers: H,
   target: OpenAPIHono<E>,
   version: string,
   groupPath: string[],
-): void {
-  const h = handlers;
-
+): void => {
   // Apply group-level middleware from schema
   if (group.middleware?.length) {
     // Middleware names are just identifiers in the schema
     // Actual middleware must be provided in handlers
   }
 
-  // Apply handler-provided middleware
-  if (h.middlewares?.length) {
-    target.use(...h.middlewares);
+  // Apply handler-provided middleware — direct access via typed constraint
+  if (handlers.middlewares?.length) {
+    target.use(...handlers.middlewares);
   }
 
   // Register routes (leaves)
@@ -164,7 +164,9 @@ function applyGroupHandlers<E extends Env>(
         params: undefined;
       }) => Promise<object> | object;
 
-      const handler = h[name] as UserHandler | undefined;
+      // Typed Record view for dynamic route lookups
+      const entries = handlers as Record<string, UserHandler | HonoGroupHandlers | undefined>;
+      const handler = entries[name] as UserHandler | undefined;
       if (!handler) {
         console.warn(`Missing handler for route: ${version}/${groupPath.join('/')}/${name}`);
         continue;
@@ -188,8 +190,9 @@ function applyGroupHandlers<E extends Env>(
 
   // Recurse into children
   if (group.children) {
+    const entries = handlers as Record<string, HonoGroupHandlers | undefined>;
     for (const [childName, childGroup] of Object.entries(group.children)) {
-      const childHandlers: HandlerRecord = (h[childName] as HandlerRecord) ?? {};
+      const childHandlers = (entries[childName] ?? {}) as HonoGroupHandlers;
       const childApp = new OpenAPIHono<E>();
 
       applyGroupHandlers(childGroup, childHandlers, childApp, version, [...groupPath, childName]);
@@ -197,7 +200,7 @@ function applyGroupHandlers<E extends Env>(
       target.route(`/${childName}`, childApp);
     }
   }
-}
+};
 
 /**
  * Register security schemes based on auth types used in the contract
@@ -301,7 +304,7 @@ export function createHonoRouter<C extends ApiContract, M extends VersionEnvMap<
 // Implementation (signature is not visible to callers - overloads are used)
 export function createHonoRouter(
   contract: ApiContract,
-  handlers: unknown,
+  handlers: Record<string, HonoGroupHandlers>,
   options: CreateHonoRouterOptions = {},
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): OpenAPIHono<any> {
@@ -324,22 +327,22 @@ export function createHonoRouter(
   registerSecuritySchemes(app, contract);
 
   // Mount each version
-  // Type assertion: handlers object structure is validated by overload signatures
-  const typedHandlers = handlers as Record<string, HandlerRecord>;
-
   for (const [version, versionGroup] of Object.entries(contract)) {
-    const versionHandlers: HandlerRecord = typedHandlers[version] ?? {};
+    const versionHandlers: HonoGroupHandlers = handlers[version] ?? {};
     const versionApp = new OpenAPIHono();
 
-    // Apply version-level middleware
+    // Apply version-level middleware — direct access via typed constraint
     if (versionHandlers.middlewares?.length) {
       versionApp.use(...versionHandlers.middlewares);
     }
 
+    // Typed Record view for dynamic child group lookups
+    const versionEntries = versionHandlers as Record<string, HonoGroupHandlers | undefined>;
+
     // Process children (top-level groups like 'products', 'users')
     if (versionGroup.children) {
       for (const [groupName, groupDef] of Object.entries(versionGroup.children)) {
-        const groupHandlers: HandlerRecord = (versionHandlers[groupName] as HandlerRecord) ?? {};
+        const groupHandlers = (versionEntries[groupName] ?? {}) as HonoGroupHandlers;
         const groupApp = new OpenAPIHono();
 
         applyGroupHandlers(groupDef, groupHandlers, groupApp, version, [groupName]);

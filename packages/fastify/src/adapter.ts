@@ -9,7 +9,7 @@ import type {
 import type { ZodType, ZodError } from 'zod';
 import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typeful-api/core';
 import { generateSpec } from '@typeful-api/core';
-import type { CreateFastifyPluginOptions, FastifyHandler, InferFastifyHandlers } from './types';
+import type { CreateFastifyPluginOptions, InferFastifyHandlers } from './types';
 
 /**
  * Convert Zod error to Fastify-compatible error format
@@ -70,34 +70,54 @@ function normalizePath(path: string): string {
 }
 
 /**
+ * Loose handler function shape used for runtime dispatch.
+ * Type safety is enforced at the call site via InferFastifyHandlers<C>.
+ */
+type UserHandler = (ctx: {
+  request: FastifyRequest;
+  reply: FastifyReply;
+  body: unknown;
+  query: unknown;
+  params: unknown;
+}) => Promise<unknown> | unknown;
+
+/**
+ * Constraint type for handler groups passed to the recursive registrar.
+ * Generic `H extends FastifyGroupHandlers` allows additional properties
+ * beyond the constraint — no index signature needed.
+ */
+type FastifyGroupHandlers = {
+  preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
+};
+
+/**
  * Recursively register routes from a group
  */
-function registerGroupRoutes(
+const registerGroupRoutes = <H extends FastifyGroupHandlers>(
   fastify: FastifyInstance,
   group: RouteGroup,
-  handlers: unknown,
+  handlers: H,
   options: CreateFastifyPluginOptions,
   version: string,
   groupPath: string[],
-) {
-  const h = handlers as {
-    preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
-  } & Record<string, unknown>;
-
-  // Collect preHandlers for this group
+): void => {
+  // Collect preHandlers for this group — direct access via typed constraint
   const groupPreHandlers: preHandlerAsyncHookHandler[] = [];
-  if (h.preHandler) {
-    if (Array.isArray(h.preHandler)) {
-      groupPreHandlers.push(...h.preHandler);
+  if (handlers.preHandler) {
+    if (Array.isArray(handlers.preHandler)) {
+      groupPreHandlers.push(...handlers.preHandler);
     } else {
-      groupPreHandlers.push(h.preHandler);
+      groupPreHandlers.push(handlers.preHandler);
     }
   }
+
+  // Typed Record view for dynamic route/child lookups
+  const entries = handlers as Record<string, UserHandler | FastifyGroupHandlers | undefined>;
 
   // Register routes (leaves)
   if (group.routes) {
     for (const [name, route] of Object.entries(group.routes)) {
-      const handler = h[name] as FastifyHandler<RouteDefinition> | undefined;
+      const handler = entries[name] as UserHandler | undefined;
       if (!handler) {
         fastify.log.warn(`Missing handler for route: ${version}/${groupPath.join('/')}/${name}`);
         continue;
@@ -121,7 +141,7 @@ function registerGroupRoutes(
           params: request.params,
         };
 
-        const result = await handler(ctx as never);
+        const result = await handler(ctx);
         return reply.send(result);
       };
 
@@ -138,11 +158,11 @@ function registerGroupRoutes(
   // Recurse into children as sub-plugins with prefix
   if (group.children) {
     for (const [childName, childGroup] of Object.entries(group.children)) {
-      const childHandlers = h[childName];
+      const childHandlers = (entries[childName] ?? {}) as FastifyGroupHandlers;
 
       fastify.register(
         async (childFastify) => {
-          registerGroupRoutes(childFastify, childGroup, childHandlers ?? {}, options, version, [
+          registerGroupRoutes(childFastify, childGroup, childHandlers, options, version, [
             ...groupPath,
             childName,
           ]);
@@ -151,7 +171,7 @@ function registerGroupRoutes(
       );
     }
   }
-}
+};
 
 /**
  * Create a Fastify plugin from an API contract with type-safe handlers
@@ -217,19 +237,19 @@ export function createFastifyPlugin<C extends ApiContract>(
     }
 
     // Mount each version as a sub-plugin with prefix
+    // Single boundary cast: bridges InferFastifyHandlers<C> mapped type to runtime record
+    const typedHandlers = handlers as Record<string, FastifyGroupHandlers>;
+
     for (const [version, versionGroup] of Object.entries(contract)) {
-      const versionHandlers = (handlers as Record<string, unknown>)[version] ?? {};
+      const versionHandlers: FastifyGroupHandlers = typedHandlers[version] ?? {};
 
       fastify.register(
         async (versionFastify) => {
-          // Apply version-level preHandler
-          const versionH = versionHandlers as {
-            preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
-          };
-          if (versionH.preHandler) {
-            const preHandlers = Array.isArray(versionH.preHandler)
-              ? versionH.preHandler
-              : [versionH.preHandler];
+          // Apply version-level preHandler — direct access via typed constraint
+          if (versionHandlers.preHandler) {
+            const preHandlers = Array.isArray(versionHandlers.preHandler)
+              ? versionHandlers.preHandler
+              : [versionHandlers.preHandler];
             versionFastify.addHook('preHandler', async function (request, reply) {
               for (const handler of preHandlers) {
                 await handler.call(this, request, reply);
@@ -237,17 +257,20 @@ export function createFastifyPlugin<C extends ApiContract>(
             });
           }
 
+          // Typed Record view for dynamic child group lookups
+          const versionEntries = versionHandlers as Record<string, UserHandler | FastifyGroupHandlers | undefined>;
+
           // Process children (top-level groups like 'products', 'users')
           if (versionGroup.children) {
             for (const [groupName, groupDef] of Object.entries(versionGroup.children)) {
-              const groupHandlers = (versionHandlers as Record<string, unknown>)[groupName];
+              const groupHandlers = (versionEntries[groupName] ?? {}) as FastifyGroupHandlers;
 
               versionFastify.register(
                 async (groupFastify) => {
                   registerGroupRoutes(
                     groupFastify,
                     groupDef,
-                    groupHandlers ?? {},
+                    groupHandlers,
                     options,
                     version,
                     [groupName],

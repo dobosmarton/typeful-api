@@ -5,7 +5,6 @@ import { Router as createRouter } from 'express';
 import type { ZodError } from 'zod';
 import type {
   CreateExpressRouterOptions,
-  ExpressHandler,
   InferExpressHandlers,
   ValidationError,
 } from './types';
@@ -115,29 +114,49 @@ function getRouterMethod(router: Router, method: HttpMethod) {
 }
 
 /**
+ * Loose handler function shape used for runtime dispatch.
+ * Type safety is enforced at the call site via InferExpressHandlers<C>.
+ */
+type UserHandler = (ctx: {
+  req: Request;
+  res: Response;
+  body: unknown;
+  query: unknown;
+  params: unknown;
+}) => Promise<unknown> | unknown;
+
+/**
+ * Constraint type for handler groups passed to the recursive registrar.
+ * Generic `H extends ExpressGroupHandlers` allows additional properties
+ * beyond the constraint — no index signature needed.
+ */
+type ExpressGroupHandlers = {
+  middleware?: RequestHandler[];
+};
+
+/**
  * Recursively apply handlers to a route group for Express
  */
-function applyGroupHandlers(
+const applyGroupHandlers = <H extends ExpressGroupHandlers>(
   group: RouteGroup,
-  handlers: unknown,
+  handlers: H,
   router: Router,
   options: CreateExpressRouterOptions,
   version: string,
   groupPath: string[],
-) {
-  const h = handlers as {
-    middleware?: RequestHandler[];
-  } & Record<string, unknown>;
-
-  // Apply group-level middleware
-  if (h.middleware?.length) {
-    router.use(...h.middleware);
+): void => {
+  // Apply group-level middleware — direct access via typed constraint
+  if (handlers.middleware?.length) {
+    router.use(...handlers.middleware);
   }
+
+  // Typed Record view for dynamic route/child lookups
+  const entries = handlers as Record<string, UserHandler | ExpressGroupHandlers | undefined>;
 
   // Register routes (leaves)
   if (group.routes) {
     for (const [name, route] of Object.entries(group.routes)) {
-      const handler = h[name] as ExpressHandler<RouteDefinition> | undefined;
+      const handler = entries[name] as UserHandler | undefined;
       if (!handler) {
         console.warn(`Missing handler for route: ${version}/${groupPath.join('/')}/${name}`);
         continue;
@@ -160,7 +179,7 @@ function applyGroupHandlers(
             params: req.params,
           };
 
-          const result = await handler(ctx as never);
+          const result = await handler(ctx);
           res.json(result);
         } catch (error) {
           next(error);
@@ -175,10 +194,10 @@ function applyGroupHandlers(
   // Recurse into children
   if (group.children) {
     for (const [childName, childGroup] of Object.entries(group.children)) {
-      const childHandlers = h[childName];
+      const childHandlers = (entries[childName] ?? {}) as ExpressGroupHandlers;
       const childRouter = createRouter();
 
-      applyGroupHandlers(childGroup, childHandlers ?? {}, childRouter, options, version, [
+      applyGroupHandlers(childGroup, childHandlers, childRouter, options, version, [
         ...groupPath,
         childName,
       ]);
@@ -186,7 +205,7 @@ function applyGroupHandlers(
       router.use(`/${childName}`, childRouter);
     }
   }
-}
+};
 
 /**
  * Create an Express router from an API contract with type-safe handlers
@@ -237,23 +256,28 @@ export function createExpressRouter<C extends ApiContract>(
   }
 
   // Mount each version
+  // Single boundary cast: bridges InferExpressHandlers<C> mapped type to runtime record
+  const typedHandlers = handlers as Record<string, ExpressGroupHandlers>;
+
   for (const [version, versionGroup] of Object.entries(contract)) {
-    const versionHandlers = (handlers as Record<string, unknown>)[version] ?? {};
+    const versionHandlers: ExpressGroupHandlers = typedHandlers[version] ?? {};
     const versionRouter = createRouter();
 
-    // Apply version-level middleware
-    const versionH = versionHandlers as { middleware?: RequestHandler[] };
-    if (versionH.middleware?.length) {
-      versionRouter.use(...versionH.middleware);
+    // Apply version-level middleware — direct access via typed constraint
+    if (versionHandlers.middleware?.length) {
+      versionRouter.use(...versionHandlers.middleware);
     }
+
+    // Typed Record view for dynamic child group lookups
+    const versionEntries = versionHandlers as Record<string, UserHandler | ExpressGroupHandlers | undefined>;
 
     // Process children (top-level groups like 'products', 'users')
     if (versionGroup.children) {
       for (const [groupName, groupDef] of Object.entries(versionGroup.children)) {
-        const groupHandlers = (versionHandlers as Record<string, unknown>)[groupName];
+        const groupHandlers = (versionEntries[groupName] ?? {}) as ExpressGroupHandlers;
         const groupRouter = createRouter();
 
-        applyGroupHandlers(groupDef, groupHandlers ?? {}, groupRouter, options, version, [
+        applyGroupHandlers(groupDef, groupHandlers, groupRouter, options, version, [
           groupName,
         ]);
 
