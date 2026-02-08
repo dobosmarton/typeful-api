@@ -36,9 +36,7 @@ export const errorSchema = <TCode extends string>(
 ) => {
   const base = {
     code: z.literal(code).describe('Machine-readable error code'),
-    message: z
-      .string()
-      .describe(defaultMessage ?? 'Human-readable error message'),
+    message: z.string().describe(defaultMessage ?? 'Human-readable error message'),
   };
 
   if (options?.details) {
@@ -63,32 +61,25 @@ export const badRequestError = () =>
   });
 
 /** 401 Unauthorized — missing or invalid authentication */
-export const unauthorizedError = () =>
-  errorSchema('UNAUTHORIZED', 'Authentication required');
+export const unauthorizedError = () => errorSchema('UNAUTHORIZED', 'Authentication required');
 
 /** 403 Forbidden — insufficient permissions */
-export const forbiddenError = () =>
-  errorSchema('FORBIDDEN', 'Insufficient permissions');
+export const forbiddenError = () => errorSchema('FORBIDDEN', 'Insufficient permissions');
 
 /** 404 Not Found — resource does not exist */
-export const notFoundError = () =>
-  errorSchema('NOT_FOUND', 'Resource not found');
+export const notFoundError = () => errorSchema('NOT_FOUND', 'Resource not found');
 
 /** 409 Conflict — resource state conflict */
-export const conflictError = () =>
-  errorSchema('CONFLICT', 'Resource conflict');
+export const conflictError = () => errorSchema('CONFLICT', 'Resource conflict');
 
 /** 422 Unprocessable Entity — semantically invalid request */
-export const unprocessableError = () =>
-  errorSchema('UNPROCESSABLE_ENTITY', 'Unprocessable entity');
+export const unprocessableError = () => errorSchema('UNPROCESSABLE_ENTITY', 'Unprocessable entity');
 
 /** 429 Too Many Requests — rate limit exceeded */
-export const rateLimitError = () =>
-  errorSchema('RATE_LIMIT_EXCEEDED', 'Too many requests');
+export const rateLimitError = () => errorSchema('RATE_LIMIT_EXCEEDED', 'Too many requests');
 
 /** 500 Internal Server Error */
-export const internalError = () =>
-  errorSchema('INTERNAL_ERROR', 'Internal server error');
+export const internalError = () => errorSchema('INTERNAL_ERROR', 'Internal server error');
 
 /**
  * Map of HTTP status codes to their error schema factories.
@@ -123,12 +114,8 @@ const errorFactories: Record<ErrorStatusCode, () => ZodType> = {
  *   .withErrors(404, 401)
  * ```
  */
-export const commonErrors = (
-  ...codes: ErrorStatusCode[]
-): Record<number, ZodType> => {
+export const commonErrors = (...codes: ErrorStatusCode[]): Record<number, ZodType> => {
   return Object.fromEntries(
-    codes
-      .filter((code) => code in errorFactories)
-      .map((code) => [code, errorFactories[code]!()]),
+    codes.filter((code) => code in errorFactories).map((code) => [code, errorFactories[code]!()]),
   );
 };

@@ -258,7 +258,10 @@ export function createFastifyPlugin<C extends ApiContract>(
           }
 
           // Typed Record view for dynamic child group lookups
-          const versionEntries = versionHandlers as Record<string, UserHandler | FastifyGroupHandlers | undefined>;
+          const versionEntries = versionHandlers as Record<
+            string,
+            UserHandler | FastifyGroupHandlers | undefined
+          >;
 
           // Process children (top-level groups like 'products', 'users')
           if (versionGroup.children) {
@@ -267,14 +270,9 @@ export function createFastifyPlugin<C extends ApiContract>(
 
               versionFastify.register(
                 async (groupFastify) => {
-                  registerGroupRoutes(
-                    groupFastify,
-                    groupDef,
-                    groupHandlers,
-                    options,
-                    version,
-                    [groupName],
-                  );
+                  registerGroupRoutes(groupFastify, groupDef, groupHandlers, options, version, [
+                    groupName,
+                  ]);
                 },
                 { prefix: `/${groupName}` },
               );

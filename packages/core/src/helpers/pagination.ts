@@ -110,11 +110,7 @@ export const sortQuery = <T extends string>(
 
   return z.object({
     sortBy: z.enum(fields).optional().describe('Field to sort by'),
-    sortOrder: z
-      .enum(['asc', 'desc'])
-      .optional()
-      .default(defaultOrder)
-      .describe('Sort direction'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default(defaultOrder).describe('Sort direction'),
   });
 };
 
@@ -153,10 +149,7 @@ export const paginated = <T extends ZodType>(itemSchema: T) => {
 export const cursorPaginated = <T extends ZodType>(itemSchema: T) => {
   return z.object({
     items: z.array(itemSchema).describe('Array of items for the current page'),
-    nextCursor: z
-      .string()
-      .nullable()
-      .describe('Cursor for the next page, null if no more pages'),
+    nextCursor: z.string().nullable().describe('Cursor for the next page, null if no more pages'),
     hasMore: z.boolean().describe('Whether more items exist beyond this page'),
   });
 };

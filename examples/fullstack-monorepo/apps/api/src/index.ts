@@ -213,22 +213,17 @@ const router = createHonoRouter<typeof api, AppVariables>(
 
           // Sort by createdAt desc
           const sorted = [...allCategories].sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           );
 
           // Find cursor position
-          const startIndex = cursor
-            ? sorted.findIndex((cat) => cat.id === cursor) + 1
-            : 0;
+          const startIndex = cursor ? sorted.findIndex((cat) => cat.id === cursor) + 1 : 0;
 
           // Take limit + 1 to check for more
           const slice = sorted.slice(startIndex, startIndex + limit + 1);
           const hasMore = slice.length > limit;
           const pageItems = hasMore ? slice.slice(0, limit) : slice;
-          const nextCursor = hasMore
-            ? pageItems[pageItems.length - 1]!.id
-            : null;
+          const nextCursor = hasMore ? pageItems[pageItems.length - 1]!.id : null;
 
           return { items: pageItems, nextCursor, hasMore };
         },

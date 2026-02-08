@@ -3,11 +3,7 @@ import { generateSpec } from '@typeful-api/core';
 import type { NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { Router as createRouter } from 'express';
 import type { ZodError } from 'zod';
-import type {
-  CreateExpressRouterOptions,
-  InferExpressHandlers,
-  ValidationError,
-} from './types';
+import type { CreateExpressRouterOptions, InferExpressHandlers, ValidationError } from './types';
 
 /**
  * Default validation error handler
@@ -269,7 +265,10 @@ export function createExpressRouter<C extends ApiContract>(
     }
 
     // Typed Record view for dynamic child group lookups
-    const versionEntries = versionHandlers as Record<string, UserHandler | ExpressGroupHandlers | undefined>;
+    const versionEntries = versionHandlers as Record<
+      string,
+      UserHandler | ExpressGroupHandlers | undefined
+    >;
 
     // Process children (top-level groups like 'products', 'users')
     if (versionGroup.children) {
@@ -277,9 +276,7 @@ export function createExpressRouter<C extends ApiContract>(
         const groupHandlers = (versionEntries[groupName] ?? {}) as ExpressGroupHandlers;
         const groupRouter = createRouter();
 
-        applyGroupHandlers(groupDef, groupHandlers, groupRouter, options, version, [
-          groupName,
-        ]);
+        applyGroupHandlers(groupDef, groupHandlers, groupRouter, options, version, [groupName]);
 
         versionRouter.use(`/${groupName}`, groupRouter);
       }

@@ -132,9 +132,7 @@ const cursorPaginate = <T extends { id: string; createdAt: string }>(
   );
 
   // Find cursor position
-  const startIndex = cursor
-    ? sorted.findIndex((item) => item.id === cursor) + 1
-    : 0;
+  const startIndex = cursor ? sorted.findIndex((item) => item.id === cursor) + 1 : 0;
 
   // Take limit + 1 to determine if there are more items
   const slice = sorted.slice(startIndex, startIndex + limit + 1);
@@ -187,9 +185,7 @@ const router = createHonoRouter(api, {
 
       create: async ({ body }) => {
         // Check for duplicate title
-        const existing = articles.find(
-          (a) => a.title.toLowerCase() === body.title.toLowerCase(),
-        );
+        const existing = articles.find((a) => a.title.toLowerCase() === body.title.toLowerCase());
         if (existing) throw new Error('Duplicate title');
 
         const article: Article = {
@@ -240,9 +236,7 @@ const router = createHonoRouter(api, {
         const article = articles.find((a) => a.id === params.articleId);
         if (!article) throw new Error('Article not found');
 
-        const articleComments = comments.filter(
-          (c) => c.articleId === params.articleId,
-        );
+        const articleComments = comments.filter((c) => c.articleId === params.articleId);
         return cursorPaginate(articleComments, query.cursor, query.limit);
       },
 

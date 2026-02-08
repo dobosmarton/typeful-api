@@ -437,16 +437,10 @@ const cursor = cursorQuery();
 const sort = sortQuery(['name', 'createdAt', 'price'] as const);
 
 // Paginated response wrapper: { items: T[], total, page, limit, totalPages }
-const listRoute = route
-  .get('/')
-  .query(paginationQuery())
-  .returns(paginated(ProductSchema));
+const listRoute = route.get('/').query(paginationQuery()).returns(paginated(ProductSchema));
 
 // Cursor-based response: { items: T[], nextCursor, hasMore }
-const feedRoute = route
-  .get('/feed')
-  .query(cursorQuery())
-  .returns(cursorPaginated(PostSchema));
+const feedRoute = route.get('/feed').query(cursorQuery()).returns(cursorPaginated(PostSchema));
 ```
 
 All query helpers use `z.coerce.number()` for automatic HTTP query string conversion, so `?page=2&limit=10` works out of the box. The generated OpenAPI spec includes all defaults and constraints.

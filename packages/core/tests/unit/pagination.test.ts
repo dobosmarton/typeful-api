@@ -258,10 +258,7 @@ describe('pagination helpers', () => {
     });
 
     it('works with route builder for offset pagination', () => {
-      const listRoute = route
-        .get('/')
-        .query(paginationQuery())
-        .returns(paginated(ProductSchema));
+      const listRoute = route.get('/').query(paginationQuery()).returns(paginated(ProductSchema));
 
       expect(listRoute.method).toBe('get');
       expect(listRoute.query).toBeDefined();
@@ -269,10 +266,7 @@ describe('pagination helpers', () => {
     });
 
     it('works with route builder for cursor pagination', () => {
-      const listRoute = route
-        .get('/')
-        .query(cursorQuery())
-        .returns(cursorPaginated(ProductSchema));
+      const listRoute = route.get('/').query(cursorQuery()).returns(cursorPaginated(ProductSchema));
 
       expect(listRoute.method).toBe('get');
       expect(listRoute.query).toBeDefined();
@@ -280,13 +274,8 @@ describe('pagination helpers', () => {
     });
 
     it('works with merged sort + pagination query', () => {
-      const combinedQuery = paginationQuery().merge(
-        sortQuery(['name', 'price'] as const),
-      );
-      const listRoute = route
-        .get('/')
-        .query(combinedQuery)
-        .returns(paginated(ProductSchema));
+      const combinedQuery = paginationQuery().merge(sortQuery(['name', 'price'] as const));
+      const listRoute = route.get('/').query(combinedQuery).returns(paginated(ProductSchema));
 
       expect(listRoute.query).toBeDefined();
 
@@ -339,8 +328,7 @@ describe('pagination helpers', () => {
       expect(limitParam?.in).toBe('query');
 
       // Check response schema has paginated envelope
-      const responseSchema =
-        listOp?.responses['200']?.content?.['application/json']?.schema;
+      const responseSchema = listOp?.responses['200']?.content?.['application/json']?.schema;
       expect(responseSchema).toBeDefined();
       expect(responseSchema?.properties).toHaveProperty('items');
       expect(responseSchema?.properties).toHaveProperty('total');

@@ -34,9 +34,7 @@ export const initCommand = async (options: InitCommandOptions): Promise<void> =>
   const template = options.template;
 
   if (!isValidTemplate(template)) {
-    console.error(
-      pc.red(`Invalid template: ${template}. Choose from: hono, express, fastify`),
-    );
+    console.error(pc.red(`Invalid template: ${template}. Choose from: hono, express, fastify`));
     process.exit(1);
   }
 
@@ -54,16 +52,12 @@ export const initCommand = async (options: InitCommandOptions): Promise<void> =>
       fs.mkdirSync(targetDir, { recursive: true });
     } else {
       // Check if directory has files (ignore hidden files and common non-project files)
-      const entries = fs.readdirSync(targetDir).filter(
-        (e) => !e.startsWith('.') && e !== 'node_modules',
-      );
+      const entries = fs
+        .readdirSync(targetDir)
+        .filter((e) => !e.startsWith('.') && e !== 'node_modules');
       if (entries.length > 0) {
-        console.error(
-          pc.red(`Directory is not empty: ${targetDir}`),
-        );
-        console.error(
-          pc.gray('  Use an empty directory or create a new one with --dir <name>'),
-        );
+        console.error(pc.red(`Directory is not empty: ${targetDir}`));
+        console.error(pc.gray('  Use an empty directory or create a new one with --dir <name>'));
         process.exit(1);
       }
     }

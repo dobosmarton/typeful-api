@@ -26,11 +26,11 @@ typeful-api init --template fastify --name my-fastify-api
 
 **Options:**
 
-| Flag                                 | Description                             |
-| ------------------------------------ | --------------------------------------- |
-| `--template <hono\|express\|fastify>` | Framework template (default: `hono`)   |
-| `--dir <path>`                       | Target directory (default: `.`)         |
-| `--name <string>`                    | Project name (defaults to dir name)     |
+| Flag                                  | Description                          |
+| ------------------------------------- | ------------------------------------ |
+| `--template <hono\|express\|fastify>` | Framework template (default: `hono`) |
+| `--dir <path>`                        | Target directory (default: `.`)      |
+| `--name <string>`                     | Project name (defaults to dir name)  |
 
 The generated project includes:
 

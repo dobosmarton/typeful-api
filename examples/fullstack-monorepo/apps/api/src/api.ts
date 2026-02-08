@@ -80,11 +80,7 @@ export const api = defineApi({
         routes: {
           list: route
             .get('/')
-            .query(
-              paginationQuery().merge(
-                sortQuery(['name', 'price', 'createdAt'] as const),
-              ),
-            )
+            .query(paginationQuery().merge(sortQuery(['name', 'price', 'createdAt'] as const)))
             .returns(paginated(ProductSchema))
             .withSummary('List all products')
             .withDescription('Returns a sorted, paginated list of products')

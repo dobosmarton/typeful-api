@@ -190,9 +190,7 @@ describe('error helpers', () => {
     });
 
     it('preserves immutability', () => {
-      const base = route
-        .get('/:id')
-        .returns(z.object({ name: z.string() }));
+      const base = route.get('/:id').returns(z.object({ name: z.string() }));
 
       const withError = base.withErrors(404);
 
@@ -238,8 +236,7 @@ describe('error helpers', () => {
       expect(operation?.responses['401'].description).toBe('Unauthorized');
 
       // Check error schema has code property in JSON Schema
-      const errorSchema404 =
-        operation?.responses['404']?.content?.['application/json']?.schema;
+      const errorSchema404 = operation?.responses['404']?.content?.['application/json']?.schema;
       expect(errorSchema404?.properties).toHaveProperty('code');
       expect(errorSchema404?.properties).toHaveProperty('message');
     });

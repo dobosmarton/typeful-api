@@ -102,11 +102,7 @@ describe('generate-spec', () => {
       });
 
       const pretty = generateSpecJson(api, { info: { title: 'API', version: '1.0.0' } }, true);
-      const minified = generateSpecJson(
-        api,
-        { info: { title: 'API', version: '1.0.0' } },
-        false,
-      );
+      const minified = generateSpecJson(api, { info: { title: 'API', version: '1.0.0' } }, false);
 
       expect(pretty.length).toBeGreaterThan(minified.length);
       expect(pretty).toContain('\n');

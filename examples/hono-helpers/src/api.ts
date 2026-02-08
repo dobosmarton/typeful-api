@@ -94,9 +94,7 @@ export const api = defineApi({
           list: route
             .get('/')
             .query(
-              paginationQuery({ maxLimit: 50 }).merge(
-                sortQuery(['title', 'createdAt'] as const),
-              ),
+              paginationQuery({ maxLimit: 50 }).merge(sortQuery(['title', 'createdAt'] as const)),
             )
             .returns(paginated(ArticleSchema))
             .withSummary('List articles')
@@ -153,7 +151,9 @@ export const api = defineApi({
             .query(cursorQuery({ maxLimit: 30 }))
             .returns(cursorPaginated(CommentSchema))
             .withSummary('Get comment feed')
-            .withDescription('Returns all comments in reverse chronological order with cursor pagination')
+            .withDescription(
+              'Returns all comments in reverse chronological order with cursor pagination',
+            )
             .withTags('comments'),
 
           // Cursor pagination with params — filter by article
