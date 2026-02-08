@@ -8,7 +8,15 @@
  * - Handler type inference
  */
 
-import { defineApi, route } from '@typeful-api/core';
+import {
+  defineApi,
+  route,
+  paginationQuery,
+  cursorQuery,
+  sortQuery,
+  paginated,
+  cursorPaginated,
+} from '@typeful-api/core';
 import { z } from 'zod';
 
 // ============================================
@@ -35,29 +43,18 @@ export const IdParamsSchema = z.object({
   id: z.uuid().describe('Resource identifier (UUID format)'),
 });
 
-export const PaginationQuerySchema = z.object({
-  page: z.coerce
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .default(1)
-    .describe('Page number for pagination (1-indexed)'),
-  limit: z.coerce
-    .number()
-    .int()
-    .positive()
-    .max(100)
-    .optional()
-    .default(20)
-    .describe('Number of items per page (max 100)'),
+export const CategorySchema = z.object({
+  id: z.uuid().describe('Unique category identifier'),
+  name: z.string().min(1).max(100).describe('Category display name'),
+  slug: z.string().describe('URL-friendly slug'),
+  description: z.string().optional().describe('Category description'),
+  createdAt: z.iso.datetime().describe('ISO 8601 creation timestamp'),
 });
 
-export const ProductListResponseSchema = z.object({
-  products: z.array(ProductSchema).describe('Array of product items'),
-  total: z.number().describe('Total number of products matching the query'),
-  page: z.number().describe('Current page number'),
-  limit: z.number().describe('Number of items per page'),
+export const CreateCategorySchema = CategorySchema.omit({
+  id: true,
+  slug: true,
+  createdAt: true,
 });
 
 export const HealthCheckSchema = z.object({
@@ -83,23 +80,32 @@ export const api = defineApi({
         routes: {
           list: route
             .get('/')
-            .query(PaginationQuerySchema)
-            .returns(ProductListResponseSchema)
+            .query(
+              paginationQuery().merge(
+                sortQuery(['name', 'price', 'createdAt'] as const),
+              ),
+            )
+            .returns(paginated(ProductSchema))
             .withSummary('List all products')
-            .withDescription('Returns a paginated list of products'),
+            .withDescription('Returns a sorted, paginated list of products')
+            .withTags('products'),
 
           get: route
             .get('/:id')
             .params(IdParamsSchema)
             .returns(ProductSchema)
-            .withSummary('Get a product by ID'),
+            .withErrors(404)
+            .withSummary('Get a product by ID')
+            .withTags('products'),
 
           create: route
             .post('/')
             .body(CreateProductSchema)
             .withAuth('bearer')
             .returns(ProductSchema)
-            .withSummary('Create a new product'),
+            .withErrors(400, 401)
+            .withSummary('Create a new product')
+            .withTags('products'),
 
           update: route
             .patch('/:id')
@@ -107,7 +113,9 @@ export const api = defineApi({
             .body(UpdateProductSchema)
             .withAuth('bearer')
             .returns(ProductSchema)
-            .withSummary('Update a product'),
+            .withErrors(404, 401)
+            .withSummary('Update a product')
+            .withTags('products'),
 
           delete: route
             .delete('/:id')
@@ -116,7 +124,38 @@ export const api = defineApi({
             .returns(
               z.object({ success: z.boolean().describe('Whether the deletion was successful') }),
             )
-            .withSummary('Delete a product'),
+            .withErrors(404, 401)
+            .withSummary('Delete a product')
+            .withTags('products'),
+        },
+      },
+
+      categories: {
+        routes: {
+          list: route
+            .get('/')
+            .query(cursorQuery())
+            .returns(cursorPaginated(CategorySchema))
+            .withSummary('List all categories')
+            .withDescription('Returns categories with cursor-based pagination')
+            .withTags('categories'),
+
+          get: route
+            .get('/:id')
+            .params(IdParamsSchema)
+            .returns(CategorySchema)
+            .withErrors(404)
+            .withSummary('Get a category by ID')
+            .withTags('categories'),
+
+          create: route
+            .post('/')
+            .body(CreateCategorySchema)
+            .withAuth('bearer')
+            .returns(CategorySchema)
+            .withErrors(400, 401)
+            .withSummary('Create a new category')
+            .withTags('categories'),
         },
       },
     },
@@ -127,3 +166,5 @@ export const api = defineApi({
 export type Product = z.infer<typeof ProductSchema>;
 export type CreateProduct = z.infer<typeof CreateProductSchema>;
 export type UpdateProduct = z.infer<typeof UpdateProductSchema>;
+export type Category = z.infer<typeof CategorySchema>;
+export type CreateCategory = z.infer<typeof CreateCategorySchema>;

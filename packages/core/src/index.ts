@@ -82,3 +82,27 @@ export type {
   VersionedRoutes,
   WithContext,
 } from './types';
+
+// Pagination & filtering helpers
+export {
+  paginationQuery,
+  cursorQuery,
+  sortQuery,
+  paginated,
+  cursorPaginated,
+} from './helpers/pagination';
+
+// Error response helpers
+export {
+  errorSchema,
+  badRequestError,
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  conflictError,
+  unprocessableError,
+  rateLimitError,
+  internalError,
+  commonErrors,
+  type ErrorStatusCode,
+} from './helpers/errors';

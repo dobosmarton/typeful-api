@@ -87,11 +87,50 @@ The `route` builder supports chaining the following methods:
 | `.query(schema)`                                                               | Query parameters schema     |
 | `.body(schema)`                                                                | Request body schema         |
 | `.returns(schema)`                                                             | Success response schema     |
-| `.withResponses({ status: schema })`                                           | Additional response schemas |
-| `.withAuth('bearer' \| 'basic' \| 'apiKey')`                                   | Mark route as authenticated |
-| `.withSummary(text)`                                                           | OpenAPI summary             |
-| `.withTags(...tags)`                                                           | OpenAPI tags                |
-| `.markDeprecated()`                                                            | Mark route as deprecated    |
+| `.withResponses({ status: schema })`                                           | Additional response schemas                |
+| `.withErrors(404, 401, ...)`                                                   | Add typed error responses (built-in schemas) |
+| `.withAuth('bearer' \| 'basic' \| 'apiKey')`                                   | Mark route as authenticated                |
+| `.withSummary(text)`                                                           | OpenAPI summary                            |
+| `.withTags(...tags)`                                                           | OpenAPI tags                               |
+| `.markDeprecated()`                                                            | Mark route as deprecated                   |
+
+## Pagination & Filtering Helpers
+
+Schema factories for common API query and response patterns:
+
+```typescript
+import { paginationQuery, paginated, sortQuery, cursorQuery, cursorPaginated } from '@typeful-api/core';
+
+// Offset-based: { page, limit } with defaults and maxLimit
+route.get('/').query(paginationQuery()).returns(paginated(ProductSchema));
+
+// Cursor-based: { cursor?, limit } → { items, nextCursor, hasMore }
+route.get('/feed').query(cursorQuery()).returns(cursorPaginated(PostSchema));
+
+// Sort: { sortBy?, sortOrder? } with type-safe field names
+route.get('/').query(sortQuery(['name', 'createdAt'] as const)).returns(paginated(ProductSchema));
+```
+
+All query helpers use `z.coerce.number()` for automatic HTTP query string conversion.
+
+## Error Response Helpers
+
+Pre-built error schemas and a shorthand for common HTTP errors:
+
+```typescript
+import { notFoundError, commonErrors, errorSchema } from '@typeful-api/core';
+
+// Shorthand — adds typed 404 and 401 responses
+route.get('/:id').returns(ProductSchema).withErrors(404, 401);
+
+// Equivalent using withResponses()
+route.get('/:id').returns(ProductSchema).withResponses(commonErrors(404, 401));
+
+// Custom error schema
+const CustomError = errorSchema('CUSTOM_ERROR', 'Something went wrong');
+```
+
+Available status codes: `400` (Bad Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict), `422` (Unprocessable Entity), `429` (Rate Limit), `500` (Internal Error).
 
 ## Contract Helpers
 
@@ -103,6 +142,31 @@ The `route` builder supports chaining the following methods:
 | `defineVersions(versions)`            | Define API versions                       |
 | `generateSpec(contract, options)`     | Generate an OpenAPI 3.0 document object   |
 | `generateSpecJson(contract, options)` | Generate an OpenAPI spec as a JSON string |
+
+## Pagination Helpers
+
+| Export                       | Description                                      |
+| ---------------------------- | ------------------------------------------------ |
+| `paginationQuery(options?)`  | Offset-based query: `{ page, limit }`            |
+| `cursorQuery(options?)`      | Cursor-based query: `{ cursor?, limit }`         |
+| `sortQuery(fields, options?)` | Sort query: `{ sortBy?, sortOrder? }`           |
+| `paginated(itemSchema)`     | Paginated response: `{ items, total, page, ... }`|
+| `cursorPaginated(itemSchema)` | Cursor response: `{ items, nextCursor, hasMore }`|
+
+## Error Helpers
+
+| Export                     | Description                                        |
+| -------------------------- | -------------------------------------------------- |
+| `errorSchema(code, msg?)`  | Create a custom error schema with literal code    |
+| `badRequestError()`        | `{ code: 'BAD_REQUEST', message, details }`       |
+| `unauthorizedError()`      | `{ code: 'UNAUTHORIZED', message }`               |
+| `forbiddenError()`         | `{ code: 'FORBIDDEN', message }`                  |
+| `notFoundError()`          | `{ code: 'NOT_FOUND', message }`                  |
+| `conflictError()`          | `{ code: 'CONFLICT', message }`                   |
+| `unprocessableError()`     | `{ code: 'UNPROCESSABLE_ENTITY', message }`       |
+| `rateLimitError()`         | `{ code: 'RATE_LIMIT_EXCEEDED', message }`        |
+| `internalError()`          | `{ code: 'INTERNAL_ERROR', message }`             |
+| `commonErrors(...codes)`   | Batch helper returning `Record<status, schema>`   |
 
 ## Framework Adapters
 

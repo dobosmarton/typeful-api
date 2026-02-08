@@ -259,6 +259,43 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  examples/hono-helpers:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.9
+        version: 1.19.9(hono@4.11.7)
+      '@hono/zod-openapi':
+        specifier: ^1.2.0
+        version: 1.2.1(hono@4.11.7)(zod@4.3.6)
+      '@typeful-api/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@typeful-api/hono':
+        specifier: workspace:*
+        version: link:../../packages/hono
+      hono:
+        specifier: ^4.11.4
+        version: 4.11.7
+      zod:
+        specifier: ^4.3.5
+        version: 4.3.6
+    devDependencies:
+      '@typeful-api/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
+      '@types/node':
+        specifier: ^25.2.0
+        version: 25.2.0
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   examples/hono-node:
     dependencies:
       '@hono/node-server':

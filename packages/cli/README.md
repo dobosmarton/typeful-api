@@ -14,6 +14,34 @@ npm install -D @typeful-api/cli
 
 ## Commands
 
+### Init — Scaffold a New Project
+
+Create a new typeful-api project from a template:
+
+```bash
+typeful-api init --template hono
+typeful-api init --template express --dir ./my-api
+typeful-api init --template fastify --name my-fastify-api
+```
+
+**Options:**
+
+| Flag                                 | Description                             |
+| ------------------------------------ | --------------------------------------- |
+| `--template <hono\|express\|fastify>` | Framework template (default: `hono`)   |
+| `--dir <path>`                       | Target directory (default: `.`)         |
+| `--name <string>`                    | Project name (defaults to dir name)     |
+
+The generated project includes:
+
+- `package.json` with the correct framework dependencies
+- `tsconfig.json` with strict TypeScript configuration
+- `src/api.ts` — typed API contract showcasing pagination and error helpers
+- `src/index.ts` — framework-specific server entry point
+- `.gitignore`
+
+After scaffolding, run `pnpm install && pnpm dev` to start developing.
+
 ### Generate OpenAPI Spec
 
 Generate an OpenAPI 3.0 spec from your API contract:

@@ -125,6 +125,23 @@ export const list: ProductHandlers['list'] = async ({ c }) => {
 };
 ```
 
+## Core Helpers
+
+The `@typeful-api/core` package provides built-in helpers that work with any adapter:
+
+```typescript
+import { paginationQuery, paginated, sortQuery } from '@typeful-api/core';
+
+// Pagination + sort + typed errors in one route definition
+route
+  .get('/')
+  .query(paginationQuery().merge(sortQuery(['name', 'price'] as const)))
+  .returns(paginated(ProductSchema))
+  .withErrors(401);
+```
+
+See the [core package docs](https://www.npmjs.com/package/@typeful-api/core) for all pagination and error helpers.
+
 ## API
 
 | Export                                 | Description                                     |

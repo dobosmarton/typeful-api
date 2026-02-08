@@ -120,6 +120,23 @@ type JsonSchema = {
 };
 
 /**
+ * Standard HTTP status text for common error codes
+ */
+const httpStatusText: Record<number, string> = {
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  405: 'Method Not Allowed',
+  409: 'Conflict',
+  422: 'Unprocessable Entity',
+  429: 'Too Many Requests',
+  500: 'Internal Server Error',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+};
+
+/**
  * Convert a Zod schema to JSON Schema using Zod v4's native conversion
  */
 function zodToJsonSchema(schema: ZodType): JsonSchema {
@@ -319,7 +336,7 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
     if (route.responses) {
       for (const [code, schema] of Object.entries(route.responses)) {
         operation.responses[code] = {
-          description: `Response ${code}`,
+          description: httpStatusText[Number(code)] ?? `Response ${code}`,
           content: {
             'application/json': {
               schema: zodToJsonSchema(schema),

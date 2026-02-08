@@ -15,7 +15,12 @@ export const productQueries = {
   /**
    * Query options for listing all products with pagination
    */
-  all: (params?: { page?: number; limit?: number }) =>
+  all: (params?: {
+    page?: number;
+    limit?: number;
+    sortBy?: 'name' | 'price' | 'createdAt';
+    sortOrder?: 'asc' | 'desc';
+  }) =>
     queryOptions({
       queryKey: ['products', params ?? {}],
       queryFn: async () => {
@@ -24,6 +29,8 @@ export const productQueries = {
             query: {
               page: params?.page ?? 1,
               limit: params?.limit ?? 20,
+              sortBy: params?.sortBy,
+              sortOrder: params?.sortOrder ?? 'asc',
             },
           },
         });

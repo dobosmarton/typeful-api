@@ -744,7 +744,7 @@ describe('generateSpec', () => {
       expect(operation?.responses['200']).toBeDefined();
       expect(operation?.responses['404']).toBeDefined();
       expect(operation?.responses['500']).toBeDefined();
-      expect(operation?.responses['404'].description).toBe('Response 404');
+      expect(operation?.responses['404'].description).toBe('Not Found');
     });
   });
 

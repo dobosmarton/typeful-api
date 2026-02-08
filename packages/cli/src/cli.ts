@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { cac } from 'cac';
-import pc from 'picocolors';
 import { generateSpecCommand } from './commands/generate-spec';
 import { generateClientCommand } from './commands/generate-client';
+import { initCommand } from './commands/init';
 
 const cli = cac('typi');
 
@@ -35,15 +35,13 @@ cli
   .action(generateClientCommand);
 
 cli
-  .command('init', 'Initialize a new typi project')
+  .command('init', 'Initialize a new typeful-api project')
   .option('--template <template>', 'Project template (hono, express, fastify)', {
     default: 'hono',
   })
-  .action(async (options) => {
-    console.log(pc.cyan('🚀 Initializing typi project...'));
-    console.log(pc.yellow(`Template: ${options.template}`));
-    console.log(pc.gray('(init command not yet implemented)'));
-  });
+  .option('--dir <dir>', 'Target directory', { default: '.' })
+  .option('--name <name>', 'Project name')
+  .action(initCommand);
 
 cli.help();
 cli.version('0.1.0');

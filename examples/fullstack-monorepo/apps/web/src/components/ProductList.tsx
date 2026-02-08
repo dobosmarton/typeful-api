@@ -28,12 +28,12 @@ export const ProductList = () => {
       <div style={styles.header}>
         <h2 style={styles.title}>Products</h2>
         <span style={styles.count}>
-          Showing {data.products.length} of {data.total}
+          Showing {data.items.length} of {data.total}
         </span>
       </div>
 
       <div style={styles.grid}>
-        {data.products.map((product) => (
+        {data.items.map((product) => (
           <div key={product.id} style={styles.card}>
             <div style={styles.cardHeader}>
               <h3 style={styles.productName}>{product.name}</h3>
@@ -61,7 +61,7 @@ export const ProductList = () => {
       </div>
 
       <div style={styles.pagination}>
-        Page {data.page} | {data.limit} items per page
+        Page {data.page} of {data.totalPages} | {data.limit} items per page
       </div>
     </div>
   );

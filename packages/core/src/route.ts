@@ -1,5 +1,6 @@
 import type { ZodType } from 'zod';
 import type { AuthType, HttpMethod, RouteDefinition } from './types';
+import { commonErrors, type ErrorStatusCode } from './helpers/errors';
 
 /**
  * A finalized route that can still be extended with metadata methods.
@@ -21,6 +22,7 @@ export type FinalRoute<
   markDeprecated: () => FinalRoute<TBody, TQuery, TParams, TResponse>;
   withOperationId: (id: string) => FinalRoute<TBody, TQuery, TParams, TResponse>;
   withResponses: (codes: Record<number, ZodType>) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withErrors: (...codes: ErrorStatusCode[]) => FinalRoute<TBody, TQuery, TParams, TResponse>;
 };
 
 /**
@@ -55,6 +57,11 @@ const createFinalRoute = <TBody, TQuery, TParams, TResponse>(
   withOperationId: (id: string) => createFinalRoute({ ...config, operationId: id }),
   withResponses: (codes: Record<number, ZodType>) =>
     createFinalRoute({ ...config, responses: { ...config.responses, ...codes } }),
+  withErrors: (...codes: ErrorStatusCode[]) =>
+    createFinalRoute({
+      ...config,
+      responses: { ...config.responses, ...commonErrors(...codes) },
+    }),
 });
 
 /**
@@ -147,6 +154,16 @@ class RouteBuilder<TBody = never, TQuery = never, TParams = never, TResponse = n
   withResponses(codes: Record<number, ZodType>): RouteBuilder<TBody, TQuery, TParams, TResponse> {
     const builder = this._clone<TBody, TQuery, TParams, TResponse>();
     builder._responses = { ...this._responses, ...codes };
+    return builder;
+  }
+
+  /**
+   * Add standard error response schemas for common HTTP status codes.
+   * Shorthand for `.withResponses(commonErrors(...codes))`.
+   */
+  withErrors(...codes: ErrorStatusCode[]): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+    const builder = this._clone<TBody, TQuery, TParams, TResponse>();
+    builder._responses = { ...this._responses, ...commonErrors(...codes) };
     return builder;
   }
 

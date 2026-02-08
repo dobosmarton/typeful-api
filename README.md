@@ -15,6 +15,7 @@ Define your API contract once with Zod schemas, get full type inference for hand
 - [Quick Start](#quick-start)
 - [Framework Adapters](#framework-adapters)
 - [Route Builder API](#route-builder-api)
+- [Pagination & Filtering Helpers](#pagination--filtering-helpers)
 - [API Versioning](#api-versioning)
 - [Middleware](#middleware)
 - [Error Handling](#error-handling)
@@ -32,7 +33,9 @@ Define your API contract once with Zod schemas, get full type inference for hand
 - 🎯 **Minimal Boilerplate**: Define a CRUD API in ~30 lines
 - 🏗️ **Hierarchical Middleware**: Apply middleware at version, group, or route level
 - 📦 **First-class API Versioning**: v1, v2, etc. built into the design
-- 🔧 **CLI Tools**: Generate specs and client types from the command line
+- 📄 **Pagination & Filtering**: Built-in schema factories for offset, cursor, and sort patterns
+- ⚠️ **Typed Error Responses**: Pre-built error schemas with `.withErrors()` shorthand
+- 🔧 **CLI Tools**: Generate specs, client types, and scaffold new projects
 
 ## Prerequisites
 
@@ -399,15 +402,54 @@ route
   .withTags('products', 'write')
   .withSummary('Create a product');
 
-// With path params
+// With path params and typed error responses
 route
   .get('/products/:id')
   .params(z.object({ id: z.uuid() }))
-  .returns(ProductSchema);
+  .returns(ProductSchema)
+  .withErrors(404, 401);
 
 // Mark as deprecated
 route.get('/legacy/products').returns(z.array(ProductSchema)).markDeprecated();
 ```
+
+## Pagination & Filtering Helpers
+
+Built-in Zod schema factories for common API patterns — no more copy-pasting pagination schemas across projects:
+
+```typescript
+import {
+  paginationQuery,
+  cursorQuery,
+  sortQuery,
+  paginated,
+  cursorPaginated,
+} from '@typeful-api/core';
+
+// Offset-based pagination query: { page, limit }
+const query = paginationQuery(); // defaults: page=1, limit=20, maxLimit=100
+const customQuery = paginationQuery({ defaultLimit: 50, maxLimit: 200 });
+
+// Cursor-based pagination query: { cursor?, limit }
+const cursor = cursorQuery();
+
+// Sort query with allowed fields: { sortBy?, sortOrder? }
+const sort = sortQuery(['name', 'createdAt', 'price'] as const);
+
+// Paginated response wrapper: { items: T[], total, page, limit, totalPages }
+const listRoute = route
+  .get('/')
+  .query(paginationQuery())
+  .returns(paginated(ProductSchema));
+
+// Cursor-based response: { items: T[], nextCursor, hasMore }
+const feedRoute = route
+  .get('/feed')
+  .query(cursorQuery())
+  .returns(cursorPaginated(PostSchema));
+```
+
+All query helpers use `z.coerce.number()` for automatic HTTP query string conversion, so `?page=2&limit=10` works out of the box. The generated OpenAPI spec includes all defaults and constraints.
 
 ## API Versioning
 
@@ -481,9 +523,43 @@ When a request fails validation, the response includes:
 }
 ```
 
+### Built-in Error Schemas
+
+Use `.withErrors()` to add typed error responses with a single method call:
+
+```typescript
+// Add 404 and 401 error responses — schemas and OpenAPI descriptions are automatic
+route
+  .get('/:id')
+  .params(IdParamsSchema)
+  .returns(ProductSchema)
+  .withErrors(404, 401)
+  .withSummary('Get a product');
+```
+
+Supported status codes: `400`, `401`, `403`, `404`, `409`, `422`, `429`, `500`.
+
+Each error schema uses `z.literal()` codes (e.g., `'NOT_FOUND'`) for client-side discriminated unions. You can also use the individual factories directly:
+
+```typescript
+import { notFoundError, commonErrors, errorSchema } from '@typeful-api/core';
+
+// Use pre-built error schemas with .withResponses()
+route.get('/:id').returns(ProductSchema).withResponses({
+  404: notFoundError(),
+  401: unauthorizedError(),
+});
+
+// Or batch them with commonErrors()
+route.get('/:id').returns(ProductSchema).withResponses(commonErrors(404, 401));
+
+// Create custom error schemas
+const RateLimitError = errorSchema('RATE_LIMITED', 'Too many requests');
+```
+
 ### Custom Error Responses
 
-Define error response schemas in your routes:
+For fully custom error shapes, use `.withResponses()` directly:
 
 ```typescript
 const NotFoundError = z.object({
@@ -563,6 +639,11 @@ These map to OpenAPI security schemes in the generated spec.
 ## CLI Commands
 
 ```bash
+# Scaffold a new project from a template
+typeful-api init --template hono
+typeful-api init --template express --dir ./my-api --name my-api
+typeful-api init --template fastify
+
 # Generate OpenAPI spec from contract
 typeful-api generate-spec \
   --contract ./src/api.ts \
@@ -579,6 +660,8 @@ typeful-api generate-client \
 # Watch mode for development
 typeful-api generate-spec --contract ./src/api.ts --watch
 ```
+
+The `init` command generates a ready-to-run project with `package.json`, `tsconfig.json`, typed API contract using pagination and error helpers, and a framework-specific server entry point. Available templates: `hono` (default), `express`, `fastify`.
 
 ## Comparison
 

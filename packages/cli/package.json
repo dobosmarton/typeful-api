@@ -22,7 +22,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src --ext .ts",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:watch": "vitest",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist node_modules"
