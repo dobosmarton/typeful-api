@@ -114,12 +114,24 @@ const fullContractHandlers = () => ({
         name: body.name,
         price: body.price,
       }),
-      update: ({ params, body }: { params: { id: string }; body: { name: string; price: number } }) => ({
+      update: ({
+        params,
+        body,
+      }: {
+        params: { id: string };
+        body: { name: string; price: number };
+      }) => ({
         id: params.id,
         name: body.name,
         price: body.price,
       }),
-      patch: ({ params, body }: { params: { id: string }; body: { name?: string; price?: number } }) => ({
+      patch: ({
+        params,
+        body,
+      }: {
+        params: { id: string };
+        body: { name?: string; price?: number };
+      }) => ({
         id: params.id,
         name: body.name ?? 'Original',
         price: body.price ?? 10,
@@ -232,14 +244,9 @@ describe('createExpressRouter', () => {
       const router = createExpressRouter(fullContract, fullContractHandlers());
       const app = createTestApp(router);
 
-      const res = await request(
-        app,
-        'PUT',
-        '/v1/products/550e8400-e29b-41d4-a716-446655440000',
-        {
-          body: { name: 'Updated Widget', price: 39.99 },
-        },
-      );
+      const res = await request(app, 'PUT', '/v1/products/550e8400-e29b-41d4-a716-446655440000', {
+        body: { name: 'Updated Widget', price: 39.99 },
+      });
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -250,14 +257,9 @@ describe('createExpressRouter', () => {
       const router = createExpressRouter(fullContract, fullContractHandlers());
       const app = createTestApp(router);
 
-      const res = await request(
-        app,
-        'PATCH',
-        '/v1/products/550e8400-e29b-41d4-a716-446655440000',
-        {
-          body: { price: 49.99 }, // Only updating price
-        },
-      );
+      const res = await request(app, 'PATCH', '/v1/products/550e8400-e29b-41d4-a716-446655440000', {
+        body: { price: 49.99 }, // Only updating price
+      });
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -511,7 +513,12 @@ describe('createExpressRouter', () => {
       const app = createTestApp(router);
       // Add Express error handler to return 500
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      app.use(((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      app.use(((
+        err: Error,
+        _req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction,
+      ) => {
         res.status(500).json({ error: err.message });
       }) as express.ErrorRequestHandler);
 
@@ -672,7 +679,12 @@ describe('createExpressRouter', () => {
       const app = createTestApp(router);
       // Add Express error handler to return 500
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      app.use(((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      app.use(((
+        err: Error,
+        _req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction,
+      ) => {
         res.status(500).json({ error: err.message });
       }) as express.ErrorRequestHandler);
 
@@ -686,11 +698,7 @@ describe('createExpressRouter', () => {
       const router = createExpressRouter(fullContract, fullContractHandlers());
       const app = createTestApp(router);
 
-      const res = await request(
-        app,
-        'DELETE',
-        '/v1/products/550e8400-e29b-41d4-a716-446655440000',
-      );
+      const res = await request(app, 'DELETE', '/v1/products/550e8400-e29b-41d4-a716-446655440000');
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toEqual({ success: true });

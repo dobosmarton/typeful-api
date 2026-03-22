@@ -14,9 +14,7 @@ import {
 import { HealthSchema } from '../fixtures/schemas';
 
 /** Reusable handler set for fullContract — avoids repeating the same object in every test. */
-const fullContractHandlers = (overrides?: {
-  products?: Partial<Record<string, unknown>>;
-}) => ({
+const fullContractHandlers = (overrides?: { products?: Partial<Record<string, unknown>> }) => ({
   v1: {
     products: {
       list: ({ query }: { query: { page: number; limit: number } }) => [
@@ -32,12 +30,24 @@ const fullContractHandlers = (overrides?: {
         name: body.name,
         price: body.price,
       }),
-      update: ({ params, body }: { params: { id: string }; body: { name: string; price: number } }) => ({
+      update: ({
+        params,
+        body,
+      }: {
+        params: { id: string };
+        body: { name: string; price: number };
+      }) => ({
         id: params.id,
         name: body.name,
         price: body.price,
       }),
-      patch: ({ params, body }: { params: { id: string }; body: { name?: string; price?: number } }) => ({
+      patch: ({
+        params,
+        body,
+      }: {
+        params: { id: string };
+        body: { name?: string; price?: number };
+      }) => ({
         id: params.id,
         name: body.name ?? 'Original',
         price: body.price ?? 10,
