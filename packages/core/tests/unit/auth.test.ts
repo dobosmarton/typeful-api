@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  extractBearerToken,
-  extractApiKey,
-  extractBasicCredentials,
-} from '../../src/helpers/auth';
+import { extractBearerToken, extractApiKey, extractBasicCredentials } from '../../src/helpers/auth';
 
 describe('extractBearerToken', () => {
   it('extracts token from valid Bearer header', () => {

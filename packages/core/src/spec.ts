@@ -200,10 +200,7 @@ function convertPathParams(path: string): string {
 /**
  * Generate parameter definitions from a route
  */
-function generateParameters(
-  route: RouteDefinition,
-  openapiVersion: '3.0' | '3.1',
-): Parameter[] {
+function generateParameters(route: RouteDefinition, openapiVersion: '3.0' | '3.1'): Parameter[] {
   const parameters: Parameter[] = [];
 
   // Path parameters

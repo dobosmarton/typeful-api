@@ -144,23 +144,23 @@ type UserHandler = (ctx: {
 /**
  * Extract credentials from an Express request based on auth type.
  */
-function extractCredentials(
-  authType: AuthType,
-  req: Request,
-): Record<string, unknown> | null {
+function extractCredentials(authType: AuthType, req: Request): Record<string, unknown> | null {
   const authHeader = req.headers.authorization;
   const extractors: Record<string, () => Record<string, unknown> | null> = {
-    bearer: () => { const token = extractBearerToken(authHeader); return token ? { token } : null; },
-    apiKey: () => { const key = extractApiKey(req.headers['x-api-key'] as string | undefined); return key ? { key } : null; },
+    bearer: () => {
+      const token = extractBearerToken(authHeader);
+      return token ? { token } : null;
+    },
+    apiKey: () => {
+      const key = extractApiKey(req.headers['x-api-key'] as string | undefined);
+      return key ? { key } : null;
+    },
     basic: () => extractBasicCredentials(authHeader),
   };
   return extractors[authType]?.() ?? null;
 }
 
-function createAuthMiddleware(
-  authType: AuthType,
-  authConfig: AuthConfig,
-): RequestHandler | null {
+function createAuthMiddleware(authType: AuthType, authConfig: AuthConfig): RequestHandler | null {
   if (authType === 'none') return null;
   const verifyFn = authConfig[authType];
   if (!verifyFn) return null;

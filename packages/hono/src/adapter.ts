@@ -28,14 +28,17 @@ import type {
 /**
  * Extract credentials from a Hono context based on auth type.
  */
-function extractCredentials(
-  authType: AuthType,
-  c: Context,
-): Record<string, unknown> | null {
+function extractCredentials(authType: AuthType, c: Context): Record<string, unknown> | null {
   const authHeader = c.req.header('Authorization');
   const extractors: Record<string, () => Record<string, unknown> | null> = {
-    bearer: () => { const token = extractBearerToken(authHeader); return token ? { token } : null; },
-    apiKey: () => { const key = extractApiKey(c.req.header('X-API-Key')); return key ? { key } : null; },
+    bearer: () => {
+      const token = extractBearerToken(authHeader);
+      return token ? { token } : null;
+    },
+    apiKey: () => {
+      const key = extractApiKey(c.req.header('X-API-Key'));
+      return key ? { key } : null;
+    },
     basic: () => extractBasicCredentials(authHeader),
   };
   return extractors[authType]?.() ?? null;
@@ -265,7 +268,14 @@ const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
       const childHandlers = (entries[childName] ?? {}) as HonoGroupHandlers;
       const childApp = new OpenAPIHono<E>();
 
-      applyGroupHandlers(childGroup, childHandlers, childApp, version, [...groupPath, childName], options);
+      applyGroupHandlers(
+        childGroup,
+        childHandlers,
+        childApp,
+        version,
+        [...groupPath, childName],
+        options,
+      );
 
       target.route(`/${childName}`, childApp);
     }
@@ -423,7 +433,14 @@ export function createHonoRouter(
 
     // Process direct routes on version (if any)
     if (versionGroup.routes) {
-      applyGroupHandlers({ routes: versionGroup.routes }, versionHandlers, versionApp, version, [], options);
+      applyGroupHandlers(
+        { routes: versionGroup.routes },
+        versionHandlers,
+        versionApp,
+        version,
+        [],
+        options,
+      );
     }
 
     app.route(`/${version}`, versionApp);

@@ -431,13 +431,10 @@ route
   });
 
 // With typed response headers
-route
-  .get('/products')
-  .returns(z.array(ProductSchema))
-  .withResponseHeaders({
-    'X-Total-Count': z.string(),
-    'X-Request-Id': z.string(),
-  });
+route.get('/products').returns(z.array(ProductSchema)).withResponseHeaders({
+  'X-Total-Count': z.string(),
+  'X-Request-Id': z.string(),
+});
 ```
 
 ## Pagination & Filtering Helpers
@@ -706,7 +703,13 @@ import { withHeaders } from '@typeful-api/core';
 const handler = async ({ query }) => {
   const { items, total } = await db.products.list(query);
   return withHeaders(
-    { items, total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) },
+    {
+      items,
+      total,
+      page: query.page,
+      limit: query.limit,
+      totalPages: Math.ceil(total / query.limit),
+    },
     { 'X-Total-Count': String(total), 'Cache-Control': 'max-age=60' },
   );
 };

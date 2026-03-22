@@ -48,8 +48,14 @@ function extractCredentials(
 ): Record<string, unknown> | null {
   const authHeader = request.headers.authorization;
   const extractors: Record<string, () => Record<string, unknown> | null> = {
-    bearer: () => { const token = extractBearerToken(authHeader); return token ? { token } : null; },
-    apiKey: () => { const key = extractApiKey(request.headers['x-api-key'] as string | undefined); return key ? { key } : null; },
+    bearer: () => {
+      const token = extractBearerToken(authHeader);
+      return token ? { token } : null;
+    },
+    apiKey: () => {
+      const key = extractApiKey(request.headers['x-api-key'] as string | undefined);
+      return key ? { key } : null;
+    },
     basic: () => extractBasicCredentials(authHeader),
   };
   return extractors[authType]?.() ?? null;

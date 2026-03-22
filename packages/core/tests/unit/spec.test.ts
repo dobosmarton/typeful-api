@@ -1011,8 +1011,14 @@ describe('generateSpecJson', () => {
       expect(spec31.openapi).toBe('3.1.0');
 
       // Both produce valid response schemas
-      const response30 = spec30.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
-      const response31 = spec31.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
+      const response30 = spec30.paths['/v1/health']?.get?.responses['200'] as Record<
+        string,
+        unknown
+      >;
+      const response31 = spec31.paths['/v1/health']?.get?.responses['200'] as Record<
+        string,
+        unknown
+      >;
       expect(response30?.content).toBeDefined();
       expect(response31?.content).toBeDefined();
     });
@@ -1073,7 +1079,10 @@ describe('generateSpecJson', () => {
                   .withExamples({
                     requestBody: {
                       basic: { summary: 'Basic product', value: { name: 'Widget', price: 10 } },
-                      premium: { summary: 'Premium product', value: { name: 'Pro Widget', price: 99 } },
+                      premium: {
+                        summary: 'Premium product',
+                        value: { name: 'Pro Widget', price: 99 },
+                      },
                     },
                   }),
               },
@@ -1084,11 +1093,17 @@ describe('generateSpecJson', () => {
 
       const spec = generateSpec(contract, defaultOptions);
       const requestBody = spec.paths['/v1/products']?.post?.requestBody as Record<string, unknown>;
-      const content = (requestBody?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+      const content = (requestBody?.content as Record<string, Record<string, unknown>>)?.[
+        'application/json'
+      ];
 
       expect(content?.examples).toBeDefined();
-      expect((content?.examples as Record<string, Record<string, unknown>>)?.basic?.summary).toBe('Basic product');
-      expect((content?.examples as Record<string, Record<string, unknown>>)?.premium?.summary).toBe('Premium product');
+      expect((content?.examples as Record<string, Record<string, unknown>>)?.basic?.summary).toBe(
+        'Basic product',
+      );
+      expect((content?.examples as Record<string, Record<string, unknown>>)?.premium?.summary).toBe(
+        'Premium product',
+      );
     });
 
     it('emits response examples for 200', () => {
@@ -1112,10 +1127,14 @@ describe('generateSpecJson', () => {
 
       const spec = generateSpec(contract, defaultOptions);
       const response = spec.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
-      const content = (response?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+      const content = (response?.content as Record<string, Record<string, unknown>>)?.[
+        'application/json'
+      ];
 
       expect(content?.examples).toBeDefined();
-      expect((content?.examples as Record<string, Record<string, unknown>>)?.healthy?.value).toEqual({ status: 'ok' });
+      expect(
+        (content?.examples as Record<string, Record<string, unknown>>)?.healthy?.value,
+      ).toEqual({ status: 'ok' });
     });
 
     it('emits response examples for error status codes', () => {
@@ -1132,7 +1151,10 @@ describe('generateSpecJson', () => {
                   .withExamples({
                     responses: {
                       404: {
-                        notFound: { summary: 'Not found', value: { error: 'Product not found', code: 404 } },
+                        notFound: {
+                          summary: 'Not found',
+                          value: { error: 'Product not found', code: 404 },
+                        },
                       },
                     },
                   }),
@@ -1143,11 +1165,18 @@ describe('generateSpecJson', () => {
       };
 
       const spec = generateSpec(contract, defaultOptions);
-      const response = spec.paths['/v1/products/{id}']?.get?.responses['404'] as Record<string, unknown>;
-      const content = (response?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+      const response = spec.paths['/v1/products/{id}']?.get?.responses['404'] as Record<
+        string,
+        unknown
+      >;
+      const content = (response?.content as Record<string, Record<string, unknown>>)?.[
+        'application/json'
+      ];
 
       expect(content?.examples).toBeDefined();
-      expect((content?.examples as Record<string, Record<string, unknown>>)?.notFound?.summary).toBe('Not found');
+      expect(
+        (content?.examples as Record<string, Record<string, unknown>>)?.notFound?.summary,
+      ).toBe('Not found');
     });
 
     it('omits examples when not provided', () => {
@@ -1161,7 +1190,9 @@ describe('generateSpecJson', () => {
 
       const spec = generateSpec(contract, defaultOptions);
       const response = spec.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
-      const content = (response?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+      const content = (response?.content as Record<string, Record<string, unknown>>)?.[
+        'application/json'
+      ];
 
       expect(content?.examples).toBeUndefined();
     });
