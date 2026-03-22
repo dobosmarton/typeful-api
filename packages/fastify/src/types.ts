@@ -93,13 +93,6 @@ export type CreateFastifyPluginOptions = {
   preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
 
   /**
-   * Whether to use Fastify's native schema validation with Zod
-   * Requires @fastify/type-provider-zod to be registered
-   * @default false
-   */
-  useNativeValidation?: boolean;
-
-  /**
    * Custom error handler for validation errors
    */
   errorHandler?: (error: Error, request: FastifyRequest, reply: FastifyReply) => void;
