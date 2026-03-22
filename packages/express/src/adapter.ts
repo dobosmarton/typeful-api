@@ -49,6 +49,11 @@ function createValidationMiddleware(
 
   return (req, res, next) => {
     try {
+      // Store validated data on res.locals so the handler can read it.
+      // Express 5 makes req.query and req.params read-only getters,
+      // so we cannot reassign them.
+      const validated: Record<string, unknown> = {};
+
       // Validate body
       if (validateBody && route.body && ['post', 'put', 'patch'].includes(route.method)) {
         const result = route.body.safeParse(req.body);
@@ -56,6 +61,7 @@ function createValidationMiddleware(
           return onError(zodToValidationError(result.error, 'body'), req, res, next);
         }
         req.body = result.data;
+        validated.body = result.data;
       }
 
       // Validate query
@@ -64,9 +70,7 @@ function createValidationMiddleware(
         if (!result.success) {
           return onError(zodToValidationError(result.error, 'query'), req, res, next);
         }
-        // Assign validated query (cast needed for Express types)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (req as any).query = result.data;
+        validated.query = result.data;
       }
 
       // Validate params
@@ -75,10 +79,10 @@ function createValidationMiddleware(
         if (!result.success) {
           return onError(zodToValidationError(result.error, 'params'), req, res, next);
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (req as any).params = result.data;
+        validated.params = result.data;
       }
 
+      res.locals._validated = validated;
       next();
     } catch (error) {
       next(error);
@@ -167,12 +171,15 @@ const applyGroupHandlers = <H extends ExpressGroupHandlers>(
       // Create the actual handler
       const expressHandler: RequestHandler = async (req, res, next) => {
         try {
+          // Use validated data from res.locals when available (set by validation middleware).
+          // Falls back to raw req properties when validation is disabled.
+          const validated = (res.locals._validated ?? {}) as Record<string, unknown>;
           const ctx = {
             req,
             res,
-            body: req.body,
-            query: req.query,
-            params: req.params,
+            body: validated.body ?? req.body,
+            query: validated.query ?? req.query,
+            params: validated.params ?? req.params,
           };
 
           const result = await handler(ctx);
