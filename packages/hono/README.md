@@ -125,6 +125,28 @@ export const list: ProductHandlers['list'] = async ({ c }) => {
 };
 ```
 
+## Auth Enforcement
+
+Routes with `.withAuth()` are automatically protected when you pass an `auth` config:
+
+```typescript
+const router = createHonoRouter(api, handlers, {
+  auth: {
+    bearer: async ({ token }) => {
+      const user = await verifyJWT(token);
+      return { id: user.sub, role: user.role };
+    },
+    apiKey: async ({ key }) => {
+      const apiKey = await db.apiKeys.findByKey(key);
+      if (!apiKey) throw new Error('Invalid API key');
+      return { id: apiKey.userId, role: 'service' };
+    },
+  },
+});
+```
+
+The authenticated user is available via `c.get('authUser')` in handlers. Routes with `auth: 'none'` or no auth declaration skip enforcement.
+
 ## Core Helpers
 
 The `@typeful-api/core` package provides built-in helpers that work with any adapter:

@@ -20,6 +20,8 @@ Define your API contract once with Zod schemas, get full type inference for hand
 - [Middleware](#middleware)
 - [Error Handling](#error-handling)
 - [Authentication](#authentication)
+- [Response Headers](#response-headers)
+- [OpenAPI Examples](#openapi-examples)
 - [CLI Commands](#cli-commands)
 - [Comparison](#comparison)
 - [Packages](#packages)
@@ -28,9 +30,11 @@ Define your API contract once with Zod schemas, get full type inference for hand
 ## Features
 
 - 🔒 **Full Type Safety**: From Zod schemas to handler implementations
-- 📝 **OpenAPI First**: Auto-generate valid OpenAPI 3.0 specs
+- 📝 **OpenAPI First**: Auto-generate valid OpenAPI 3.0 / 3.1 specs
 - 🔌 **Framework Agnostic**: Hono, Express, and Fastify adapters
 - 🎯 **Minimal Boilerplate**: Define a CRUD API in ~30 lines
+- 🔐 **Auth Enforcement**: Contract-driven authentication with pluggable verify functions
+- 📋 **Response Headers**: Contract-defined response headers with typed handler support
 - 🏗️ **Hierarchical Middleware**: Apply middleware at version, group, or route level
 - 📦 **First-class API Versioning**: v1, v2, etc. built into the design
 - 📄 **Pagination & Filtering**: Built-in schema factories for offset, cursor, and sort patterns
@@ -411,6 +415,29 @@ route
 
 // Mark as deprecated
 route.get('/legacy/products').returns(z.array(ProductSchema)).markDeprecated();
+
+// With request/response examples for OpenAPI docs
+route
+  .post('/products')
+  .body(CreateProductSchema)
+  .returns(ProductSchema)
+  .withExamples({
+    requestBody: {
+      basic: { summary: 'Simple product', value: { name: 'Widget', price: 9.99 } },
+    },
+    responses: {
+      200: { created: { summary: 'Created', value: { id: '1', name: 'Widget', price: 9.99 } } },
+    },
+  });
+
+// With typed response headers
+route
+  .get('/products')
+  .returns(z.array(ProductSchema))
+  .withResponseHeaders({
+    'X-Total-Count': z.string(),
+    'X-Request-Id': z.string(),
+  });
 ```
 
 ## Pagination & Filtering Helpers
@@ -588,7 +615,7 @@ get: async ({ c, params }) => {
 
 ## Authentication
 
-The `.withAuth()` method marks routes as requiring authentication and documents this in the OpenAPI spec.
+The `.withAuth()` method marks routes as requiring authentication. This both documents the security requirement in the OpenAPI spec and enables runtime enforcement via the `auth` adapter option.
 
 ### Defining Protected Routes
 
@@ -601,22 +628,45 @@ route
   .withSummary('Create a product');
 ```
 
-### Implementing Auth Middleware
+### Auth Enforcement
 
-Authentication is handled through middleware, giving you full control:
+Pass an `auth` config to any adapter to automatically enforce authentication on routes that declare `.withAuth()`. Credentials are extracted and verified before the handler runs:
 
 ```typescript
-// Hono example
-import { bearerAuth } from 'hono/bearer-auth';
+// Works with createExpressRouter, createFastifyPlugin, and createHonoRouter
+const router = createExpressRouter(api, handlers, {
+  auth: {
+    bearer: async ({ token }) => {
+      const user = await verifyJWT(token);
+      return { id: user.sub, role: user.role };
+    },
+    apiKey: async ({ key }) => {
+      const apiKey = await db.apiKeys.findByKey(key);
+      if (!apiKey) throw new Error('Invalid API key');
+      return { id: apiKey.userId, role: 'service' };
+    },
+    basic: async ({ username, password }) => {
+      const user = await db.users.verify(username, password);
+      if (!user) throw new Error('Invalid credentials');
+      return { id: user.id, role: user.role };
+    },
+  },
+});
+```
 
-const authMiddleware = bearerAuth({ token: process.env.API_TOKEN });
+Routes with `auth: 'none'` or no auth declaration skip enforcement entirely. When a verify function throws, the adapter returns a `401` response automatically.
 
+### Manual Middleware (Alternative)
+
+You can also handle auth through framework-native middleware for full control:
+
+```typescript
 const router = createHonoRouter(api, {
   v1: {
     middlewares: [authMiddleware], // Apply to all v1 routes
     products: {
-      list: handler, // Public (if not marked withAuth)
-      create: handler, // Protected by middleware
+      list: handler,
+      create: handler,
     },
   },
 });
@@ -624,11 +674,69 @@ const router = createHonoRouter(api, {
 
 ### Auth Types
 
-- `'bearer'` - Bearer token authentication
-- `'basic'` - Basic HTTP authentication
-- `'apiKey'` - API key in header or query
+- `'bearer'` - Bearer token authentication (extracted from `Authorization: Bearer <token>`)
+- `'basic'` - Basic HTTP authentication (extracted from `Authorization: Basic <base64>`)
+- `'apiKey'` - API key (extracted from `X-API-Key` header)
+- `'none'` - Explicitly public (skips enforcement)
 
 These map to OpenAPI security schemes in the generated spec.
+
+## Response Headers
+
+Define typed response headers in your contract and return them from handlers:
+
+### Defining Headers
+
+```typescript
+const listProducts = route
+  .get('/products')
+  .query(paginationQuery())
+  .returns(paginated(ProductSchema))
+  .withResponseHeaders({
+    'X-Total-Count': z.string(),
+    'Cache-Control': z.string(),
+  });
+```
+
+### Returning Headers from Handlers
+
+```typescript
+import { withHeaders } from '@typeful-api/core';
+
+const handler = async ({ query }) => {
+  const { items, total } = await db.products.list(query);
+  return withHeaders(
+    { items, total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) },
+    { 'X-Total-Count': String(total), 'Cache-Control': 'max-age=60' },
+  );
+};
+```
+
+Headers are emitted in the OpenAPI spec and set on HTTP responses by all adapters. Handlers that don't use `withHeaders()` continue to work as before — plain return values are sent without additional headers.
+
+## OpenAPI Examples
+
+Add request/response examples to improve generated API documentation:
+
+```typescript
+route
+  .post('/products')
+  .body(CreateProductSchema)
+  .returns(ProductSchema)
+  .withErrors(400, 409)
+  .withExamples({
+    requestBody: {
+      simple: { summary: 'Basic product', value: { name: 'Widget', price: 9.99 } },
+      premium: { summary: 'Premium product', value: { name: 'Pro Widget', price: 99.99 } },
+    },
+    responses: {
+      200: { created: { value: { id: '1', name: 'Widget', price: 9.99 } } },
+      400: { invalid: { value: { code: 'BAD_REQUEST', message: 'Invalid input' } } },
+    },
+  });
+```
+
+Examples appear in Swagger UI, Redocly, and other OpenAPI tools. They also enable API mocking with tools like Prism.
 
 ## CLI Commands
 

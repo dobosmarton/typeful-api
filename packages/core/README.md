@@ -92,7 +92,10 @@ The `route` builder supports chaining the following methods:
 | `.withAuth('bearer' \| 'basic' \| 'apiKey')`                                   | Mark route as authenticated                  |
 | `.withSummary(text)`                                                           | OpenAPI summary                              |
 | `.withTags(...tags)`                                                           | OpenAPI tags                                 |
+| `.withOperationId(id)`                                                         | Custom OpenAPI operation ID                  |
 | `.markDeprecated()`                                                            | Mark route as deprecated                     |
+| `.withExamples({ requestBody?, responses? })`                                  | Request/response examples for OpenAPI docs   |
+| `.withResponseHeaders({ name: schema })`                                       | Typed response headers                       |
 
 ## Pagination & Filtering Helpers
 
