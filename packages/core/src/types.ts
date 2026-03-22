@@ -11,6 +11,24 @@ export type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 export type AuthType = 'bearer' | 'apiKey' | 'basic' | 'none';
 
 /**
+ * A named example for OpenAPI documentation
+ */
+export type RouteExample = {
+  summary?: string;
+  description?: string;
+  value: unknown;
+};
+
+/**
+ * Examples configuration for a route's request body and responses.
+ * Keys in each record are example names (e.g., 'simple', 'withOptionalFields').
+ */
+export type RouteExamples = {
+  requestBody?: Record<string, RouteExample>;
+  responses?: Record<number, Record<string, RouteExample>>;
+};
+
+/**
  * A route definition containing all metadata needed for:
  * - Type inference for handlers
  * - OpenAPI spec generation
@@ -35,6 +53,18 @@ export type RouteDefinition<
   readonly tags?: readonly string[];
   readonly deprecated?: boolean;
   readonly operationId?: string;
+  readonly examples?: RouteExamples;
+  readonly responseHeaders?: Record<string, ZodType<string>>;
+};
+
+/**
+ * Tagged return value that includes both a JSON body and response headers.
+ * Produced by the `withHeaders()` helper from `@typeful-api/core`.
+ */
+export type WithResponseHeaders<TBody, THeaders extends Record<string, string>> = {
+  readonly __typefulHeaders: true;
+  readonly body: TBody;
+  readonly headers: THeaders;
 };
 
 /**
@@ -171,4 +201,10 @@ export type GenerateSpecOptions = {
     description?: string;
     url: string;
   };
+  /**
+   * OpenAPI version to generate.
+   * - `'3.0'` (default): OpenAPI 3.0.0 with JSON Schema draft-7
+   * - `'3.1'`: OpenAPI 3.1.0 with JSON Schema 2020-12
+   */
+  openapiVersion?: '3.0' | '3.1';
 };

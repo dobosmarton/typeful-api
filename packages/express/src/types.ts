@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response, RequestHandler } from 'express';
 import type {
   ApiContract,
+  AuthConfig,
   InferBody,
   InferParams,
   InferQuery,
@@ -89,6 +90,13 @@ export type CreateExpressRouterOptions = {
   middleware?: RequestHandler[];
 
   /**
+   * Auth configuration for runtime enforcement of route-level auth types.
+   * When provided, adapters inject auth middleware before the handler for
+   * routes that declare `.withAuth('bearer')`, etc.
+   */
+  auth?: AuthConfig;
+
+  /**
    * Whether to validate request bodies against Zod schemas
    * @default true
    */
@@ -142,6 +150,7 @@ export type CreateExpressRouterOptions = {
       url: string;
       description?: string;
     }>;
+    openapiVersion?: '3.0' | '3.1';
   };
 };
 

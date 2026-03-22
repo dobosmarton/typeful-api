@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod';
-import type { AuthType, HttpMethod, RouteDefinition } from './types';
+import type { AuthType, HttpMethod, RouteDefinition, RouteExamples } from './types';
 import { commonErrors, type ErrorStatusCode } from './helpers/errors';
 
 /**
@@ -23,6 +23,10 @@ export type FinalRoute<
   withOperationId: (id: string) => FinalRoute<TBody, TQuery, TParams, TResponse>;
   withResponses: (codes: Record<number, ZodType>) => FinalRoute<TBody, TQuery, TParams, TResponse>;
   withErrors: (...codes: ErrorStatusCode[]) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withExamples: (examples: RouteExamples) => FinalRoute<TBody, TQuery, TParams, TResponse>;
+  withResponseHeaders: (
+    headers: Record<string, ZodType<string>>,
+  ) => FinalRoute<TBody, TQuery, TParams, TResponse>;
 };
 
 /**
@@ -46,6 +50,8 @@ const createFinalRoute = <TBody, TQuery, TParams, TResponse>(
   tags: config.tags,
   deprecated: config.deprecated,
   operationId: config.operationId,
+  examples: config.examples,
+  responseHeaders: config.responseHeaders,
 
   // Builder methods with 'with*' prefix
   withAuth: (type: AuthType) => createFinalRoute({ ...config, auth: type }),
@@ -61,6 +67,19 @@ const createFinalRoute = <TBody, TQuery, TParams, TResponse>(
     createFinalRoute({
       ...config,
       responses: { ...config.responses, ...commonErrors(...codes) },
+    }),
+  withExamples: (examples: RouteExamples) =>
+    createFinalRoute({
+      ...config,
+      examples: {
+        requestBody: { ...config.examples?.requestBody, ...examples.requestBody },
+        responses: { ...config.examples?.responses, ...examples.responses },
+      },
+    }),
+  withResponseHeaders: (headers: Record<string, ZodType<string>>) =>
+    createFinalRoute({
+      ...config,
+      responseHeaders: { ...config.responseHeaders, ...headers },
     }),
 });
 
@@ -92,6 +111,8 @@ class RouteBuilder<TBody = never, TQuery = never, TParams = never, TResponse = n
   private _tags?: string[];
   private _deprecated?: boolean;
   private _operationId?: string;
+  private _examples?: RouteExamples;
+  private _responseHeaders?: Record<string, ZodType<string>>;
 
   constructor(method: HttpMethod, path: string) {
     this._method = method;
@@ -145,6 +166,8 @@ class RouteBuilder<TBody = never, TQuery = never, TParams = never, TResponse = n
       tags: this._tags,
       deprecated: this._deprecated,
       operationId: this._operationId,
+      examples: this._examples,
+      responseHeaders: this._responseHeaders,
     });
   }
 
@@ -222,6 +245,29 @@ class RouteBuilder<TBody = never, TQuery = never, TParams = never, TResponse = n
   }
 
   /**
+   * Define response headers that the handler may return via `withHeaders()`
+   */
+  withResponseHeaders(
+    headers: Record<string, ZodType<string>>,
+  ): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+    const builder = this._clone<TBody, TQuery, TParams, TResponse>();
+    builder._responseHeaders = { ...this._responseHeaders, ...headers };
+    return builder;
+  }
+
+  /**
+   * Add request/response examples for OpenAPI docs
+   */
+  withExamples(examples: RouteExamples): RouteBuilder<TBody, TQuery, TParams, TResponse> {
+    const builder = this._clone<TBody, TQuery, TParams, TResponse>();
+    builder._examples = {
+      requestBody: { ...this._examples?.requestBody, ...examples.requestBody },
+      responses: { ...this._examples?.responses, ...examples.responses },
+    };
+    return builder;
+  }
+
+  /**
    * Clone the builder to maintain immutability
    */
   private _clone<B, Q, P, R>(): RouteBuilder<B, Q, P, R> {
@@ -237,6 +283,8 @@ class RouteBuilder<TBody = never, TQuery = never, TParams = never, TResponse = n
     builder._tags = this._tags ? [...this._tags] : undefined;
     builder._deprecated = this._deprecated;
     builder._operationId = this._operationId;
+    builder._examples = this._examples;
+    builder._responseHeaders = this._responseHeaders;
     return builder;
   }
 }

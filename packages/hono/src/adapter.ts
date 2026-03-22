@@ -1,6 +1,18 @@
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
 import { OpenAPIHono } from '@hono/zod-openapi';
-import type { ApiContract, RouteDefinition, RouteGroup } from '@typeful-api/core';
+import type {
+  ApiContract,
+  AuthConfig,
+  AuthType,
+  RouteDefinition,
+  RouteGroup,
+} from '@typeful-api/core';
+import {
+  isWithHeaders,
+  extractBearerToken,
+  extractApiKey,
+  extractBasicCredentials,
+} from '@typeful-api/core';
 import type { Context, Env, MiddlewareHandler } from 'hono';
 import type { ZodObject } from 'zod';
 import type {
@@ -14,8 +26,50 @@ import type {
 } from './types';
 
 /**
- * Convert a RouteDefinition to @hono/zod-openapi RouteConfig format
+ * Extract credentials from a Hono context based on auth type.
  */
+function extractCredentials(
+  authType: AuthType,
+  c: Context,
+): Record<string, unknown> | null {
+  const authHeader = c.req.header('Authorization');
+  const extractors: Record<string, () => Record<string, unknown> | null> = {
+    bearer: () => { const token = extractBearerToken(authHeader); return token ? { token } : null; },
+    apiKey: () => { const key = extractApiKey(c.req.header('X-API-Key')); return key ? { key } : null; },
+    basic: () => extractBasicCredentials(authHeader),
+  };
+  return extractors[authType]?.() ?? null;
+}
+
+/**
+ * Create a Hono middleware that enforces auth for a route.
+ */
+function createAuthMiddleware(
+  authType: AuthType,
+  authConfig: AuthConfig,
+): MiddlewareHandler | null {
+  if (authType === 'none') return null;
+  const verifyFn = authConfig[authType];
+  if (!verifyFn) return null;
+
+  return async (c, next) => {
+    try {
+      const credentials = extractCredentials(authType, c);
+      if (!credentials) {
+        return c.json({ code: 'UNAUTHORIZED', message: 'Missing credentials' }, 401);
+      }
+      const user = await verifyFn(credentials as never);
+      c.set('authUser' as never, user as never);
+      await next();
+    } catch (error) {
+      if (authConfig.onError) {
+        await authConfig.onError(error, authType);
+      }
+      return c.json({ code: 'UNAUTHORIZED', message: 'Authentication failed' }, 401);
+    }
+  };
+}
+
 function toRouteConfig(
   route: RouteDefinition,
   name: string,
@@ -141,6 +195,7 @@ const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
   target: OpenAPIHono<E>,
   version: string,
   groupPath: string[],
+  options: CreateHonoRouterOptions,
 ): void => {
   // Apply group-level middleware from schema
   if (group.middleware?.length) {
@@ -181,8 +236,23 @@ const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
         const params = route.params ? c.req.valid('param' as never) : undefined;
 
         const result = await handler({ c, body, query, params });
+        if (isWithHeaders(result)) {
+          for (const [key, value] of Object.entries(result.headers)) {
+            c.header(key, value);
+          }
+          return c.json(result.body as object);
+        }
         return c.json(result as object);
       };
+
+      // Add auth middleware for this route if configured
+      if (route.auth && route.auth !== 'none' && options.auth) {
+        const authMw = createAuthMiddleware(route.auth, options.auth);
+        if (authMw) {
+          const routePath = route.path.startsWith('/') ? route.path : `/${route.path}`;
+          target.use(routePath, authMw);
+        }
+      }
 
       target.openapi(routeConfig, wrappedHandler);
     }
@@ -195,7 +265,7 @@ const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
       const childHandlers = (entries[childName] ?? {}) as HonoGroupHandlers;
       const childApp = new OpenAPIHono<E>();
 
-      applyGroupHandlers(childGroup, childHandlers, childApp, version, [...groupPath, childName]);
+      applyGroupHandlers(childGroup, childHandlers, childApp, version, [...groupPath, childName], options);
 
       target.route(`/${childName}`, childApp);
     }
@@ -345,7 +415,7 @@ export function createHonoRouter(
         const groupHandlers = (versionEntries[groupName] ?? {}) as HonoGroupHandlers;
         const groupApp = new OpenAPIHono();
 
-        applyGroupHandlers(groupDef, groupHandlers, groupApp, version, [groupName]);
+        applyGroupHandlers(groupDef, groupHandlers, groupApp, version, [groupName], options);
 
         versionApp.route(`/${groupName}`, groupApp);
       }
@@ -353,7 +423,7 @@ export function createHonoRouter(
 
     // Process direct routes on version (if any)
     if (versionGroup.routes) {
-      applyGroupHandlers({ routes: versionGroup.routes }, versionHandlers, versionApp, version, []);
+      applyGroupHandlers({ routes: versionGroup.routes }, versionHandlers, versionApp, version, [], options);
     }
 
     app.route(`/${version}`, versionApp);
@@ -362,7 +432,7 @@ export function createHonoRouter(
   // Register OpenAPI documentation route
   if (registerDocs) {
     app.doc(docsPath, {
-      openapi: '3.0.0',
+      openapi: docsConfig?.openapiVersion === '3.1' ? '3.1.0' : '3.0.0',
       info: docsConfig?.info ?? {
         title: 'API Documentation',
         version: '1.0.0',

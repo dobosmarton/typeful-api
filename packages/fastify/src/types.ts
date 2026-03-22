@@ -6,6 +6,7 @@ import type {
 } from 'fastify';
 import type {
   ApiContract,
+  AuthConfig,
   InferBody,
   InferParams,
   InferQuery,
@@ -93,6 +94,11 @@ export type CreateFastifyPluginOptions = {
   preHandler?: preHandlerAsyncHookHandler | preHandlerAsyncHookHandler[];
 
   /**
+   * Auth configuration for runtime enforcement of route-level auth types
+   */
+  auth?: AuthConfig;
+
+  /**
    * Custom error handler for validation errors
    */
   errorHandler?: (error: Error, request: FastifyRequest, reply: FastifyReply) => void;
@@ -123,6 +129,7 @@ export type CreateFastifyPluginOptions = {
       url: string;
       description?: string;
     }>;
+    openapiVersion?: '3.0' | '3.1';
   };
 };
 

@@ -77,7 +77,10 @@ export type {
   OpenApiServer,
   RouteContext,
   RouteDefinition,
+  RouteExample,
+  RouteExamples,
   RouteGroup,
+  WithResponseHeaders,
   RouteLeaves,
   VersionedRoutes,
   WithContext,
@@ -91,6 +94,13 @@ export {
   paginated,
   cursorPaginated,
 } from './helpers/pagination';
+
+// Auth types and helpers
+export type { AuthConfig, AuthCredentials, AuthVerifyFn } from './auth';
+export { extractBearerToken, extractApiKey, extractBasicCredentials } from './helpers/auth';
+
+// Response header helpers
+export { withHeaders, isWithHeaders } from './helpers/headers';
 
 // Error response helpers
 export {

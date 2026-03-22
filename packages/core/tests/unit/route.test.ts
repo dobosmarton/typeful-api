@@ -200,6 +200,52 @@ describe('route builder', () => {
     });
   });
 
+  describe('response headers', () => {
+    it('sets response headers on the builder before .returns()', () => {
+      const r = route
+        .get('/products/:id')
+        .withResponseHeaders({
+          'X-Request-Id': z.string(),
+          'Cache-Control': z.string(),
+        })
+        .returns(z.object({ id: z.string() }));
+
+      expect(r.responseHeaders).toBeDefined();
+      expect(Object.keys(r.responseHeaders!)).toEqual(['X-Request-Id', 'Cache-Control']);
+    });
+
+    it('allows chaining .withResponseHeaders() after .returns()', () => {
+      const r = route
+        .get('/products')
+        .returns(z.object({ id: z.string() }))
+        .withResponseHeaders({ 'X-Total-Count': z.string() });
+
+      expect(r.responseHeaders?.['X-Total-Count']).toBeDefined();
+    });
+
+    it('maintains immutability for .withResponseHeaders()', () => {
+      const base = route.get('/products').returns(z.string());
+      const withHdr = base.withResponseHeaders({ 'X-Custom': z.string() });
+
+      expect(base.responseHeaders).toBeUndefined();
+      expect(withHdr.responseHeaders?.['X-Custom']).toBeDefined();
+    });
+  });
+
+  describe('examples', () => {
+    it('sets examples on the builder before .returns()', () => {
+      const r = route
+        .post('/products')
+        .body(z.object({ name: z.string() }))
+        .withExamples({
+          requestBody: { basic: { summary: 'Basic', value: { name: 'Test' } } },
+        })
+        .returns(z.object({ id: z.string() }));
+
+      expect(r.examples?.requestBody?.basic?.summary).toBe('Basic');
+    });
+  });
+
   describe('builder immutability', () => {
     it('does not mutate original builder when chaining', () => {
       const baseBuilder = route.get('/users').withSummary('Base summary');
@@ -320,6 +366,52 @@ describe('route builder', () => {
       expect(r.response).toBeDefined();
       const result = r.response.safeParse({ id: '1', name: 'test' });
       expect(result.success).toBe(true);
+    });
+
+    it('allows chaining .withExamples() after .returns()', () => {
+      const r = route
+        .post('/products')
+        .body(z.object({ name: z.string() }))
+        .returns(z.object({ id: z.string(), name: z.string() }))
+        .withExamples({
+          requestBody: {
+            simple: { summary: 'Simple product', value: { name: 'Widget' } },
+          },
+          responses: {
+            200: {
+              created: { summary: 'Created product', value: { id: '1', name: 'Widget' } },
+            },
+          },
+        });
+
+      expect(r.examples?.requestBody?.simple?.summary).toBe('Simple product');
+      expect(r.examples?.responses?.[200]?.created?.summary).toBe('Created product');
+    });
+
+    it('accumulates examples across multiple .withExamples() calls', () => {
+      const r = route
+        .post('/products')
+        .body(z.object({ name: z.string() }))
+        .returns(z.object({ id: z.string() }))
+        .withExamples({
+          requestBody: { first: { value: { name: 'A' } } },
+        })
+        .withExamples({
+          requestBody: { second: { value: { name: 'B' } } },
+        });
+
+      expect(r.examples?.requestBody?.first).toBeDefined();
+      expect(r.examples?.requestBody?.second).toBeDefined();
+    });
+
+    it('maintains immutability for .withExamples()', () => {
+      const base = route.post('/products').returns(z.string());
+      const withEx = base.withExamples({
+        responses: { 200: { ex1: { value: 'hello' } } },
+      });
+
+      expect(base.examples).toBeUndefined();
+      expect(withEx.examples?.responses?.[200]?.ex1).toBeDefined();
     });
 
     it('satisfies RouteDefinition structure for framework adapters', () => {

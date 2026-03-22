@@ -5,10 +5,10 @@ import { extractTags, flattenRoutes } from './contract';
 import type { ApiContract, AuthType, GenerateSpecOptions, RouteDefinition } from './types';
 
 /**
- * OpenAPI 3.0 document structure
+ * OpenAPI document structure
  */
 export type OpenApiDocument = {
-  openapi: '3.0.0';
+  openapi: '3.0.0' | '3.1.0';
   info: {
     title: string;
     version: string;
@@ -71,20 +71,35 @@ type Parameter = {
   schema: JsonSchema;
 };
 
+type OpenApiExample = {
+  summary?: string;
+  description?: string;
+  value: unknown;
+};
+
 type RequestBody = {
   required?: boolean;
   content: {
     'application/json': {
       schema: JsonSchema;
+      examples?: Record<string, OpenApiExample>;
     };
   };
 };
 
+type ResponseHeader = {
+  description?: string;
+  schema: JsonSchema;
+  required?: boolean;
+};
+
 type Response = {
   description: string;
+  headers?: Record<string, ResponseHeader>;
   content?: {
     'application/json': {
       schema: JsonSchema;
+      examples?: Record<string, OpenApiExample>;
     };
   };
 };
@@ -98,7 +113,7 @@ type SecurityScheme = {
 };
 
 type JsonSchema = {
-  type?: string;
+  type?: string | string[];
   properties?: Record<string, JsonSchema>;
   required?: string[];
   items?: JsonSchema;
@@ -139,10 +154,11 @@ const httpStatusText: Record<number, string> = {
 /**
  * Convert a Zod schema to JSON Schema using Zod v4's native conversion
  */
-function zodToJsonSchema(schema: ZodType): JsonSchema {
+function zodToJsonSchema(schema: ZodType, openapiVersion: '3.0' | '3.1' = '3.0'): JsonSchema {
+  const target = openapiVersion === '3.1' ? 'draft-2020-12' : 'draft-7';
   const result = toJSONSchema(schema as unknown as $ZodType, {
-    target: 'draft-7', // OpenAPI 3.0 compatible
-    unrepresentable: 'any', // Gracefully handle unsupported types
+    target,
+    unrepresentable: 'any',
   });
   return result as JsonSchema;
 }
@@ -184,12 +200,15 @@ function convertPathParams(path: string): string {
 /**
  * Generate parameter definitions from a route
  */
-function generateParameters(route: RouteDefinition): Parameter[] {
+function generateParameters(
+  route: RouteDefinition,
+  openapiVersion: '3.0' | '3.1',
+): Parameter[] {
   const parameters: Parameter[] = [];
 
   // Path parameters
   if (route.params) {
-    const paramSchema = zodToJsonSchema(route.params);
+    const paramSchema = zodToJsonSchema(route.params, openapiVersion);
     if (paramSchema.properties) {
       for (const [name, schema] of Object.entries(paramSchema.properties)) {
         parameters.push({
@@ -204,7 +223,7 @@ function generateParameters(route: RouteDefinition): Parameter[] {
 
   // Query parameters
   if (route.query) {
-    const querySchema = zodToJsonSchema(route.query);
+    const querySchema = zodToJsonSchema(route.query, openapiVersion);
     if (querySchema.properties) {
       const required = querySchema.required ?? [];
       for (const [name, schema] of Object.entries(querySchema.properties)) {
@@ -239,9 +258,10 @@ function generateParameters(route: RouteDefinition): Parameter[] {
 export function generateSpec(contract: ApiContract, options: GenerateSpecOptions): OpenApiDocument {
   const flatRoutes = flattenRoutes(contract);
   const allTags = extractTags(contract);
+  const ver = options.openapiVersion ?? '3.0';
 
   const doc: OpenApiDocument = {
-    openapi: '3.0.0',
+    openapi: ver === '3.1' ? '3.1.0' : '3.0.0',
     info: options.info,
     paths: {},
     components: {
@@ -273,17 +293,34 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
       doc.paths[openApiPath] = {};
     }
 
+    const successContent: Response['content'] = {
+      'application/json': {
+        schema: zodToJsonSchema(route.response, ver),
+      },
+    };
+
+    if (route.examples?.responses?.[200]) {
+      successContent!['application/json'].examples = route.examples.responses[200];
+    }
+
+    const successResponse: Response = {
+      description: 'Successful response',
+      content: successContent,
+    };
+
+    if (route.responseHeaders) {
+      successResponse.headers = {};
+      for (const [headerName, headerSchema] of Object.entries(route.responseHeaders)) {
+        successResponse.headers[headerName] = {
+          schema: zodToJsonSchema(headerSchema, ver),
+        };
+      }
+    }
+
     const operation: Operation = {
       operationId: route.operationId ?? `${version}_${group.join('_')}_${name}`,
       responses: {
-        '200': {
-          description: 'Successful response',
-          content: {
-            'application/json': {
-              schema: zodToJsonSchema(route.response),
-            },
-          },
-        },
+        '200': successResponse,
       },
     };
 
@@ -307,20 +344,24 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
     }
 
     // Parameters
-    const parameters = generateParameters(route);
+    const parameters = generateParameters(route, ver);
     if (parameters.length > 0) {
       operation.parameters = parameters;
     }
 
     // Request body
     if (route.body && ['post', 'put', 'patch'].includes(route.method)) {
+      const requestBodyContent: RequestBody['content']['application/json'] = {
+        schema: zodToJsonSchema(route.body, ver),
+      };
+
+      if (route.examples?.requestBody) {
+        requestBodyContent.examples = route.examples.requestBody;
+      }
+
       operation.requestBody = {
         required: true,
-        content: {
-          'application/json': {
-            schema: zodToJsonSchema(route.body),
-          },
-        },
+        content: { 'application/json': requestBodyContent },
       };
     }
 
@@ -335,13 +376,20 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
     // Additional responses
     if (route.responses) {
       for (const [code, schema] of Object.entries(route.responses)) {
+        const responseContent: Response['content'] = {
+          'application/json': {
+            schema: zodToJsonSchema(schema, ver),
+          },
+        };
+
+        const codeExamples = route.examples?.responses?.[Number(code)];
+        if (codeExamples) {
+          responseContent!['application/json'].examples = codeExamples;
+        }
+
         operation.responses[code] = {
           description: httpStatusText[Number(code)] ?? `Response ${code}`,
-          content: {
-            'application/json': {
-              schema: zodToJsonSchema(schema),
-            },
-          },
+          content: responseContent,
         };
       }
     }

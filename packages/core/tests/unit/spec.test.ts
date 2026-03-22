@@ -968,6 +968,205 @@ describe('generateSpecJson', () => {
     expect(json).toContain('  '); // Indentation
   });
 
+  describe('OpenAPI version', () => {
+    it('defaults to 3.0.0', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, defaultOptions);
+      expect(spec.openapi).toBe('3.0.0');
+    });
+
+    it('generates 3.1.0 when openapiVersion is 3.1', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, { ...defaultOptions, openapiVersion: '3.1' });
+      expect(spec.openapi).toBe('3.1.0');
+    });
+
+    it('uses different JSON Schema targets for 3.0 and 3.1', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const spec30 = generateSpec(contract, { ...defaultOptions, openapiVersion: '3.0' });
+      const spec31 = generateSpec(contract, { ...defaultOptions, openapiVersion: '3.1' });
+
+      expect(spec30.openapi).toBe('3.0.0');
+      expect(spec31.openapi).toBe('3.1.0');
+
+      // Both produce valid response schemas
+      const response30 = spec30.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
+      const response31 = spec31.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
+      expect(response30?.content).toBeDefined();
+      expect(response31?.content).toBeDefined();
+    });
+  });
+
+  describe('response headers', () => {
+    it('emits headers in the 200 response', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            list: route
+              .get('/products')
+              .returns(z.array(ProductSchema))
+              .withResponseHeaders({
+                'X-Total-Count': z.string().describe('Total number of items'),
+                'X-Request-Id': z.string(),
+              }),
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, defaultOptions);
+      const response = spec.paths['/v1/products']?.get?.responses['200'] as Record<string, unknown>;
+
+      expect(response?.headers).toBeDefined();
+      const headers = response.headers as Record<string, Record<string, unknown>>;
+      expect(headers['X-Total-Count']).toBeDefined();
+      expect(headers['X-Total-Count'].schema).toBeDefined();
+      expect(headers['X-Request-Id']).toBeDefined();
+    });
+
+    it('omits headers when not provided', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, defaultOptions);
+      const response = spec.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
+      expect(response?.headers).toBeUndefined();
+    });
+  });
+
+  describe('examples', () => {
+    it('emits request body examples', () => {
+      const contract: ApiContract = {
+        v1: {
+          children: {
+            products: {
+              routes: {
+                create: route
+                  .post('/')
+                  .body(CreateProductSchema)
+                  .returns(ProductSchema)
+                  .withExamples({
+                    requestBody: {
+                      basic: { summary: 'Basic product', value: { name: 'Widget', price: 10 } },
+                      premium: { summary: 'Premium product', value: { name: 'Pro Widget', price: 99 } },
+                    },
+                  }),
+              },
+            },
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, defaultOptions);
+      const requestBody = spec.paths['/v1/products']?.post?.requestBody as Record<string, unknown>;
+      const content = (requestBody?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+
+      expect(content?.examples).toBeDefined();
+      expect((content?.examples as Record<string, Record<string, unknown>>)?.basic?.summary).toBe('Basic product');
+      expect((content?.examples as Record<string, Record<string, unknown>>)?.premium?.summary).toBe('Premium product');
+    });
+
+    it('emits response examples for 200', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route
+              .get('/health')
+              .returns(HealthSchema)
+              .withExamples({
+                responses: {
+                  200: {
+                    healthy: { summary: 'Healthy', value: { status: 'ok' } },
+                    degraded: { summary: 'Degraded', value: { status: 'degraded' } },
+                  },
+                },
+              }),
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, defaultOptions);
+      const response = spec.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
+      const content = (response?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+
+      expect(content?.examples).toBeDefined();
+      expect((content?.examples as Record<string, Record<string, unknown>>)?.healthy?.value).toEqual({ status: 'ok' });
+    });
+
+    it('emits response examples for error status codes', () => {
+      const contract: ApiContract = {
+        v1: {
+          children: {
+            products: {
+              routes: {
+                get: route
+                  .get('/:id')
+                  .params(IdParamsSchema)
+                  .returns(ProductSchema)
+                  .withResponses({ 404: ErrorSchema })
+                  .withExamples({
+                    responses: {
+                      404: {
+                        notFound: { summary: 'Not found', value: { error: 'Product not found', code: 404 } },
+                      },
+                    },
+                  }),
+              },
+            },
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, defaultOptions);
+      const response = spec.paths['/v1/products/{id}']?.get?.responses['404'] as Record<string, unknown>;
+      const content = (response?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+
+      expect(content?.examples).toBeDefined();
+      expect((content?.examples as Record<string, Record<string, unknown>>)?.notFound?.summary).toBe('Not found');
+    });
+
+    it('omits examples when not provided', () => {
+      const contract: ApiContract = {
+        v1: {
+          routes: {
+            health: route.get('/health').returns(HealthSchema),
+          },
+        },
+      };
+
+      const spec = generateSpec(contract, defaultOptions);
+      const response = spec.paths['/v1/health']?.get?.responses['200'] as Record<string, unknown>;
+      const content = (response?.content as Record<string, Record<string, unknown>>)?.['application/json'];
+
+      expect(content?.examples).toBeUndefined();
+    });
+  });
+
   it('generates minified JSON when pretty=false', () => {
     const contract: ApiContract = {
       v1: {

@@ -1,6 +1,7 @@
 import type { Context, Env, MiddlewareHandler } from 'hono';
 import type {
   ApiContract,
+  AuthConfig,
   InferBody,
   InferParams,
   InferQuery,
@@ -195,6 +196,11 @@ export type CreateHonoRouterOptions = {
   middleware?: MiddlewareHandler[];
 
   /**
+   * Auth configuration for runtime enforcement of route-level auth types
+   */
+  auth?: AuthConfig;
+
+  /**
    * Whether to register OpenAPI documentation routes
    * @default true
    */
@@ -217,5 +223,6 @@ export type CreateHonoRouterOptions = {
       description?: string;
     };
     servers?: Array<{ url: string; description?: string }>;
+    openapiVersion?: '3.0' | '3.1';
   };
 };

@@ -1,5 +1,18 @@
-import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typeful-api/core';
-import { generateSpec } from '@typeful-api/core';
+import type {
+  ApiContract,
+  AuthConfig,
+  AuthType,
+  HttpMethod,
+  RouteDefinition,
+  RouteGroup,
+} from '@typeful-api/core';
+import {
+  generateSpec,
+  isWithHeaders,
+  extractBearerToken,
+  extractApiKey,
+  extractBasicCredentials,
+} from '@typeful-api/core';
 import type { NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { Router as createRouter } from 'express';
 import type { ZodError } from 'zod';
@@ -126,6 +139,51 @@ type UserHandler = (ctx: {
 }) => Promise<unknown> | unknown;
 
 /**
+ * Create an Express middleware that enforces auth for a route.
+ */
+/**
+ * Extract credentials from an Express request based on auth type.
+ */
+function extractCredentials(
+  authType: AuthType,
+  req: Request,
+): Record<string, unknown> | null {
+  const authHeader = req.headers.authorization;
+  const extractors: Record<string, () => Record<string, unknown> | null> = {
+    bearer: () => { const token = extractBearerToken(authHeader); return token ? { token } : null; },
+    apiKey: () => { const key = extractApiKey(req.headers['x-api-key'] as string | undefined); return key ? { key } : null; },
+    basic: () => extractBasicCredentials(authHeader),
+  };
+  return extractors[authType]?.() ?? null;
+}
+
+function createAuthMiddleware(
+  authType: AuthType,
+  authConfig: AuthConfig,
+): RequestHandler | null {
+  if (authType === 'none') return null;
+  const verifyFn = authConfig[authType];
+  if (!verifyFn) return null;
+
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const credentials = extractCredentials(authType, req);
+      if (!credentials) {
+        res.status(401).json({ code: 'UNAUTHORIZED', message: 'Missing credentials' });
+        return;
+      }
+      res.locals._authUser = await verifyFn(credentials as never);
+      next();
+    } catch (error) {
+      if (authConfig.onError) {
+        await authConfig.onError(error, authType);
+      }
+      res.status(401).json({ code: 'UNAUTHORIZED', message: 'Authentication failed' });
+    }
+  };
+}
+
+/**
  * Constraint type for handler groups passed to the recursive registrar.
  * Generic `H extends ExpressGroupHandlers` allows additional properties
  * beyond the constraint — no index signature needed.
@@ -183,14 +241,25 @@ const applyGroupHandlers = <H extends ExpressGroupHandlers>(
           };
 
           const result = await handler(ctx);
-          res.json(result);
+          if (isWithHeaders(result)) {
+            res.set(result.headers);
+            res.json(result.body);
+          } else {
+            res.json(result);
+          }
         } catch (error) {
           next(error);
         }
       };
 
-      // Register route with validation and handler
-      routerMethod(path, validationMiddleware, expressHandler);
+      // Build middleware stack: [auth] → validation → handler
+      const middlewareStack: RequestHandler[] = [];
+      if (route.auth && route.auth !== 'none' && options.auth) {
+        const authMw = createAuthMiddleware(route.auth, options.auth);
+        if (authMw) middlewareStack.push(authMw);
+      }
+      middlewareStack.push(validationMiddleware, expressHandler);
+      routerMethod(path, ...middlewareStack);
     }
   }
 
@@ -312,6 +381,7 @@ export function createExpressRouter<C extends ApiContract>(
         version: '1.0.0',
       },
       ...(docsConfig?.servers && { servers: docsConfig.servers }),
+      ...(docsConfig?.openapiVersion && { openapiVersion: docsConfig.openapiVersion }),
     });
 
     router.get(docsPath, (_req: Request, res: Response) => {

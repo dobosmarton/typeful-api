@@ -7,8 +7,21 @@ import type {
   preHandlerAsyncHookHandler,
 } from 'fastify';
 import type { ZodType, ZodError } from 'zod';
-import type { ApiContract, HttpMethod, RouteDefinition, RouteGroup } from '@typeful-api/core';
-import { generateSpec } from '@typeful-api/core';
+import type {
+  ApiContract,
+  AuthConfig,
+  AuthType,
+  HttpMethod,
+  RouteDefinition,
+  RouteGroup,
+} from '@typeful-api/core';
+import {
+  generateSpec,
+  isWithHeaders,
+  extractBearerToken,
+  extractApiKey,
+  extractBasicCredentials,
+} from '@typeful-api/core';
 import type { CreateFastifyPluginOptions, InferFastifyHandlers } from './types';
 
 /**
@@ -27,8 +40,49 @@ function formatZodError(error: ZodError): object {
 }
 
 /**
- * Create a validation preHandler for a route
+ * Extract credentials from a Fastify request based on auth type.
  */
+function extractCredentials(
+  authType: AuthType,
+  request: FastifyRequest,
+): Record<string, unknown> | null {
+  const authHeader = request.headers.authorization;
+  const extractors: Record<string, () => Record<string, unknown> | null> = {
+    bearer: () => { const token = extractBearerToken(authHeader); return token ? { token } : null; },
+    apiKey: () => { const key = extractApiKey(request.headers['x-api-key'] as string | undefined); return key ? { key } : null; },
+    basic: () => extractBasicCredentials(authHeader),
+  };
+  return extractors[authType]?.() ?? null;
+}
+
+/**
+ * Create a preHandler hook that enforces auth for a route.
+ */
+function createAuthPreHandler(
+  authType: AuthType,
+  authConfig: AuthConfig,
+): preHandlerAsyncHookHandler | null {
+  if (authType === 'none') return null;
+  const verifyFn = authConfig[authType];
+  if (!verifyFn) return null;
+
+  return async (request, reply) => {
+    try {
+      const credentials = extractCredentials(authType, request);
+      if (!credentials) {
+        reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Missing credentials' });
+        return;
+      }
+      (request as Record<string, unknown>)._authUser = await verifyFn(credentials as never);
+    } catch (error) {
+      if (authConfig.onError) {
+        await authConfig.onError(error, authType);
+      }
+      reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Authentication failed' });
+    }
+  };
+}
+
 function createValidationPreHandler(route: RouteDefinition): preHandlerAsyncHookHandler {
   return async (request, reply) => {
     // Validate body
@@ -128,7 +182,13 @@ const registerGroupRoutes = <H extends FastifyGroupHandlers>(
 
       // Build route options
       const routeOptions: RouteShorthandOptions = {
-        preHandler: [...groupPreHandlers, createValidationPreHandler(route)],
+        preHandler: [
+          ...groupPreHandlers,
+          ...(route.auth && route.auth !== 'none' && options.auth
+            ? [createAuthPreHandler(route.auth, options.auth)].filter(Boolean)
+            : []),
+          createValidationPreHandler(route),
+        ] as preHandlerAsyncHookHandler[],
       };
 
       // Create the actual handler
@@ -142,6 +202,10 @@ const registerGroupRoutes = <H extends FastifyGroupHandlers>(
         };
 
         const result = await handler(ctx);
+        if (isWithHeaders(result)) {
+          reply.headers(result.headers);
+          return reply.send(result.body);
+        }
         return reply.send(result);
       };
 
@@ -303,6 +367,7 @@ export function createFastifyPlugin<C extends ApiContract>(
           version: '1.0.0',
         },
         ...(docsConfig?.servers && { servers: docsConfig.servers }),
+        ...(docsConfig?.openapiVersion && { openapiVersion: docsConfig.openapiVersion }),
       });
 
       fastify.get(docsPath, async (_request: FastifyRequest, reply: FastifyReply) => {
