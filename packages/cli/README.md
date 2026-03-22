@@ -84,6 +84,37 @@ typeful-api generate-client \
 | `--out <path>`  | Output path for the generated types     |
 | `--watch`       | Watch for changes and regenerate        |
 
+## Config File
+
+Instead of passing options via CLI flags every time, create a `typeful.config.ts` in your project root:
+
+```typescript
+import { defineConfig } from '@typeful-api/cli';
+
+export default defineConfig({
+  spec: {
+    contract: './src/api.ts',
+    out: './openapi.json',
+    title: 'My API',
+    apiVersion: '1.0.0',
+    servers: ['https://api.example.com'],
+  },
+  client: {
+    spec: './openapi.json',
+    out: './src/client.d.ts',
+  },
+});
+```
+
+Then run commands without flags:
+
+```bash
+typeful-api generate-spec
+typeful-api generate-client
+```
+
+CLI flags override config file values. Supported file formats: `.ts`, `.mts`, `.js`, `.mjs`, `.json`.
+
 ## Programmatic API
 
 You can also use the CLI as a library:

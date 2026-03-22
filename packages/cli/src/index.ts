@@ -115,7 +115,6 @@ export type GenerateClientProgrammaticOptions = {
 export async function generateSpec(options: GenerateSpecProgrammaticOptions): Promise<string> {
   const { contract, out, title, version, description, servers, pretty = true } = options;
 
-  // Build spec options
   const specOptions: GenerateSpecOptions = {
     info: {
       title,
@@ -128,16 +127,13 @@ export async function generateSpec(options: GenerateSpecProgrammaticOptions): Pr
     specOptions.servers = servers.map((url) => ({ url }));
   }
 
-  // Generate the spec
   const specJson = generateSpecJson(contract, specOptions, pretty);
 
-  // Ensure output directory exists
   const outDir = path.dirname(path.resolve(process.cwd(), out));
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  // Write the spec
   const outPath = path.resolve(process.cwd(), out);
   fs.writeFileSync(outPath, specJson, 'utf-8');
 
@@ -175,22 +171,15 @@ export async function generateClient(options: GenerateClientProgrammaticOptions)
     specObject = spec;
   }
 
-  // Dynamically import openapi-typescript
   const { default: openapiTS, astToString } = await import('openapi-typescript');
-
-  // Generate types (returns AST nodes in v7.x)
   const ast = await openapiTS(specObject as Parameters<typeof openapiTS>[0]);
-
-  // Convert AST to string
   const output = astToString(ast);
 
-  // Ensure output directory exists
   const outDir = path.dirname(path.resolve(process.cwd(), out));
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  // Write the types
   const outPath = path.resolve(process.cwd(), out);
   fs.writeFileSync(outPath, output, 'utf-8');
 
@@ -200,3 +189,7 @@ export async function generateClient(options: GenerateClientProgrammaticOptions)
 // Re-export core functions that are useful for CLI scripts
 export { generateSpecJson } from '@typeful-api/core';
 export type { ApiContract, GenerateSpecOptions } from '@typeful-api/core';
+
+// Config file utilities
+export { defineConfig } from './config';
+export type { TypefulApiConfig } from './config';
