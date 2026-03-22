@@ -23,6 +23,7 @@ import {
   extractBasicCredentials,
 } from '@typeful-api/core';
 import type { CreateFastifyPluginOptions, InferFastifyHandlers } from './types';
+import { mergeLocals } from './helpers';
 
 /**
  * Convert Zod error to Fastify-compatible error format
@@ -79,7 +80,7 @@ function createAuthPreHandler(
         reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Missing credentials' });
         return;
       }
-      (request as Record<string, unknown>)._authUser = await verifyFn(credentials as never);
+      mergeLocals(request, { authUser: await verifyFn(credentials as never) });
     } catch (error) {
       if (authConfig.onError) {
         await authConfig.onError(error, authType);

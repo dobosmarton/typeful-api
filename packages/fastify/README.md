@@ -147,7 +147,7 @@ const plugin = createFastifyPlugin(api, handlers, {
 });
 ```
 
-The authenticated user is available via `request._authUser` in downstream hooks. Routes with `auth: 'none'` or no auth declaration skip enforcement.
+The authenticated user is available via `getLocals<{ authUser: User }>(request).authUser` in handlers. Routes with `auth: 'none'` or no auth declaration skip enforcement.
 
 ## Core Helpers
 
