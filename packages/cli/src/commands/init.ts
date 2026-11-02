@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
-import { getTsConfig, getGitIgnore, getApiTs } from '../templates/shared';
+import { getTsConfig, getGitIgnore, getApiTs, getPnpmWorkspaceYaml } from '../templates/shared';
 import * as honoTemplate from '../templates/hono';
 import * as expressTemplate from '../templates/express';
 import * as fastifyTemplate from '../templates/fastify';
@@ -25,6 +25,16 @@ const templates: Record<
 
 const isValidTemplate = (template: string): template is Template => {
   return template in templates;
+};
+
+/**
+ * A nested pnpm-workspace.yaml would make the new project its own workspace root
+ * and break installs in the surrounding pnpm monorepo, so only standalone projects get one.
+ */
+const isInsidePnpmWorkspace = (dir: string): boolean => {
+  const parent = path.dirname(dir);
+  if (parent === dir) return false;
+  return fs.existsSync(path.join(parent, 'pnpm-workspace.yaml')) || isInsidePnpmWorkspace(parent);
 };
 
 /**
@@ -77,6 +87,10 @@ export const initCommand = async (options: InitCommandOptions): Promise<void> =>
       'src/api.ts': getApiTs(),
       'src/index.ts': tmpl.getIndexTs(),
     };
+
+    if (!isInsidePnpmWorkspace(targetDir)) {
+      files['pnpm-workspace.yaml'] = getPnpmWorkspaceYaml();
+    }
 
     for (const [filePath, content] of Object.entries(files)) {
       const fullPath = path.join(targetDir, filePath);

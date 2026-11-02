@@ -2,6 +2,8 @@
  * Hono project template
  */
 
+import { CLI_VERSION } from '../version';
+
 export const getPackageJson = (name: string): string => {
   return JSON.stringify(
     {
@@ -19,19 +21,19 @@ export const getPackageJson = (name: string): string => {
           'typeful-api generate-client --spec ./openapi.json --out ./src/api.generated.d.ts',
       },
       dependencies: {
-        '@hono/node-server': '^1.19.9',
-        '@hono/zod-openapi': '^1.2.0',
-        '@typeful-api/core': '^0.1.1',
-        '@typeful-api/hono': '^0.1.1',
-        hono: '^4.11.4',
-        zod: '^4.3.5',
+        '@hono/node-server': '^2.1.6',
+        '@hono/zod-openapi': '^1.6.3',
+        '@typeful-api/core': `^${CLI_VERSION}`,
+        '@typeful-api/hono': `^${CLI_VERSION}`,
+        hono: '^4.13.16',
+        zod: '^4.6.7',
       },
       devDependencies: {
-        '@typeful-api/cli': '^0.1.1',
-        '@types/node': '^22.0.0',
-        tsup: '^8.5.1',
-        tsx: '^4.21.0',
-        typescript: '^5.9.3',
+        '@typeful-api/cli': `^${CLI_VERSION}`,
+        '@types/node': '^26.0.0',
+        tsup: '^9.0.0',
+        tsx: '^4.23.15',
+        typescript: '^6.0.3',
       },
     },
     null,

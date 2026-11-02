@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import { cac } from 'cac';
+import pc from 'picocolors';
 import { loadConfig } from './config';
 import { generateSpecCommand } from './commands/generate-spec';
 import { generateClientCommand } from './commands/generate-client';
 import { initCommand } from './commands/init';
+import { CLI_VERSION } from './version';
 
-const cli = cac('typi');
+const cli = cac('typeful-api');
 
 cli
   .command('generate-spec', 'Generate OpenAPI spec from API contract')
@@ -58,6 +60,14 @@ cli
   .action(initCommand);
 
 cli.help();
-cli.version('0.1.0');
+cli.version(CLI_VERSION);
 
-cli.parse();
+try {
+  cli.parse();
+} catch (error) {
+  // cac throws CACError synchronously for usage mistakes (e.g. unused positional args)
+  if (!(error instanceof Error) || error.name !== 'CACError') throw error;
+  console.error(pc.red(error.message));
+  console.error(pc.gray('  Run with --help to see available options'));
+  process.exit(1);
+}

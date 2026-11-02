@@ -45,6 +45,49 @@ describe('init command', () => {
     });
   });
 
+  describe('pnpm build approvals', () => {
+    it('writes pnpm-workspace.yaml allowing esbuild builds for standalone projects', async () => {
+      const dir = path.join(tmpDir, 'standalone');
+      await initCommand({ template: 'hono', dir });
+
+      const yaml = fs.readFileSync(path.join(dir, 'pnpm-workspace.yaml'), 'utf-8');
+      expect(yaml).toContain('allowBuilds:\n  esbuild: true');
+    });
+
+    it('does not nest a pnpm-workspace.yaml inside an existing pnpm workspace', async () => {
+      fs.writeFileSync(path.join(tmpDir, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n');
+      const dir = path.join(tmpDir, 'apps', 'api');
+      await initCommand({ template: 'hono', dir });
+
+      expect(fs.existsSync(path.join(dir, 'package.json'))).toBe(true);
+      expect(fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))).toBe(false);
+    });
+  });
+
+  describe('@typeful-api dependency versions', () => {
+    const cliVersion: string = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf-8'),
+    ).version;
+
+    it.each(['hono', 'express', 'fastify'])(
+      '%s template pins @typeful-api packages to the CLI version',
+      async (template) => {
+        const dir = path.join(tmpDir, `${template}-project`);
+        await initCommand({ template, dir });
+
+        const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf-8'));
+        const typefulDeps = Object.entries({ ...pkg.dependencies, ...pkg.devDependencies }).filter(
+          ([name]) => name.startsWith('@typeful-api/'),
+        );
+
+        expect(typefulDeps.length).toBeGreaterThanOrEqual(2);
+        for (const [, version] of typefulDeps) {
+          expect(version).toBe(`^${cliVersion}`);
+        }
+      },
+    );
+  });
+
   describe('express template', () => {
     it('creates all expected files', async () => {
       const dir = path.join(tmpDir, 'express-project');

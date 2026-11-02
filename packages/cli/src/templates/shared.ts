@@ -12,6 +12,7 @@ export const getTsConfig = (): string => {
         strict: true,
         esModuleInterop: true,
         skipLibCheck: true,
+        types: ['node'],
         forceConsistentCasingInFileNames: true,
         outDir: './dist',
         rootDir: './src',
@@ -24,6 +25,14 @@ export const getTsConfig = (): string => {
     null,
     2,
   );
+};
+
+export const getPnpmWorkspaceYaml = (): string => {
+  return `# pnpm 11+ fails installs when a dependency's build script is not explicitly allowed.
+# esbuild (used by tsup and tsx) runs a postinstall step to verify its platform binary.
+allowBuilds:
+  esbuild: true
+`;
 };
 
 export const getGitIgnore = (): string => {

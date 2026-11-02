@@ -2,6 +2,8 @@
  * Express project template
  */
 
+import { CLI_VERSION } from '../version';
+
 export const getPackageJson = (name: string): string => {
   return JSON.stringify(
     {
@@ -15,17 +17,17 @@ export const getPackageJson = (name: string): string => {
         build: 'tsup src/index.ts --format esm --dts',
       },
       dependencies: {
-        '@typeful-api/core': '^0.1.1',
-        '@typeful-api/express': '^0.1.1',
-        express: '^5.2.1',
-        zod: '^4.3.5',
+        '@typeful-api/core': `^${CLI_VERSION}`,
+        '@typeful-api/express': `^${CLI_VERSION}`,
+        express: '^5.3.0',
+        zod: '^4.6.7',
       },
       devDependencies: {
-        '@types/express': '^5.0.3',
-        '@types/node': '^22.0.0',
-        tsup: '^8.5.1',
-        tsx: '^4.21.0',
-        typescript: '^5.9.3',
+        '@types/express': '^5.0.6',
+        '@types/node': '^26.0.0',
+        tsup: '^9.0.0',
+        tsx: '^4.23.15',
+        typescript: '^6.0.3',
       },
     },
     null,
