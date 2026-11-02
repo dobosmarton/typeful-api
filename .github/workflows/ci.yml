@@ -19,22 +19,22 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref || github.ref }}
           token: ${{ secrets.AUTOFORMAT_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Restore Turbo cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ hashFiles('turbo.json') }}-${{ hashFiles('packages/*/src/**', 'packages/*/tests/**') }}
@@ -75,11 +75,14 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Test coverage
+        run: pnpm --filter './packages/*' test:coverage
+
       - name: Lint
         run: pnpm lint
 
       - name: Type check
         run: pnpm check-types
 
-      - name: Typecheck fullstack example
-        run: pnpm --filter fullstack-monorepo-example typecheck
+      - name: Typecheck examples
+        run: pnpm --filter './examples/*' typecheck

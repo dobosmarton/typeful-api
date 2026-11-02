@@ -8,9 +8,9 @@
     "url": "https://github.com/dobosmarton/typeful-api.git"
   },
   "license": "MIT",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.34.9",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
   },
   "scripts": {
     "build": "turbo run build",
@@ -26,11 +26,11 @@
     "release": "turbo run build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
-    "@types/node": "^25.2.0",
-    "prettier": "^3.8.1",
-    "turbo": "^2.8.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "@changesets/cli": "^3.0.3",
+    "@types/node": "^26.6.6",
+    "prettier": "^3.9.10",
+    "turbo": "^2.11.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
   }
 }

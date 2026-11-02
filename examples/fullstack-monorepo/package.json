@@ -13,6 +13,6 @@
     "typecheck": "pnpm --filter @example/api typecheck && pnpm --filter @example/web typecheck"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }

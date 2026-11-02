@@ -25,14 +25,14 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "zod": "^4.3.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^25.2.0",
-    "eslint": "^9.39.2",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "tsup": "^9.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
   },
   "peerDependencies": {
     "zod": ">=4.0.0"
