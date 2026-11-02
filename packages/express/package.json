@@ -1,6 +1,6 @@
 {
   "name": "@typeful-api/express",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Express adapter for typeful-api",
   "type": "module",
   "main": "./dist/index.js",

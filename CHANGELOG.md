@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-11-02
+
+### Added
+
+- **@typeful-api/core**: Auth enforcement — `AuthConfig` with pluggable verify functions for `bearer`, `apiKey` and `basic`; routes declared with `.withAuth()` are protected when the adapter receives an `auth` option
+- **@typeful-api/core**: Pagination and error helpers: `paginationQuery()`, `paginated()`, `notFoundError()` and `.withErrors()`
+- **@typeful-api/core**: `.withExamples()` and `.withResponseHeaders()` on the route builder, `withHeaders()` for returning headers from handlers, and an `openapiVersion` option (`'3.0' | '3.1'`) for spec generation
+- **@typeful-api/cli**: Config file support (`typeful.config.ts`, `.js`, `.mjs`, `.json`) with a `defineConfig()` helper
+- **@typeful-api/cli**: `init` command scaffolding Hono, Express or Fastify projects
+
+### Changed
+
+- **@typeful-api/hono**: Peer dependency raised to `hono >=4.10.0` (required by `@hono/zod-openapi` 1.6)
+- **@typeful-api/cli**: Requires Node.js >=20.19 (`cac` 7 is ESM-only); unused positional arguments now fail with a usage error instead of being ignored
+- All dependencies upgraded to their latest versions; the repository targets Node.js 26 LTS
+
+### Fixed
+
+- **@typeful-api/hono**: Per-group environment mapping mode of `createHonoRouter` now type-checks, including version-level routes
+- **@typeful-api/hono**: Route auth no longer applies to other HTTP methods registered on the same path
+- **@typeful-api/fastify**: Authenticated user is stored with `mergeLocals` so existing locals are preserved
+- **@typeful-api/cli**: `--version` reports the real package version, and `init` pins `@typeful-api/*` packages to it
+- **@typeful-api/cli**: Projects created by `init` install with pnpm 11+ (esbuild build approval) and type-check under TypeScript 6
+
 ## [0.1.0] - 2026-02-06
 
 ### Added
