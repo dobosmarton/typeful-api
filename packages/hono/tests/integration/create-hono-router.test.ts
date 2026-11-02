@@ -708,6 +708,53 @@ describe('createHonoRouter', () => {
       const body = await res.json();
       expect(body).toEqual({ status: 'request: req-123' });
     });
+
+    it('works with per-group environment mapping mode', async () => {
+      // Version-level routes plus a child group: the shape that per-group typing used to reject
+      const perGroupContract = {
+        v1: {
+          routes: {
+            ping: { method: 'get', path: '/ping', response: HealthSchema },
+          },
+          children: {
+            health: {
+              routes: {
+                check: { method: 'get', path: '/', response: HealthSchema },
+              },
+            },
+          },
+        },
+      } as const satisfies ApiContract;
+
+      type EnvMap = {
+        v1: {
+          health: { Variables: { region: string } };
+        };
+      };
+
+      const setRegion: MiddlewareHandler = async (c, next) => {
+        c.set('region', 'eu-west');
+        await next();
+      };
+
+      const router = createHonoRouter<typeof perGroupContract, EnvMap>(perGroupContract, {
+        v1: {
+          ping: () => ({ status: 'pong' }),
+          health: {
+            middlewares: [setRegion],
+            check: ({ c }) => ({ status: `region: ${c.get('region')}` }),
+          },
+        },
+      });
+
+      const ping = await request(router, 'GET', '/v1/ping');
+      expect(ping.status).toBe(200);
+      expect(await ping.json()).toEqual({ status: 'pong' });
+
+      const res = await request(router, 'GET', '/v1/health');
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ status: 'region: eu-west' });
+    });
   });
 
   describe('DELETE requests', () => {

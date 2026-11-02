@@ -248,16 +248,14 @@ const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
         return c.json(result as object);
       };
 
-      // Add auth middleware for this route if configured
-      if (route.auth && route.auth !== 'none' && options.auth) {
-        const authMw = createAuthMiddleware(route.auth, options.auth);
-        if (authMw) {
-          const routePath = route.path.startsWith('/') ? route.path : `/${route.path}`;
-          target.use(routePath, authMw);
-        }
-      }
+      // Attach auth as route middleware rather than target.use(path): use() matches every
+      // method on the path, which would also lock public routes sharing it (e.g. GET / vs POST /)
+      const authMw =
+        route.auth && route.auth !== 'none' && options.auth
+          ? createAuthMiddleware(route.auth, options.auth)
+          : null;
 
-      target.openapi(routeConfig, wrappedHandler);
+      target.openapi(authMw ? { ...routeConfig, middleware: authMw } : routeConfig, wrappedHandler);
     }
   }
 
@@ -367,19 +365,21 @@ export function createHonoRouter<C extends ApiContract>(
   options?: CreateHonoRouterOptions,
 ): OpenAPIHono<DefaultEnv>;
 
-// Overload 2: Shared variables mode - single type for all handlers
-export function createHonoRouter<C extends ApiContract, V extends Record<string, unknown>>(
-  contract: C,
-  handlers: InferHonoHandlersWithVars<C, V>,
-  options?: CreateHonoRouterOptions,
-): OpenAPIHono<SimpleEnv<V>>;
-
-// Overload 3: Full mode - per-group environment mapping (backward compatible)
+// Overload 2: Full mode - per-group environment mapping (backward compatible).
+// Must precede shared variables mode: every VersionEnvMap is also a
+// Record<string, unknown>, so the looser overload would otherwise capture it.
 export function createHonoRouter<C extends ApiContract, M extends VersionEnvMap<C>>(
   contract: C,
   handlers: InferHonoHandlers<C, M>,
   options?: CreateHonoRouterOptions,
 ): OpenAPIHono<Env>;
+
+// Overload 3: Shared variables mode - single type for all handlers
+export function createHonoRouter<C extends ApiContract, V extends Record<string, unknown>>(
+  contract: C,
+  handlers: InferHonoHandlersWithVars<C, V>,
+  options?: CreateHonoRouterOptions,
+): OpenAPIHono<SimpleEnv<V>>;
 
 // Implementation (signature is not visible to callers - overloads are used)
 export function createHonoRouter(

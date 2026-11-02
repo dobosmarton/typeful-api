@@ -76,21 +76,27 @@ export type VersionEnvMap<V extends ApiContract> = {
 };
 
 /**
- * Infer all handlers from an API contract for Hono with per-group environments
+ * Infer all handlers from an API contract for Hono with per-group environments.
+ * Version-level routes are not part of any group, so they use the base Hono `Env`.
  */
 export type InferHonoHandlers<C extends ApiContract, M extends VersionEnvMap<C>> = {
   [VK in keyof C]: {
     middlewares?: MiddlewareHandler[];
-  } & (C[VK]['children'] extends Record<string, RouteGroup>
+  } & (C[VK]['routes'] extends Record<string, RouteDefinition>
     ? {
-        [CK in keyof C[VK]['children']]: InferHonoGroupHandlers<
-          C[VK]['children'][CK],
-          M[VK][CK]
-        > & {
-          middlewares?: MiddlewareHandler[];
-        };
+        [RK in keyof C[VK]['routes']]: HonoHandler<C[VK]['routes'][RK], Env>;
       }
-    : object);
+    : object) &
+    (C[VK]['children'] extends Record<string, RouteGroup>
+      ? {
+          [CK in keyof C[VK]['children']]: InferHonoGroupHandlers<
+            C[VK]['children'][CK],
+            M[VK][CK]
+          > & {
+            middlewares?: MiddlewareHandler[];
+          };
+        }
+      : object);
 };
 
 // ============================================================================
