@@ -141,7 +141,7 @@ const router = createExpressRouter(api, handlers, {
 });
 ```
 
-The authenticated user is available via `res.locals._authUser` in downstream middleware. Routes with `auth: 'none'` or no auth declaration skip enforcement.
+The authenticated user is available via `res.locals._authUser` in downstream middleware. Routes with `auth: 'none'` or no auth declaration skip enforcement. Without an `auth` option, or without a verify function for a route's auth type, `.withAuth()` only documents the requirement and the route stays open.
 
 ## Core Helpers
 

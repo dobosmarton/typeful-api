@@ -56,6 +56,8 @@ app.route('/api', router);
 export default app;
 ```
 
+`export default app` is all Bun and Cloudflare Workers need. On Node.js, start the server with `serve({ fetch: app.fetch, port: 3000 })` from `@hono/node-server`.
+
 ## Typed Environment
 
 Use `WithVariables` to compose context types for Hono's bindings and variables:
@@ -145,7 +147,7 @@ const router = createHonoRouter(api, handlers, {
 });
 ```
 
-The authenticated user is available via `c.get('authUser')` in handlers. Routes with `auth: 'none'` or no auth declaration skip enforcement.
+The authenticated user is available via `c.get('authUser')` in handlers. Routes with `auth: 'none'` or no auth declaration skip enforcement. Without an `auth` option, or without a verify function for a route's auth type, `.withAuth()` only documents the requirement and the route stays open.
 
 ## Core Helpers
 

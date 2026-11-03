@@ -43,7 +43,7 @@ Define your API contract once with Zod schemas, get full type inference for hand
 
 ## Prerequisites
 
-- **Node.js** 20+ or **Bun** 1.0+
+- **Node.js** 22+ or **Bun** 1.0+
 - **TypeScript** 5.5+ with strict mode enabled
 - **Package manager**: npm, pnpm, yarn, or bun
 - One of: **Hono**, **Express**, or **Fastify**
@@ -57,7 +57,7 @@ Define your API contract once with Zod schemas, get full type inference for hand
 pnpm add @typeful-api/core zod
 
 # Pick your framework adapter
-pnpm add @typeful-api/hono hono @hono/zod-openapi
+pnpm add @typeful-api/hono hono @hono/zod-openapi # + @hono/node-server on Node.js
 # or
 pnpm add @typeful-api/express express
 # or
@@ -94,6 +94,7 @@ export const api = defineApi({
 
 ```typescript
 // src/server.ts
+import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { createHonoRouter } from '@typeful-api/hono';
 import { api } from './api';
@@ -109,10 +110,10 @@ const router = createHonoRouter(api, {
 const app = new Hono();
 app.route('/api', router);
 
-export default app;
+serve({ fetch: app.fetch, port: 3000 });
 ```
 
-Run with `bun run src/server.ts` or `npx tsx src/server.ts`, then visit `http://localhost:3000/api/v1/hello`.
+Run with `npx tsx src/server.ts`, then visit `http://localhost:3000/api/v1/hello`. On Bun or Cloudflare Workers, replace the `serve(...)` call with `export default app`.
 
 ### 3. Full CRUD Example
 
@@ -174,7 +175,8 @@ export const api = defineApi({
 
 ```typescript
 // src/server.ts
-import { Hono, HTTPException } from 'hono';
+import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { createHonoRouter } from '@typeful-api/hono';
 import { api } from './api';
 
@@ -246,6 +248,7 @@ export type ProductHandlers = AppHandlers['v1']['products'];
 
 ```typescript
 // src/handlers/products.ts — fully typed, autocompletion works
+import { HTTPException } from 'hono/http-exception';
 import type { ProductHandlers } from '../types';
 
 export const list: ProductHandlers['list'] = async ({ c }) => {
@@ -263,6 +266,13 @@ export const get: ProductHandlers['get'] = async ({ c, params }) => {
 export const create: ProductHandlers['create'] = async ({ c, body }) => {
   const db = c.get('db');
   return await db.products.create({ id: crypto.randomUUID(), ...body });
+};
+
+// `delete` is a reserved word, so export this handler under another name
+export const deleteProduct: ProductHandlers['delete'] = async ({ c, params }) => {
+  const db = c.get('db');
+  await db.products.delete(params.id);
+  return { success: true };
 };
 ```
 
@@ -289,10 +299,11 @@ The type flows automatically: **contract → `InferHonoHandlersWithVars` → ind
 ### 6. Run Your Server
 
 ```bash
-# Using Bun
+# Using Bun (serves the default export)
 bun run src/server.ts
 
-# Using Node.js with tsx
+# Using Node.js with tsx: replace `export default app` with
+# `serve({ fetch: app.fetch, port: 3000 })` from @hono/node-server
 npx tsx src/server.ts
 
 # Or add to package.json scripts
@@ -303,8 +314,8 @@ Your API is now available at:
 
 - `GET /api/v1/products` - List all products
 - `GET /api/v1/products/:id` - Get a product
-- `POST /api/v1/products` - Create a product (requires auth)
-- `DELETE /api/v1/products/:id` - Delete a product (requires auth)
+- `POST /api/v1/products` - Create a product (bearer auth, enforced via the [`auth` option](#auth-enforcement))
+- `DELETE /api/v1/products/:id` - Delete a product (bearer auth, enforced via the [`auth` option](#auth-enforcement))
 
 ### 7. Generate OpenAPI Spec
 
@@ -518,26 +529,25 @@ const router = createHonoRouter(api, {
 
 ## Error Handling
 
-typeful-api automatically validates requests against your Zod schemas. Invalid requests return a `400 Bad Request` with validation details.
+typeful-api validates the request body, query string and path params against your Zod schemas before your handler runs. Invalid requests never reach the handler.
 
 ### Validation Errors
 
-When a request fails validation, the response includes:
+The status code and body shape come from each adapter:
+
+| Adapter | Status | Body                                                                                                                                     |
+| ------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Hono    | `400`  | `{ success: false, error: { name: 'ZodError', message } }`, where `message` is the Zod issue list serialized as JSON                     |
+| Express | `422`  | `{ error: 'Validation Error', type: 'body' \| 'query' \| 'params', details: [{ path, message }] }`                                       |
+| Fastify | `422`  | `{ statusCode: 422, error: 'Validation Error', message: 'Request validation failed', details: [{ path, message }] }` (dot-joined `path`) |
+
+For example, posting `{}` to a route whose body requires `name` returns this from Express:
 
 ```json
 {
-  "success": false,
-  "error": {
-    "issues": [
-      {
-        "code": "invalid_type",
-        "expected": "string",
-        "received": "undefined",
-        "path": ["name"],
-        "message": "Required"
-      }
-    ]
-  }
+  "error": "Validation Error",
+  "type": "body",
+  "details": [{ "path": ["name"], "message": "Invalid input: expected string, received undefined" }]
 }
 ```
 
@@ -560,7 +570,7 @@ Supported status codes: `400`, `401`, `403`, `404`, `409`, `422`, `429`, `500`.
 Each error schema uses `z.literal()` codes (e.g., `'NOT_FOUND'`) for client-side discriminated unions. You can also use the individual factories directly:
 
 ```typescript
-import { notFoundError, commonErrors, errorSchema } from '@typeful-api/core';
+import { notFoundError, unauthorizedError, commonErrors, errorSchema } from '@typeful-api/core';
 
 // Use pre-built error schemas with .withResponses()
 route.get('/:id').returns(ProductSchema).withResponses({
@@ -599,7 +609,7 @@ Use framework-specific exceptions:
 
 ```typescript
 // Hono
-import { HTTPException } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 
 get: async ({ c, params }) => {
   const product = await db.products.find(params.id);
@@ -651,7 +661,9 @@ const router = createExpressRouter(api, handlers, {
 });
 ```
 
-Routes with `auth: 'none'` or no auth declaration skip enforcement entirely. When a verify function throws, the adapter returns a `401` response automatically.
+Routes with `auth: 'none'` or no auth declaration skip enforcement entirely. Missing credentials, or a verify function that throws, produce `401 { code: 'UNAUTHORIZED', message }` before the handler runs.
+
+> **Note:** without an `auth` option, `.withAuth()` only documents the requirement in the OpenAPI spec and the route stays open. The same applies to a route whose auth type has no verify function in `auth`. Pass `auth` (or your own middleware) for every auth type your contract uses.
 
 ### Manual Middleware (Alternative)
 
@@ -770,24 +782,27 @@ The `init` command generates a ready-to-run project with `package.json`, `tsconf
 
 ## Comparison
 
-|                             | \*\*typeful-api\*\*     | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                    |
-| --------------------------- | ----------------------- | --------------------------------- | -------------------- | --------------------------------- | ------------------------- |
-| **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                  | Server-first              |
-| **Validation**              | Zod                     | Standard Schema                   | Zod                  | Any (Zod common)                  | TypeBox / Standard Schema |
-| **OpenAPI generation**      | ✅ Portable             | ✅ Portable                       | ✅ Portable          | ⚠️ Native (alpha)                 | ✅ Via plugin             |
-| **Framework support**       | Hono, Express, Fastify  | Express, Fastify, Next.js, NestJS | Hono only            | Express, Fastify, Next.js, Lambda | Bun, Node.js, Deno        |
-| **API versioning**          | ✅ First-class          | ❌ Manual                         | ❌ Manual            | ❌ Manual                         | ❌ Manual                 |
-| **Hierarchical middleware** | ✅ Native               | ⚠️ Global + per-route             | ✅ Via Hono          | ✅ Type-safe pipes                | ✅ Guard system           |
-| **Handler decoupling**      | ✅ Typed separate files | ✅ With caveats                   | ✅ Routes + handlers | ✅ Standard                       | ⚠️ Tricky (chaining)      |
-| **Built-in client**         | ✅ CLI generation       | ✅ Fetch-based                    | ❌ Use external      | ✅ Type-inferred                  | ✅ Eden Treaty            |
-| **REST / OpenAPI native**   | ✅                      | ✅                                | ✅                   | ❌ Custom RPC                     | ✅                        |
+Compared as of November 2026: ts-rest 3.52, @hono/zod-openapi 1.6, tRPC 11.23, Elysia 1.4.
+
+|                             | \*\*typeful-api\*\*     | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                                     |
+| --------------------------- | ----------------------- | --------------------------------- | -------------------- | --------------------------------- | ------------------------------------------ |
+| **Maintenance**             | ✅ Active               | ❌ Archived (Oct 2026)            | ✅ Active            | ✅ Active                         | ✅ Active (2.0 in RC)                      |
+| **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                  | Server-first                               |
+| **Validation**              | Zod                     | Standard Schema                   | Zod                  | Any (Zod common)                  | TypeBox / Standard Schema                  |
+| **OpenAPI generation**      | ✅ Portable             | ✅ Portable                       | ✅ Portable          | ⚠️ `@trpc/openapi` (alpha)        | ✅ Via plugin                              |
+| **Framework support**       | Hono, Express, Fastify  | Express, Fastify, Next.js, NestJS | Hono only            | Express, Fastify, Next.js, Lambda | Bun, Node.js, Deno, Workers (experimental) |
+| **API versioning**          | ✅ First-class          | ❌ Manual                         | ❌ Manual            | ❌ Manual                         | ❌ Manual                                  |
+| **Hierarchical middleware** | ✅ Native               | ⚠️ Global + per-route             | ✅ Via Hono          | ✅ Type-safe pipes                | ✅ Guard system                            |
+| **Handler decoupling**      | ✅ Typed separate files | ✅ With caveats                   | ✅ Routes + handlers | ✅ Standard                       | ⚠️ Tricky (chaining)                       |
+| **Built-in client**         | ✅ CLI generation       | ✅ Fetch-based                    | ✅ Hono RPC (`hc`)   | ✅ Type-inferred                  | ✅ Eden Treaty                             |
+| **REST / OpenAPI native**   | ✅                      | ✅                                | ✅                   | ❌ Custom RPC                     | ✅                                         |
 
 **How they differ:**
 
-- **tRPC** is the most popular option for TypeScript monorepos, but uses a custom RPC protocol — not REST. tRPC v11 ships native OpenAPI generation (alpha), but it remains RPC-first — REST/OpenAPI is a secondary output, not the core design.
-- **ts-rest** is the closest alternative to typeful-api. It shares the contract-first Zod approach but lacks built-in API versioning and hierarchical middleware.
-- **@hono/zod-openapi** is excellent if you're committed to Hono. typeful-api builds on top of it for Hono and extends the same ideas to Express and Fastify.
-- **Elysia** is a fast full framework with great DX. Since v1.2 it supports Node.js and Deno via adapters (Bun remains the primary runtime), but it is not contract-first.
+- **tRPC** is the most popular option for TypeScript monorepos, but uses a custom RPC protocol — not REST. Its `@trpc/openapi` package (still alpha in v11.23) generates an OpenAPI 3.1 document from your router's types, but the endpoints keep tRPC's own request format, so REST/OpenAPI remains a secondary output rather than the core design.
+- **ts-rest** shares the contract-first Zod approach, but it was archived in October 2026 and no longer receives releases, bug fixes or security updates. typeful-api keeps the same contract-first model and adds built-in API versioning and hierarchical middleware.
+- **@hono/zod-openapi** is excellent if you're committed to Hono, and it works with Hono's typed RPC client (`hc`). typeful-api builds on top of it for Hono and extends the same ideas to Express and Fastify.
+- **Elysia** is a fast full framework with great DX. Bun is its primary runtime, with Node.js and Deno adapters (since v1.2) and an experimental Cloudflare Workers adapter; 2.0 reached release candidate in October 2026. It is not contract-first.
 
 ## Packages
 
