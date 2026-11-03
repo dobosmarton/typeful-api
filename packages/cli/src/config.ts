@@ -28,14 +28,22 @@ export type TypefulApiConfig = {
   };
 
   /**
-   * Options for the `generate-client` command
+   * Options for the `generate-client` command. Use an array to generate a client for each
+   * service you call.
    */
-  client?: {
-    /** Path to the OpenAPI spec file (default: ./openapi.json) */
-    spec?: string;
-    /** Output path for TypeScript types (default: ./src/client.d.ts) */
-    out?: string;
-  };
+  client?: ClientConfig | ClientConfig[];
+};
+
+/**
+ * One client to generate
+ */
+export type ClientConfig = {
+  /** Local spec file or URL, e.g. another service's `/api-doc` (default: ./openapi.json) */
+  spec?: string;
+  /** `.ts` for a typed client module, `.d.ts` for types only (default: ./src/client.d.ts) */
+  out?: string;
+  /** Headers for fetching a spec URL, e.g. `{ Authorization: 'Bearer ' + process.env.DOCS_TOKEN }` */
+  headers?: Record<string, string>;
 };
 
 /** File names to search for, in priority order */

@@ -43,6 +43,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { generateSpecJson, type ApiContract, type GenerateSpecOptions } from '@typeful-api/core';
+import { generateClientFile, type GenerateClientOptions } from './client-generator';
 
 export type GenerateSpecProgrammaticOptions = {
   /**
@@ -82,17 +83,7 @@ export type GenerateSpecProgrammaticOptions = {
   pretty?: boolean;
 };
 
-export type GenerateClientProgrammaticOptions = {
-  /**
-   * Path to the OpenAPI spec file or the spec object itself
-   */
-  spec: string | object;
-
-  /**
-   * Output path for TypeScript types
-   */
-  out: string;
-};
+export type GenerateClientProgrammaticOptions = GenerateClientOptions;
 
 /**
  * Generate OpenAPI spec from an API contract (programmatic API)
@@ -141,48 +132,23 @@ export async function generateSpec(options: GenerateSpecProgrammaticOptions): Pr
 }
 
 /**
- * Generate TypeScript client types from OpenAPI spec (programmatic API)
+ * Generate a typed client module (`.ts`) or types only (`.d.ts`) from an OpenAPI spec
+ * (programmatic API). The spec can be a local file, a URL such as another service's
+ * `/api-doc`, or a spec object.
  *
  * @example
  * ```ts
  * import { generateClient } from '@typeful-api/cli';
  *
  * await generateClient({
- *   spec: './openapi.json',
- *   out: './src/client.d.ts',
+ *   spec: 'https://orders.internal/api/api-doc',
+ *   out: './src/clients/orders.ts',
+ *   headers: { Authorization: `Bearer ${process.env.DOCS_TOKEN}` },
  * });
  * ```
  */
 export async function generateClient(options: GenerateClientProgrammaticOptions): Promise<string> {
-  const { spec, out } = options;
-
-  let specObject: object;
-
-  if (typeof spec === 'string') {
-    const specPath = path.resolve(process.cwd(), spec);
-
-    if (!fs.existsSync(specPath)) {
-      throw new Error(`OpenAPI spec file not found: ${specPath}`);
-    }
-
-    const specContent = fs.readFileSync(specPath, 'utf-8');
-    specObject = JSON.parse(specContent);
-  } else {
-    specObject = spec;
-  }
-
-  const { default: openapiTS, astToString } = await import('openapi-typescript');
-  const ast = await openapiTS(specObject as Parameters<typeof openapiTS>[0]);
-  const output = astToString(ast);
-
-  const outDir = path.dirname(path.resolve(process.cwd(), out));
-  if (!fs.existsSync(outDir)) {
-    fs.mkdirSync(outDir, { recursive: true });
-  }
-
-  const outPath = path.resolve(process.cwd(), out);
-  fs.writeFileSync(outPath, output, 'utf-8');
-
+  const { outPath } = await generateClientFile(options);
   return outPath;
 }
 
@@ -192,4 +158,4 @@ export type { ApiContract, GenerateSpecOptions } from '@typeful-api/core';
 
 // Config file utilities
 export { defineConfig } from './config';
-export type { TypefulApiConfig } from './config';
+export type { ClientConfig, TypefulApiConfig } from './config';

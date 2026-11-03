@@ -1,89 +1,58 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
+import { generateClientFile, isUrl } from '../client-generator';
 import { watchFile } from '../watch';
 
 type GenerateClientCommandOptions = {
+  /** Local spec file or URL (e.g. a service's /api-doc) */
   spec: string;
+  /** `.ts` for a typed client module, `.d.ts` for types only */
   out: string;
+  /** Headers for fetching a spec URL */
+  headers?: Record<string, string>;
   watch?: boolean;
 };
 
+const generate = async (options: GenerateClientCommandOptions): Promise<void> => {
+  const { outPath, kind, routeCount } = await generateClientFile(options);
+  const relative = path.relative(process.cwd(), outPath) || outPath;
+  console.log(
+    kind === 'module'
+      ? pc.green(
+          `✅ Typed client generated: ${relative} (${routeCount} route${routeCount === 1 ? '' : 's'})`,
+        )
+      : pc.green(`✅ TypeScript types generated: ${relative}`),
+  );
+};
+
 /**
- * Generate TypeScript client types from OpenAPI spec using openapi-typescript
+ * Generate a typed client module (`.ts`) or types only (`.d.ts`) from an OpenAPI spec
  */
 export async function generateClientCommand(options: GenerateClientCommandOptions): Promise<void> {
-  console.log(pc.cyan('🔧 Generating TypeScript client types...'));
+  console.log(pc.cyan('🔧 Generating client from OpenAPI spec...'));
   console.log(pc.gray(`  Spec: ${options.spec}`));
   console.log(pc.gray(`  Output: ${options.out}`));
 
   try {
-    const specPath = path.resolve(process.cwd(), options.spec);
-
-    // Check if spec file exists
-    if (!fs.existsSync(specPath)) {
-      throw new Error(`OpenAPI spec file not found: ${specPath}`);
+    if (options.watch && isUrl(options.spec)) {
+      throw new Error('--watch needs a local spec file; it cannot watch a URL');
     }
 
-    // Read the spec
-    const specContent = fs.readFileSync(specPath, 'utf-8');
-    let spec: object;
-    try {
-      spec = JSON.parse(specContent);
-    } catch {
-      throw new Error('Invalid JSON in OpenAPI spec file');
-    }
+    await generate(options);
 
-    // Dynamically import openapi-typescript
-    let openapiTS: typeof import('openapi-typescript').default;
-    let astToString: typeof import('openapi-typescript').astToString;
-    try {
-      const module = await import('openapi-typescript');
-      openapiTS = module.default;
-      astToString = module.astToString;
-    } catch {
-      throw new Error(
-        'openapi-typescript is required for client generation. ' +
-          'It should be installed as a dependency of @typeful-api/cli.',
-      );
-    }
-
-    // Generate types (v7 returns AST nodes)
-    const ast = await openapiTS(spec as Parameters<typeof openapiTS>[0]);
-    const output = astToString(ast);
-
-    // Ensure output directory exists
-    const outDir = path.dirname(path.resolve(process.cwd(), options.out));
-    if (!fs.existsSync(outDir)) {
-      fs.mkdirSync(outDir, { recursive: true });
-    }
-
-    // Write the types
-    const outPath = path.resolve(process.cwd(), options.out);
-    fs.writeFileSync(outPath, output, 'utf-8');
-
-    console.log(pc.green(`✅ TypeScript types generated: ${outPath}`));
-
-    // Watch mode
     if (options.watch) {
       console.log(pc.yellow('\n👀 Watching for changes...'));
-
-      watchFile(specPath, async () => {
-        console.log(pc.gray(`\n🔧 Spec changed, regenerating types...`));
+      watchFile(options.spec, async () => {
+        console.log(pc.gray(`\n🔧 Spec changed, regenerating...`));
         try {
-          const updatedSpecContent = fs.readFileSync(specPath, 'utf-8');
-          const updatedSpec = JSON.parse(updatedSpecContent);
-          const updatedAst = await openapiTS(updatedSpec);
-          const updatedOutput = astToString(updatedAst);
-          fs.writeFileSync(outPath, updatedOutput, 'utf-8');
-          console.log(pc.green(`✅ Types regenerated`));
+          await generate(options);
         } catch (error) {
-          console.error(pc.red(`❌ Error regenerating types:`), error);
+          console.error(pc.red(`❌ Error regenerating client:`), error);
         }
       });
     }
   } catch (error) {
-    console.error(pc.red('❌ Error generating client types:'));
+    console.error(pc.red('❌ Error generating client:'));
     if (error instanceof Error) {
       console.error(pc.red(`   ${error.message}`));
     } else {

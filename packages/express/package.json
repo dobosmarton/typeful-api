@@ -29,6 +29,7 @@
     "@typeful-api/core": "workspace:^"
   },
   "devDependencies": {
+    "@typeful-api/cli": "workspace:^",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.0",
