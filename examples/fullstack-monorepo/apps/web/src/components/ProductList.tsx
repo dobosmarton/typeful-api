@@ -2,7 +2,7 @@
  * ProductList Component
  *
  * Demonstrates type-safe data fetching with TanStack Query.
- * All types are inferred from the API's OpenAPI spec.
+ * All types are inferred from the shared API contract.
  */
 
 import { useQuery } from '@tanstack/react-query';

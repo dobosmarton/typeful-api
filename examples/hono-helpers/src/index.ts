@@ -8,7 +8,7 @@
  */
 
 import { serve } from '@hono/node-server';
-import { createHonoRouter } from '@typeful-api/hono';
+import { HttpError, createHonoRouter } from '@typeful-api/hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -179,14 +179,19 @@ const router = createHonoRouter(api, {
 
       get: async ({ params }) => {
         const article = articles.find((a) => a.id === params.id);
-        if (!article) throw new Error('Article not found');
+        if (!article) throw new HttpError(404, 'Article not found');
         return article;
       },
 
       create: async ({ body }) => {
         // Check for duplicate title
         const existing = articles.find((a) => a.title.toLowerCase() === body.title.toLowerCase());
-        if (existing) throw new Error('Duplicate title');
+        if (existing) {
+          throw new HttpError(409, {
+            code: 'DUPLICATE_TITLE',
+            detail: 'An article with this title already exists',
+          });
+        }
 
         const article: Article = {
           id: randomUUID(),
@@ -202,7 +207,7 @@ const router = createHonoRouter(api, {
 
       update: async ({ params, body }) => {
         const index = articles.findIndex((a) => a.id === params.id);
-        if (index === -1) throw new Error('Article not found');
+        if (index === -1) throw new HttpError(404, 'Article not found');
 
         const current = articles[index]!;
         const updated: Article = {
@@ -221,7 +226,7 @@ const router = createHonoRouter(api, {
 
       delete: async ({ params }) => {
         const index = articles.findIndex((a) => a.id === params.id);
-        if (index === -1) throw new Error('Article not found');
+        if (index === -1) throw new HttpError(404, 'Article not found');
         articles.splice(index, 1);
         return { success: true };
       },
@@ -234,7 +239,7 @@ const router = createHonoRouter(api, {
 
       byArticle: async ({ params, query }) => {
         const article = articles.find((a) => a.id === params.articleId);
-        if (!article) throw new Error('Article not found');
+        if (!article) throw new HttpError(404, 'Article not found');
 
         const articleComments = comments.filter((c) => c.articleId === params.articleId);
         return cursorPaginate(articleComments, query.cursor, query.limit);
@@ -242,7 +247,7 @@ const router = createHonoRouter(api, {
 
       create: async ({ params, body }) => {
         const article = articles.find((a) => a.id === params.articleId);
-        if (!article) throw new Error('Article not found');
+        if (!article) throw new HttpError(404, 'Article not found');
 
         const comment: Comment = {
           id: randomUUID(),

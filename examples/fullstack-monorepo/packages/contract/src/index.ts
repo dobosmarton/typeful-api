@@ -1,11 +1,11 @@
 /**
  * API Contract Definition
  *
- * This file defines the complete API contract using Zod schemas.
- * It serves as the single source of truth for:
- * - Request/response types
+ * This package defines the complete API contract using Zod schemas and is shared by both apps.
+ * It is the single source of truth for:
+ * - Handler type inference on the server (apps/api)
+ * - The typed client in the browser (apps/web)
  * - OpenAPI spec generation
- * - Handler type inference
  */
 
 import {

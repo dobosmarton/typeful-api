@@ -11,7 +11,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createHonoRouter, type WithVariables } from '@typeful-api/hono';
+import { HttpError, createHonoRouter, type WithVariables } from '@typeful-api/hono';
 import { api, type Product } from './api';
 
 // ============================================
@@ -104,7 +104,7 @@ const router = createHonoRouter<typeof api, EnvMap>(
           const product = allProducts.find((p) => p.id === params.id);
 
           if (!product) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           return product;
@@ -127,7 +127,7 @@ const router = createHonoRouter<typeof api, EnvMap>(
           const index = allProducts.findIndex((p) => p.id === params.id);
 
           if (index === -1) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           const updated = { ...allProducts[index]!, ...body };
@@ -140,7 +140,7 @@ const router = createHonoRouter<typeof api, EnvMap>(
           const index = allProducts.findIndex((p) => p.id === params.id);
 
           if (index === -1) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           allProducts.splice(index, 1);

@@ -2,20 +2,21 @@
   "name": "@example/web",
   "version": "0.0.1",
   "private": true,
-  "description": "React frontend for fullstack monorepo example",
+  "description": "React frontend for the fullstack monorepo example, using the typed client",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "generate": "cp ../api/src/api.generated.d.ts ./src/api/api.generated.d.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@example/contract": "workspace:*",
     "@tanstack/react-query": "^5.105.2",
-    "openapi-fetch": "^0.17.0",
+    "@typeful-api/core": "workspace:*",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

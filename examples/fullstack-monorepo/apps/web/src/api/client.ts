@@ -1,13 +1,13 @@
 /**
  * Type-safe API Client
  *
- * Uses openapi-fetch with generated types from the API's OpenAPI spec.
- * All API calls are fully typed based on the Zod schemas defined in the API.
+ * Created from the shared contract package, so request and response types come straight from
+ * the Zod schemas the API uses. There is no code generation step.
  */
 
-import createClient from 'openapi-fetch';
-import type { paths } from './api.generated';
+import { api } from '@example/contract';
+import { createClient } from '@typeful-api/core/client';
 
-export const apiClient = createClient<paths>({
+export const apiClient = createClient(api, {
   baseUrl: 'http://localhost:3000/api',
 });

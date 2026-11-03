@@ -153,6 +153,27 @@ describe('init command', () => {
       expect(apiContent).toContain('withErrors');
     });
 
+    it.each(['hono', 'express', 'fastify'] as const)(
+      '%s handlers throw HttpError for a missing item',
+      async (template) => {
+        const dir = path.join(tmpDir, `${template}-project`);
+        await initCommand({ template, dir });
+
+        const index = fs.readFileSync(path.join(dir, 'src/index.ts'), 'utf-8');
+        expect(index).toContain(`import { HttpError, `);
+        expect(index).toContain("throw new HttpError(404, 'Item not found')");
+      },
+    );
+
+    it('express template sends Problem Details for app-level errors', async () => {
+      const dir = path.join(tmpDir, 'express-project');
+      await initCommand({ template: 'express', dir });
+
+      expect(fs.readFileSync(path.join(dir, 'src/index.ts'), 'utf-8')).toContain(
+        'app.use(problemErrorHandler());',
+      );
+    });
+
     it('.gitignore includes node_modules and dist', async () => {
       const dir = path.join(tmpDir, 'test-project');
       await initCommand({ template: 'hono', dir });

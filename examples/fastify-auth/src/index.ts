@@ -13,7 +13,7 @@
 
 import Fastify from 'fastify';
 import { randomUUID } from 'node:crypto';
-import { createFastifyPlugin } from '@typeful-api/fastify';
+import { HttpError, createFastifyPlugin } from '@typeful-api/fastify';
 import { api, type Product } from './api';
 
 // ============================================
@@ -72,7 +72,7 @@ const plugin = createFastifyPlugin(
           const product = products.find((p) => p.id === params.id);
 
           if (!product) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           return product;
@@ -93,7 +93,7 @@ const plugin = createFastifyPlugin(
           const index = products.findIndex((p) => p.id === params.id);
 
           if (index === -1) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           const updated = { ...products[index]!, ...body };
@@ -105,7 +105,7 @@ const plugin = createFastifyPlugin(
           const index = products.findIndex((p) => p.id === params.id);
 
           if (index === -1) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           products.splice(index, 1);

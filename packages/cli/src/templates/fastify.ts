@@ -36,7 +36,7 @@ export const getPackageJson = (name: string): string => {
 
 export const getIndexTs = (): string => {
   return `import Fastify from 'fastify';
-import { createFastifyPlugin } from '@typeful-api/fastify';
+import { HttpError, createFastifyPlugin } from '@typeful-api/fastify';
 import { api, type Item } from './api';
 
 // In-memory store
@@ -59,7 +59,7 @@ const plugin = createFastifyPlugin(api, {
       },
       get: async ({ params }) => {
         const item = items.find((i) => i.id === params.id);
-        if (!item) throw new Error('Not found');
+        if (!item) throw new HttpError(404, 'Item not found');
         return item;
       },
       create: async ({ body }) => {

@@ -13,7 +13,7 @@
 
 import express from 'express';
 import { randomUUID } from 'node:crypto';
-import { createExpressRouter } from '@typeful-api/express';
+import { HttpError, createExpressRouter, problemErrorHandler } from '@typeful-api/express';
 import { api, type Product } from './api';
 
 // ============================================
@@ -72,7 +72,7 @@ const router = createExpressRouter(
           const product = products.find((p) => p.id === params.id);
 
           if (!product) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           return product;
@@ -93,7 +93,7 @@ const router = createExpressRouter(
           const index = products.findIndex((p) => p.id === params.id);
 
           if (index === -1) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           const updated = { ...products[index]!, ...body };
@@ -105,7 +105,7 @@ const router = createExpressRouter(
           const index = products.findIndex((p) => p.id === params.id);
 
           if (index === -1) {
-            throw new Error('Product not found');
+            throw new HttpError(404, 'Product not found');
           }
 
           products.splice(index, 1);
@@ -144,6 +144,9 @@ app.get('/', (_req, res) => {
     docs: '/api/api-doc',
   });
 });
+
+// Problem Details for app-level errors, e.g. malformed JSON from express.json()
+app.use(problemErrorHandler());
 
 // ============================================
 // Start Server

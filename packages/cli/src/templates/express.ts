@@ -37,7 +37,7 @@ export const getPackageJson = (name: string): string => {
 
 export const getIndexTs = (): string => {
   return `import express from 'express';
-import { createExpressRouter } from '@typeful-api/express';
+import { HttpError, createExpressRouter, problemErrorHandler } from '@typeful-api/express';
 import { api, type Item } from './api';
 
 // In-memory store
@@ -60,7 +60,7 @@ const router = createExpressRouter(api, {
       },
       get: async ({ params }) => {
         const item = items.find((i) => i.id === params.id);
-        if (!item) throw new Error('Not found');
+        if (!item) throw new HttpError(404, 'Item not found');
         return item;
       },
       create: async ({ body }) => {
@@ -79,6 +79,7 @@ const router = createExpressRouter(api, {
 const app = express();
 app.use(express.json());
 app.use('/api', router);
+app.use(problemErrorHandler());
 
 const port = Number(process.env.PORT) || 3000;
 

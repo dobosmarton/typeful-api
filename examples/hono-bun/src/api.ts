@@ -92,6 +92,7 @@ export const api = defineApi({
             .get('/:id')
             .params(IdParamsSchema)
             .returns(ProductSchema)
+            .withErrors(404)
             .withSummary('Get a product by ID'),
 
           create: route
@@ -107,6 +108,7 @@ export const api = defineApi({
             .body(UpdateProductSchema)
             .withAuth('bearer')
             .returns(ProductSchema)
+            .withErrors(404)
             .withSummary('Update a product'),
 
           delete: route
@@ -116,6 +118,7 @@ export const api = defineApi({
             .returns(
               z.object({ success: z.boolean().describe('Whether the deletion was successful') }),
             )
+            .withErrors(404)
             .withSummary('Delete a product'),
         },
       },

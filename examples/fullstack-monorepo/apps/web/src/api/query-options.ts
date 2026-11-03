@@ -2,41 +2,28 @@
  * TanStack Query Options Factory
  *
  * Centralized query options for all API endpoints.
- * Uses the type-safe apiClient to ensure request/response types match the API.
+ * `unwrap` returns the body of a 200 response and throws a `ResponseError` (carrying the
+ * Problem Details body) for anything else, which is what TanStack Query expects.
  *
  * Pattern: Query options factory functions that return queryOptions objects.
  * This enables composable, reusable query configurations.
  */
 
 import { queryOptions } from '@tanstack/react-query';
+import { unwrap, type InferClientArgs } from '@typeful-api/core/client';
 import { apiClient } from './client';
+
+/** `{ page?, limit?, sortBy?, sortOrder? }`, inferred from the contract */
+type ProductListQuery = InferClientArgs<typeof apiClient.v1.products.list>['query'];
 
 export const productQueries = {
   /**
    * Query options for listing all products with pagination
    */
-  all: (params?: {
-    page?: number;
-    limit?: number;
-    sortBy?: 'name' | 'price' | 'createdAt';
-    sortOrder?: 'asc' | 'desc';
-  }) =>
+  all: (query: ProductListQuery = {}) =>
     queryOptions({
-      queryKey: ['products', params ?? {}],
-      queryFn: async () => {
-        const { data, error } = await apiClient.GET('/v1/products', {
-          params: {
-            query: {
-              page: params?.page ?? 1,
-              limit: params?.limit ?? 20,
-              sortBy: params?.sortBy,
-              sortOrder: params?.sortOrder ?? 'asc',
-            },
-          },
-        });
-        if (error) throw new Error('Failed to fetch products');
-        return data;
-      },
+      queryKey: ['products', query],
+      queryFn: ({ signal }) => apiClient.v1.products.list({ query, signal }).then(unwrap),
     }),
 
   /**
@@ -45,13 +32,7 @@ export const productQueries = {
   detail: (id: string) =>
     queryOptions({
       queryKey: ['products', id],
-      queryFn: async () => {
-        const { data, error } = await apiClient.GET('/v1/products/{id}', {
-          params: { path: { id } },
-        });
-        if (error) throw new Error('Failed to fetch product');
-        return data;
-      },
+      queryFn: ({ signal }) => apiClient.v1.products.get({ params: { id }, signal }).then(unwrap),
       enabled: !!id,
     }),
 };
@@ -63,10 +44,6 @@ export const healthQueries = {
   check: () =>
     queryOptions({
       queryKey: ['health'],
-      queryFn: async () => {
-        const { data, error } = await apiClient.GET('/v1/health');
-        if (error) throw new Error('Health check failed');
-        return data;
-      },
+      queryFn: ({ signal }) => apiClient.v1.health({ signal }).then(unwrap),
     }),
 };

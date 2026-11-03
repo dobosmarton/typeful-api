@@ -1,3 +1,4 @@
+import { HttpError } from '@typeful-api/hono';
 import { randomUUID } from 'node:crypto';
 import type { Product } from '../api';
 import type { ProductHandlers } from '../types';
@@ -21,7 +22,7 @@ export const get: ProductHandlers['get'] = async ({ c, params }) => {
   const product = allProducts.find((p) => p.id === params.id);
 
   if (!product) {
-    throw new Error('Product not found');
+    throw new HttpError(404, 'Product not found');
   }
 
   return product;
@@ -44,7 +45,7 @@ export const update: ProductHandlers['update'] = async ({ c, params, body }) => 
   const index = allProducts.findIndex((p) => p.id === params.id);
 
   if (index === -1) {
-    throw new Error('Product not found');
+    throw new HttpError(404, 'Product not found');
   }
 
   const updated = { ...allProducts[index]!, ...body };
@@ -57,7 +58,7 @@ export const deleteProduct: ProductHandlers['delete'] = async ({ c, params }) =>
   const index = allProducts.findIndex((p) => p.id === params.id);
 
   if (index === -1) {
-    throw new Error('Product not found');
+    throw new HttpError(404, 'Product not found');
   }
 
   allProducts.splice(index, 1);

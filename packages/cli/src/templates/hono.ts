@@ -43,7 +43,7 @@ export const getPackageJson = (name: string): string => {
 
 export const getIndexTs = (): string => {
   return `import { serve } from '@hono/node-server';
-import { createHonoRouter } from '@typeful-api/hono';
+import { HttpError, createHonoRouter } from '@typeful-api/hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -69,7 +69,7 @@ const router = createHonoRouter(api, {
       },
       get: async ({ params }) => {
         const item = items.find((i) => i.id === params.id);
-        if (!item) throw new Error('Not found');
+        if (!item) throw new HttpError(404, 'Item not found');
         return item;
       },
       create: async ({ body }) => {

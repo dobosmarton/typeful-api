@@ -8,12 +8,12 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsup src/index.ts --format esm --dts",
-    "generate": "pnpm generate:spec && pnpm generate:client",
-    "generate:spec": "typeful-api generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Fullstack Example API' --api-version '1.0.0'",
-    "generate:client": "typeful-api generate-client --spec ./openapi.json --out ./src/api.generated.d.ts",
+    "generate": "pnpm generate:spec",
+    "generate:spec": "typeful-api generate-spec --contract ../../packages/contract/src/index.ts --out ./openapi.json --title 'Fullstack Example API' --api-version '1.0.0'",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@example/contract": "workspace:*",
     "@hono/node-server": "^2.1.6",
     "@hono/swagger-ui": "^0.6.2",
     "@hono/zod-openapi": "^1.6.3",

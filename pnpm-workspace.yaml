@@ -2,3 +2,4 @@ packages:
   - "packages/*"
   - "examples/*"
   - "examples/fullstack-monorepo/apps/*"
+  - "examples/fullstack-monorepo/packages/*"

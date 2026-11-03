@@ -7,7 +7,6 @@
  * - paginated()                       → standard paginated response envelope
  * - problemSchema()                   → custom Problem Details error types
  * - withErrors()                      → typed HTTP error responses
- * - conflictError()                   → pre-built error factories
  */
 
 import {
@@ -19,7 +18,6 @@ import {
   paginated,
   cursorPaginated,
   problemSchema,
-  conflictError,
 } from '@typeful-api/core';
 import { z } from 'zod';
 
@@ -107,14 +105,14 @@ export const api = defineApi({
             .withSummary('Get article by ID')
             .withTags('articles'),
 
-          // withAuth + withErrors + custom conflictError — full create example
+          // withAuth + withErrors + a custom Problem Details type for 409
           create: route
             .post('/')
             .body(CreateArticleSchema)
             .returns(ArticleSchema)
             .withAuth('bearer')
             .withErrors(401)
-            .withResponses({ 409: conflictError() })
+            .withResponses({ 409: DuplicateTitleError })
             .withSummary('Create an article')
             .withTags('articles'),
 
