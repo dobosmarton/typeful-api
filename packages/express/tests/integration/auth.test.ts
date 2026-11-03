@@ -117,6 +117,15 @@ describe('auth enforcement', () => {
       const app = createApp();
       const res = await request(app, '/v1/protected/bearer');
       expect(res.status).toBe(401);
+      expect(res.headers.get('content-type')).toMatch(/^application\/problem\+json/);
+      expect(res.headers.get('www-authenticate')).toBe('Bearer');
+      expect(await res.json()).toEqual({
+        type: 'about:blank',
+        title: 'Unauthorized',
+        status: 401,
+        code: 'UNAUTHORIZED',
+        detail: 'Missing credentials',
+      });
     });
 
     it('rejects invalid bearer token', async () => {
@@ -125,6 +134,10 @@ describe('auth enforcement', () => {
         Authorization: 'Bearer invalid-token',
       });
       expect(res.status).toBe(401);
+      expect(await res.json()).toMatchObject({
+        code: 'UNAUTHORIZED',
+        detail: 'Authentication failed',
+      });
     });
   });
 

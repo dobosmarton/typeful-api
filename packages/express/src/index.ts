@@ -50,7 +50,7 @@
  */
 
 // Adapter
-export { createExpressRouter } from './adapter';
+export { createExpressRouter, problemErrorHandler } from './adapter';
 
 // Middleware helpers
 export {
@@ -76,4 +76,5 @@ export type {
 } from './types';
 
 // Re-export core types for convenience
-export type { ApiContract, RouteDefinition, RouteGroup } from '@typeful-api/core';
+export type { ApiContract, ProblemDetails, RouteDefinition, RouteGroup } from '@typeful-api/core';
+export { HttpError } from '@typeful-api/core';

@@ -9,6 +9,7 @@ import type {
   InferResponse,
   RouteDefinition,
   RouteGroup,
+  ValidationError,
 } from '@typeful-api/core';
 
 /**
@@ -116,7 +117,8 @@ export type CreateExpressRouterOptions = {
   validateParams?: boolean;
 
   /**
-   * Custom error handler for validation errors
+   * Replace the default response for requests that fail validation, which is a 422
+   * `application/problem+json` body (`error.problem`). Send a response or call `next`.
    */
   onValidationError?: (
     error: ValidationError,
@@ -156,15 +158,9 @@ export type CreateExpressRouterOptions = {
 };
 
 /**
- * Validation error structure
+ * A failed request validation (`type`, field-level `errors`, and the 422 `problem` body)
  */
-export type ValidationError = {
-  type: 'body' | 'query' | 'params';
-  errors: Array<{
-    path: string[];
-    message: string;
-  }>;
-};
+export type { ValidationError };
 
 /**
  * Extended request locals for typed middleware

@@ -3,55 +3,53 @@ import type {
   AuthConfig,
   AuthType,
   HttpMethod,
+  ProblemDetails,
+  RequestLocation,
   RouteDefinition,
   RouteGroup,
+  ValidationError,
 } from '@typeful-api/core';
 import {
+  PROBLEM_CONTENT_TYPE,
+  createAuthenticator,
+  createProblem,
   generateSpec,
+  isHttpError,
   isWithHeaders,
-  extractBearerToken,
-  extractApiKey,
-  extractBasicCredentials,
+  toValidationError,
 } from '@typeful-api/core';
-import type { NextFunction, Request, RequestHandler, Response, Router } from 'express';
+import type {
+  ErrorRequestHandler,
+  NextFunction,
+  Request,
+  RequestHandler,
+  Response,
+  Router,
+} from 'express';
 import { Router as createRouter } from 'express';
-import type { ZodError } from 'zod';
-import type { CreateExpressRouterOptions, InferExpressHandlers, ValidationError } from './types';
+import type { ZodType } from 'zod';
+import type { CreateExpressRouterOptions, InferExpressHandlers } from './types';
 
 /**
- * Default validation error handler
+ * Send an RFC 9457 Problem Details response
  */
-function defaultValidationErrorHandler(
-  error: ValidationError,
-  _req: Request,
+function sendProblem(
   res: Response,
-  _next: NextFunction,
-) {
-  res.status(422).json({
-    error: 'Validation Error',
-    type: error.type,
-    details: error.errors,
-  });
+  problem: ProblemDetails,
+  headers: Readonly<Record<string, string>> = {},
+): void {
+  res.status(problem.status).set(headers).type(PROBLEM_CONTENT_TYPE).json(problem);
 }
 
 /**
- * Convert Zod error to ValidationError
+ * Default validation error handler: 422 Problem Details
  */
-function zodToValidationError(
-  zodError: ZodError,
-  type: 'body' | 'query' | 'params',
-): ValidationError {
-  return {
-    type,
-    errors: zodError.issues.map((e) => ({
-      path: e.path.map(String),
-      message: e.message,
-    })),
-  };
+function defaultValidationErrorHandler(error: ValidationError, _req: Request, res: Response) {
+  sendProblem(res, error.problem);
 }
 
 /**
- * Create validation middleware for a route
+ * Create validation middleware for a route. Checks query, then params, then body.
  */
 function createValidationMiddleware(
   route: RouteDefinition,
@@ -60,41 +58,33 @@ function createValidationMiddleware(
   const { validateBody = true, validateQuery = true, validateParams = true } = options;
   const onError = options.onValidationError ?? defaultValidationErrorHandler;
 
-  return (req, res, next) => {
+  const checks: Array<[RequestLocation, ZodType | undefined, (req: Request) => unknown]> = [
+    ['query', validateQuery ? route.query : undefined, (req) => req.query],
+    ['params', validateParams ? route.params : undefined, (req) => req.params],
+    [
+      'body',
+      validateBody && ['post', 'put', 'patch'].includes(route.method) ? route.body : undefined,
+      (req) => req.body,
+    ],
+  ];
+
+  return async (req, res, next) => {
     try {
       // Store validated data on res.locals so the handler can read it.
       // Express 5 makes req.query and req.params read-only getters,
       // so we cannot reassign them.
       const validated: Record<string, unknown> = {};
 
-      // Validate body
-      if (validateBody && route.body && ['post', 'put', 'patch'].includes(route.method)) {
-        const result = route.body.safeParse(req.body);
+      for (const [location, schema, read] of checks) {
+        if (!schema) continue;
+        const result = await schema.safeParseAsync(read(req));
         if (!result.success) {
-          return onError(zodToValidationError(result.error, 'body'), req, res, next);
+          return onError(toValidationError(location, result.error), req, res, next);
         }
-        req.body = result.data;
-        validated.body = result.data;
+        validated[location] = result.data;
       }
 
-      // Validate query
-      if (validateQuery && route.query) {
-        const result = route.query.safeParse(req.query);
-        if (!result.success) {
-          return onError(zodToValidationError(result.error, 'query'), req, res, next);
-        }
-        validated.query = result.data;
-      }
-
-      // Validate params
-      if (validateParams && route.params) {
-        const result = route.params.safeParse(req.params);
-        if (!result.success) {
-          return onError(zodToValidationError(result.error, 'params'), req, res, next);
-        }
-        validated.params = result.data;
-      }
-
+      if ('body' in validated) req.body = validated.body;
       res.locals._validated = validated;
       next();
     } catch (error) {
@@ -141,45 +131,75 @@ type UserHandler = (ctx: {
 /**
  * Create an Express middleware that enforces auth for a route.
  */
-/**
- * Extract credentials from an Express request based on auth type.
- */
-function extractCredentials(authType: AuthType, req: Request): Record<string, unknown> | null {
-  const authHeader = req.headers.authorization;
-  const extractors: Record<string, () => Record<string, unknown> | null> = {
-    bearer: () => {
-      const token = extractBearerToken(authHeader);
-      return token ? { token } : null;
-    },
-    apiKey: () => {
-      const key = extractApiKey(req.headers['x-api-key'] as string | undefined);
-      return key ? { key } : null;
-    },
-    basic: () => extractBasicCredentials(authHeader),
-  };
-  return extractors[authType]?.() ?? null;
-}
-
 function createAuthMiddleware(authType: AuthType, authConfig: AuthConfig): RequestHandler | null {
-  if (authType === 'none') return null;
-  const verifyFn = authConfig[authType];
-  if (!verifyFn) return null;
+  const authenticate = createAuthenticator(authType, authConfig);
+  if (!authenticate) return null;
 
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const credentials = extractCredentials(authType, req);
-      if (!credentials) {
-        res.status(401).json({ code: 'UNAUTHORIZED', message: 'Missing credentials' });
+      const result = await authenticate((name) => req.get(name));
+      if (!result.ok) {
+        sendProblem(res, result.error.problem, result.error.headers);
         return;
       }
-      res.locals._authUser = await verifyFn(credentials as never);
+      res.locals._authUser = result.user;
       next();
     } catch (error) {
-      if (authConfig.onError) {
-        await authConfig.onError(error, authType);
-      }
-      res.status(401).json({ code: 'UNAUTHORIZED', message: 'Authentication failed' });
+      next(error);
     }
+  };
+}
+
+const clientErrorDetails: Record<string, string> = {
+  'entity.parse.failed': 'Malformed JSON in request body',
+  'entity.too.large': 'Request body is too large',
+};
+
+/**
+ * A 4xx error whose message is safe to show (e.g. from express.json()/body-parser)
+ */
+function asExposedClientError(
+  error: unknown,
+): { status: number; message: string; type?: string } | null {
+  if (typeof error !== 'object' || error === null) return null;
+  const { expose, status, message, type } = error as Record<string, unknown>;
+  if (expose !== true || typeof status !== 'number' || status < 400 || status > 499) return null;
+  return {
+    status,
+    message: typeof message === 'string' ? message : '',
+    type: typeof type === 'string' ? type : undefined,
+  };
+}
+
+/**
+ * Express error middleware that sends RFC 9457 Problem Details for `HttpError`s and for
+ * client errors raised by body parsers (malformed JSON → 400, body too large → 413).
+ * Other errors are passed on with `next(error)`.
+ *
+ * The router already handles `HttpError`s thrown by your handlers. Add this to your app,
+ * after the routes, so errors from app-level middleware such as `express.json()` become
+ * problems too.
+ *
+ * @example
+ * ```ts
+ * app.use(express.json());
+ * app.use('/api', createExpressRouter(api, handlers));
+ * app.use(problemErrorHandler());
+ * ```
+ */
+export function problemErrorHandler(): ErrorRequestHandler {
+  return (error, _req, res, next) => {
+    if (res.headersSent) return next(error);
+    if (isHttpError(error)) return sendProblem(res, error.problem, error.headers);
+
+    const clientError = asExposedClientError(error);
+    if (clientError) {
+      const detail =
+        (clientError.type && clientErrorDetails[clientError.type]) ?? clientError.message;
+      return sendProblem(res, createProblem(clientError.status, { detail: detail || undefined }));
+    }
+
+    next(error);
   };
 }
 
@@ -388,6 +408,9 @@ export function createExpressRouter<C extends ApiContract>(
       res.json(spec);
     });
   }
+
+  // Turn HttpErrors thrown by handlers or middleware into Problem Details responses
+  router.use(problemErrorHandler());
 
   return router;
 }
