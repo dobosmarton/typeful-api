@@ -13,6 +13,7 @@ import type {
   InferQuery,
   RouteDefinition,
   RouteGroup,
+  ValidationError,
 } from '@typeful-api/core';
 
 /**
@@ -84,7 +85,8 @@ export type InferFastifyHandlers<C extends ApiContract> = {
  */
 export type CreateFastifyPluginOptions = {
   /**
-   * Prefix for all routes (e.g., '/api')
+   * Prefix for all routes and the docs endpoint (e.g., '/api').
+   * You can also pass `{ prefix }` to `fastify.register()` instead.
    */
   prefix?: string;
 
@@ -99,9 +101,23 @@ export type CreateFastifyPluginOptions = {
   auth?: AuthConfig;
 
   /**
-   * Custom error handler for validation errors
+   * Replace the default response for requests that fail validation, which is a 422
+   * `application/problem+json` body (`error.problem`). Send a reply to replace it; if you
+   * don't, the default response is sent.
    */
-  errorHandler?: (error: Error, request: FastifyRequest, reply: FastifyReply) => void;
+  onValidationError?: (
+    error: ValidationError,
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => void | Promise<void>;
+
+  /**
+   * Error handler for errors typeful-api does not handle itself. `HttpError`s and Fastify's
+   * body parsing errors (malformed JSON, unsupported media type, body too large) are sent as
+   * Problem Details before this is called. Without it, errors go to the parent context's
+   * error handler.
+   */
+  errorHandler?: (error: Error, request: FastifyRequest, reply: FastifyReply) => unknown;
 
   /**
    * Whether to register an OpenAPI documentation endpoint

@@ -202,6 +202,17 @@ describe('createFastifyPlugin', () => {
       });
 
       expect(res.statusCode).toBe(422);
+      expect(res.headers['content-type']).toMatch(/^application\/problem\+json/);
+      const problem = res.json();
+      expect(problem).toMatchObject({
+        type: 'about:blank',
+        title: 'Unprocessable Content',
+        status: 422,
+        code: 'VALIDATION_FAILED',
+        detail: 'Invalid request body',
+      });
+      expect(problem.errors.map((e: { path: string[] }) => e.path)).toEqual([['name'], ['price']]);
+      expect(problem.errors[0].location).toBe('body');
     });
 
     it('handles PUT requests with body', async () => {
@@ -293,6 +304,10 @@ describe('createFastifyPlugin', () => {
       });
 
       expect(res.statusCode).toBe(422);
+      expect(res.json()).toMatchObject({
+        detail: 'Invalid query parameters',
+        errors: [{ location: 'query', path: ['limit'] }],
+      });
     });
   });
 
@@ -328,6 +343,10 @@ describe('createFastifyPlugin', () => {
       });
 
       expect(res.statusCode).toBe(422);
+      expect(res.json()).toMatchObject({
+        detail: 'Invalid path parameters',
+        errors: [{ location: 'params', path: ['id'] }],
+      });
     });
   });
 

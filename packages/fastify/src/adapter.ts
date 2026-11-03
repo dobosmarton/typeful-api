@@ -1,4 +1,5 @@
 import type {
+  FastifyError,
   FastifyInstance,
   FastifyPluginCallback,
   FastifyRequest,
@@ -6,60 +7,50 @@ import type {
   RouteShorthandOptions,
   preHandlerAsyncHookHandler,
 } from 'fastify';
-import type { ZodType, ZodError } from 'zod';
+import type { ZodType } from 'zod';
 import type {
   ApiContract,
   AuthConfig,
   AuthType,
   HttpMethod,
+  ProblemDetails,
+  RequestLocation,
   RouteDefinition,
   RouteGroup,
 } from '@typeful-api/core';
 import {
+  PROBLEM_CONTENT_TYPE,
+  createAuthenticator,
+  createProblem,
   generateSpec,
+  isHttpError,
   isWithHeaders,
-  extractBearerToken,
-  extractApiKey,
-  extractBasicCredentials,
+  toValidationError,
 } from '@typeful-api/core';
 import type { CreateFastifyPluginOptions, InferFastifyHandlers } from './types';
 import { mergeLocals } from './helpers';
 
 /**
- * Convert Zod error to Fastify-compatible error format
+ * Send an RFC 9457 Problem Details response
  */
-function formatZodError(error: ZodError): object {
-  return {
-    statusCode: 422,
-    error: 'Validation Error',
-    message: 'Request validation failed',
-    details: error.issues.map((e) => ({
-      path: e.path.join('.'),
-      message: e.message,
-    })),
-  };
+function sendProblem(
+  reply: FastifyReply,
+  problem: ProblemDetails,
+  headers: Readonly<Record<string, string>> = {},
+): FastifyReply {
+  return reply
+    .code(problem.status)
+    .headers(headers)
+    .type(PROBLEM_CONTENT_TYPE)
+    .send(JSON.stringify(problem));
 }
 
 /**
- * Extract credentials from a Fastify request based on auth type.
+ * Read a request header as a single string
  */
-function extractCredentials(
-  authType: AuthType,
-  request: FastifyRequest,
-): Record<string, unknown> | null {
-  const authHeader = request.headers.authorization;
-  const extractors: Record<string, () => Record<string, unknown> | null> = {
-    bearer: () => {
-      const token = extractBearerToken(authHeader);
-      return token ? { token } : null;
-    },
-    apiKey: () => {
-      const key = extractApiKey(request.headers['x-api-key'] as string | undefined);
-      return key ? { key } : null;
-    },
-    basic: () => extractBasicCredentials(authHeader),
-  };
-  return extractors[authType]?.() ?? null;
+function readHeader(request: FastifyRequest, name: string): string | undefined {
+  const value = request.headers[name];
+  return Array.isArray(value) ? value[0] : value;
 }
 
 /**
@@ -69,55 +60,76 @@ function createAuthPreHandler(
   authType: AuthType,
   authConfig: AuthConfig,
 ): preHandlerAsyncHookHandler | null {
-  if (authType === 'none') return null;
-  const verifyFn = authConfig[authType];
-  if (!verifyFn) return null;
+  const authenticate = createAuthenticator(authType, authConfig);
+  if (!authenticate) return null;
 
   return async (request, reply) => {
-    try {
-      const credentials = extractCredentials(authType, request);
-      if (!credentials) {
-        reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Missing credentials' });
-        return;
+    const result = await authenticate((name) => readHeader(request, name));
+    if (!result.ok) return sendProblem(reply, result.error.problem, result.error.headers);
+    mergeLocals(request, { authUser: result.user });
+  };
+}
+
+/**
+ * Create a preHandler hook that validates query, params and body (in that order). Invalid
+ * input never reaches the handler: if `onValidationError` does not send a response, the
+ * default 422 problem is sent.
+ */
+function createValidationPreHandler(
+  route: RouteDefinition,
+  options: CreateFastifyPluginOptions,
+): preHandlerAsyncHookHandler {
+  const checks: Array<[RequestLocation, ZodType | undefined]> = [
+    ['query', route.query],
+    ['params', route.params],
+    ['body', ['post', 'put', 'patch'].includes(route.method) ? route.body : undefined],
+  ];
+
+  return async (request, reply) => {
+    for (const [location, schema] of checks) {
+      if (!schema) continue;
+      const result = await schema.safeParseAsync(request[location]);
+      if (!result.success) {
+        const error = toValidationError(location, result.error);
+        await options.onValidationError?.(error, request, reply);
+        return reply.sent ? reply : sendProblem(reply, error.problem);
       }
-      mergeLocals(request, { authUser: await verifyFn(credentials as never) });
-    } catch (error) {
-      if (authConfig.onError) {
-        await authConfig.onError(error, authType);
-      }
-      reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Authentication failed' });
+      request[location] = result.data;
     }
   };
 }
 
-function createValidationPreHandler(route: RouteDefinition): preHandlerAsyncHookHandler {
-  return async (request, reply) => {
-    // Validate body
-    if (route.body && ['post', 'put', 'patch'].includes(route.method)) {
-      const result = (route.body as ZodType).safeParse(request.body);
-      if (!result.success) {
-        return reply.status(422).send(formatZodError(result.error));
-      }
-      request.body = result.data;
+const clientErrorDetails: Record<string, string> = {
+  FST_ERR_CTP_INVALID_JSON_BODY: 'Malformed JSON in request body',
+};
+
+/**
+ * Plugin error handler: `HttpError`s and Fastify's own 4xx body parsing errors (malformed
+ * JSON, unsupported media type, body too large) become Problem Details. Anything else goes to
+ * the `errorHandler` option, or is rethrown to the parent context's error handler.
+ */
+function createProblemErrorHandler(options: CreateFastifyPluginOptions) {
+  return async function (
+    this: FastifyInstance,
+    error: FastifyError,
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    if (isHttpError(error)) return sendProblem(reply, error.problem, error.headers);
+
+    const { code, statusCode } = error;
+    if (
+      typeof code === 'string' &&
+      code.startsWith('FST_ERR_CTP_') &&
+      statusCode &&
+      statusCode < 500
+    ) {
+      const detail = clientErrorDetails[code] ?? error.message;
+      return sendProblem(reply, createProblem(statusCode, { detail }));
     }
 
-    // Validate query
-    if (route.query) {
-      const result = (route.query as ZodType).safeParse(request.query);
-      if (!result.success) {
-        return reply.status(422).send(formatZodError(result.error));
-      }
-      (request as FastifyRequest).query = result.data;
-    }
-
-    // Validate params
-    if (route.params) {
-      const result = (route.params as ZodType).safeParse(request.params);
-      if (!result.success) {
-        return reply.status(422).send(formatZodError(result.error));
-      }
-      request.params = result.data;
-    }
+    if (options.errorHandler) return options.errorHandler.call(this, error, request, reply);
+    throw error;
   };
 }
 
@@ -194,7 +206,7 @@ const registerGroupRoutes = <H extends FastifyGroupHandlers>(
           ...(route.auth && route.auth !== 'none' && options.auth
             ? [createAuthPreHandler(route.auth, options.auth)].filter(Boolean)
             : []),
-          createValidationPreHandler(route),
+          createValidationPreHandler(route, options),
         ] as preHandlerAsyncHookHandler[],
       };
 
@@ -288,6 +300,7 @@ export function createFastifyPlugin<C extends ApiContract>(
   options: CreateFastifyPluginOptions = {},
 ): FastifyPluginCallback {
   const { registerDocs = true, docsPath = '/api-doc', docsConfig } = options;
+  const prefix = (options.prefix ?? '').replace(/\/+$/, '');
 
   const plugin: FastifyPluginCallback = async (fastify, _opts) => {
     // Apply global preHandler
@@ -302,10 +315,9 @@ export function createFastifyPlugin<C extends ApiContract>(
       });
     }
 
-    // Apply custom error handler
-    if (options.errorHandler) {
-      fastify.setErrorHandler(options.errorHandler);
-    }
+    // Problem Details for HttpError and body parsing errors; everything else goes to the
+    // errorHandler option or the parent context
+    fastify.setErrorHandler(createProblemErrorHandler(options));
 
     // Mount each version as a sub-plugin with prefix
     // Single boundary cast: bridges InferFastifyHandlers<C> mapped type to runtime record
@@ -362,7 +374,7 @@ export function createFastifyPlugin<C extends ApiContract>(
             );
           }
         },
-        { prefix: `/${version}` },
+        { prefix: `${prefix}/${version}` },
       );
     }
 
@@ -377,7 +389,7 @@ export function createFastifyPlugin<C extends ApiContract>(
         ...(docsConfig?.openapiVersion && { openapiVersion: docsConfig.openapiVersion }),
       });
 
-      fastify.get(docsPath, async (_request: FastifyRequest, reply: FastifyReply) => {
+      fastify.get(`${prefix}${docsPath}`, async (_request: FastifyRequest, reply: FastifyReply) => {
         return reply.send(spec);
       });
     }
