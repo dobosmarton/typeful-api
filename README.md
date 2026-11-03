@@ -11,6 +11,7 @@ Define your API contract once with Zod schemas, get full type inference for hand
 ## Table of Contents
 
 - [Features](#features)
+- [Use Cases](#use-cases)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Framework Adapters](#framework-adapters)
@@ -41,7 +42,20 @@ Define your API contract once with Zod schemas, get full type inference for hand
 - 📦 **First-class API Versioning**: v1, v2, etc. built into the design
 - 📄 **Pagination & Filtering**: Built-in schema factories for offset, cursor, and sort patterns
 - ⚠️ **Problem Details Errors**: RFC 9457 error responses from every adapter, typed with `.withErrors()`
-- 🔧 **CLI Tools**: Generate specs, client types, and scaffold new projects
+- 🔧 **CLI Tools**: Generate specs and typed clients (also from another service's `/api-doc`), and scaffold new projects
+
+## Use Cases
+
+| You are building                                      | How typeful-api fits                                                                                                              | Example                                                                                                         |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| An API service                                        | Define the contract, implement it with the Hono, Express or Fastify adapter, and serve the OpenAPI document at `/api-doc`         | [hono-node](examples/hono-node), [express-crud](examples/express-crud), [fastify-auth](examples/fastify-auth)   |
+| A frontend and an API in one repository               | Share the contract and call the API with [`createClient`](#typed-client): no code generation                                      | [fullstack-monorepo](examples/fullstack-monorepo)                                                               |
+| Services in separate repositories                     | Generate a typed client from the other service's `/api-doc` with [`typeful-api generate-client`](#services-in-other-repositories) | [microservices](examples/microservices)                                                                         |
+| TypeScript services that share a private npm registry | Publish each service's contract as a package and use `createClient`, including response validation                                | [Guide](docs/sharing-contracts.md#publish-the-contract-as-a-package)                                            |
+| A client for someone else's OpenAPI API               | `typeful-api generate-client` works with any OpenAPI 3 document; operations are keyed by their `operationId`                      |                                                                                                                 |
+| An API on the edge or another runtime                 | The Hono adapter runs on Cloudflare Workers, Bun, Deno and Node.js                                                                | [hono-cloudflare](examples/hono-cloudflare), [hono-bun](examples/hono-bun), [hono-docker](examples/hono-docker) |
+
+Whatever the setup, errors look the same everywhere: every adapter answers with [RFC 9457 Problem Details](#error-handling), and the typed clients narrow them by status.
 
 ## Prerequisites
 
@@ -479,7 +493,7 @@ Good to know:
 - Response types are the schemas' output types, but without `validateResponse` the body is the JSON on the wire. A `z.date()` field arrives as a string.
 - Use `z.coerce.number<number>()` for numeric query fields (as `paginationQuery()` does), so the client accepts numbers instead of `unknown`.
 - Every route with `.withAuth()` includes 401 in its response union, even if the server does not enforce auth.
-- [`examples/fullstack-monorepo`](https://github.com/dobosmarton/typeful-api/tree/main/examples/fullstack-monorepo) shares the contract through a workspace package and uses the client with TanStack Query.
+- [`examples/fullstack-monorepo`](https://github.com/dobosmarton/typeful-api/tree/main/examples/fullstack-monorepo) shares the contract through a workspace package and uses the client with TanStack Query, and [`examples/express-crud`](https://github.com/dobosmarton/typeful-api/tree/main/examples/express-crud) has a client script (`pnpm demo:client`).
 
 ### Services in Other Repositories
 
@@ -497,6 +511,8 @@ const res = await orders.v1.orders.get({ params: { id } }); // same calls and st
 ```
 
 The generated client mirrors the service's contract and types every documented response, including the Problem Details errors. It works with OpenAPI specs from other tools too. [Calling services from other repositories](docs/sharing-contracts.md) covers both this approach and publishing the contract as a package.
+
+The [microservices example](https://github.com/dobosmarton/typeful-api/tree/main/examples/microservices) runs two services that share only the orders service's `/api-doc`, with a CI check that fails when the committed client falls behind the API.
 
 ## Route Builder API
 
@@ -942,7 +958,7 @@ Compared as of November 2026: ts-rest 3.52, oRPC 1.16, @hono/zod-openapi 1.6, tR
 
 ## Resources
 
-- [Examples](https://github.com/dobosmarton/typeful-api/tree/main/examples) - Full working examples for each framework
+- [Examples](https://github.com/dobosmarton/typeful-api/tree/main/examples) - Runnable projects for each framework, a full-stack monorepo and a microservices setup
 - [Calling services from other repositories](docs/sharing-contracts.md) - Generated clients from `/api-doc`, or published contract packages
 - [Migrating from ts-rest](docs/migrating-from-ts-rest.md) - Side-by-side mapping of contracts, servers and clients
 - [GitHub Issues](https://github.com/dobosmarton/typeful-api/issues) - Report bugs or request features

@@ -20,7 +20,15 @@ checkout-service ──── HTTP ────▶ orders-service
 
 ## Run it
 
-From the repository root, run `pnpm install` and `pnpm build` (the examples use the local packages). Then, in this folder:
+From the repository root, install and build the local packages the services use:
+
+```bash
+pnpm install
+pnpm --filter './packages/*' build
+pnpm install   # links the typeful-api CLI now that it is built
+```
+
+Then, in this folder:
 
 ```bash
 pnpm dev          # orders on :3001, checkout on :3002

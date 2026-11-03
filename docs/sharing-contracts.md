@@ -12,7 +12,7 @@ In a monorepo, a frontend or another service imports the contract and calls `cre
 
 ## Generate a client from the service's /api-doc
 
-Every typeful-api adapter serves an OpenAPI document (at `/api-doc` by default). The CLI turns it into a typed client module:
+Every typeful-api adapter serves an OpenAPI document (at `/api-doc` by default). The CLI turns it into a typed client module. The [microservices example](../examples/microservices) shows the whole setup with two running services.
 
 ```bash
 pnpm add @typeful-api/core
@@ -65,6 +65,8 @@ export default defineConfig({
 ```
 
 ### Keeping clients up to date
+
+The microservices example includes a [check script](../examples/microservices/scripts/check-clients.mjs) that does this in CI.
 
 The generated files are plain TypeScript, so commit them and regenerate when a service changes its API. A scheduled CI job that runs `typeful-api generate-client` and opens a pull request when the files change catches breaking changes before they reach production: the pull request fails type-checking wherever your code no longer matches the API.
 
