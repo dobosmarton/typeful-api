@@ -5,6 +5,9 @@
  * This example includes:
  * - Type-safe route handlers
  * - Request validation via preHandlers
+ * - Bearer auth enforced from the contract (`.withAuth('bearer')`): 401 without a valid
+ *   token, 403 for tokens that may not write
+ * - RFC 9457 Problem Details for every error
  * - OpenAPI documentation endpoint
  * - In-memory database simulation
  *
@@ -15,6 +18,17 @@ import Fastify from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { HttpError, createFastifyPlugin } from '@typeful-api/fastify';
 import { api, type Product } from './api';
+
+// ============================================
+// Demo Users (a real service would verify a JWT or look up a session)
+// ============================================
+
+type User = { id: string; role: 'admin' | 'viewer' };
+
+const usersByToken: Record<string, User> = {
+  'admin-token': { id: 'user-1', role: 'admin' },
+  'viewer-token': { id: 'user-2', role: 'viewer' },
+};
 
 // ============================================
 // In-Memory Database (for demo purposes)
@@ -115,6 +129,17 @@ const plugin = createFastifyPlugin(
     },
   },
   {
+    // Runs before every route declared with .withAuth('bearer')
+    auth: {
+      bearer: ({ token }) => {
+        const user = usersByToken[token];
+        // Any other error becomes a 401 problem ("Authentication failed")
+        if (!user) throw new Error('Unknown token');
+        // An HttpError is sent as it is
+        if (user.role !== 'admin') throw new HttpError(403, 'Only admins can change products');
+        return user;
+      },
+    },
     docsConfig: {
       info: {
         title: 'Fastify Auth Example API',

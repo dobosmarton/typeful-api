@@ -37,14 +37,14 @@ export const IdParamsSchema = z.object({
 
 export const PaginationQuerySchema = z.object({
   page: z.coerce
-    .number()
+    .number<number>()
     .int()
     .positive()
     .optional()
     .default(1)
     .describe('Page number for pagination (1-indexed)'),
   limit: z.coerce
-    .number()
+    .number<number>()
     .int()
     .positive()
     .max(100)

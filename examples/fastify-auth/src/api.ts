@@ -37,14 +37,14 @@ export const IdParamsSchema = z.object({
 
 export const PaginationQuerySchema = z.object({
   page: z.coerce
-    .number()
+    .number<number>()
     .int()
     .positive()
     .optional()
     .default(1)
     .describe('Page number for pagination (1-indexed)'),
   limit: z.coerce
-    .number()
+    .number<number>()
     .int()
     .positive()
     .max(100)
@@ -100,6 +100,7 @@ export const api = defineApi({
             .body(CreateProductSchema)
             .withAuth('bearer')
             .returns(ProductSchema)
+            .withErrors(403)
             .withSummary('Create a new product'),
 
           update: route
@@ -108,7 +109,7 @@ export const api = defineApi({
             .body(UpdateProductSchema)
             .withAuth('bearer')
             .returns(ProductSchema)
-            .withErrors(404)
+            .withErrors(404, 403)
             .withSummary('Update a product'),
 
           delete: route
@@ -118,7 +119,7 @@ export const api = defineApi({
             .returns(
               z.object({ success: z.boolean().describe('Whether the deletion was successful') }),
             )
-            .withErrors(404)
+            .withErrors(404, 403)
             .withSummary('Delete a product'),
         },
       },

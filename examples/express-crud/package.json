@@ -8,6 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsup src/index.ts --format esm --dts",
+    "demo:client": "tsx src/client-demo.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
