@@ -66,23 +66,43 @@ typeful-api generate-spec \
 | `--server <url>`         | Server URL to include in the spec                       |
 | `--watch`                | Watch for changes and regenerate                        |
 
-### Generate Client Types
+### Generate a Client
 
-Generate TypeScript client types from an OpenAPI spec:
+Generate a typed client for another service from its OpenAPI spec. Point `--spec` at the service's `/api-doc` (or a spec file) and write a `.ts` file:
 
 ```bash
 typeful-api generate-client \
-  --spec ./openapi.json \
-  --out ./src/client.d.ts
+  --spec https://orders.internal/api/api-doc \
+  --out ./src/clients/orders.ts \
+  --header "Authorization: Bearer $DOCS_TOKEN"
+```
+
+The module exports `createApiClient`, which works like the typed client from `@typeful-api/core/client`: `{ params, query, body }` in, `{ status, body, headers }` out, narrowed by status:
+
+```typescript
+import { createApiClient } from './clients/orders';
+
+const orders = createApiClient({ baseUrl: process.env.ORDERS_URL! });
+const res = await orders.v1.orders.get({ params: { id: '42' } });
+if (res.status === 404) console.log(res.body.detail);
+```
+
+The generated code imports `@typeful-api/core`, so install it in the calling service. Specs from typeful-api services rebuild the contract's `version → group → route` tree. Other OpenAPI 3 specs work too: each operation is keyed by its `operationId`.
+
+To write types only, as in earlier versions, use a `.d.ts` output and pair it with a client such as `openapi-fetch`:
+
+```bash
+typeful-api generate-client --spec ./openapi.json --out ./src/client.d.ts
 ```
 
 **Options:**
 
-| Flag            | Description                         |
-| --------------- | ----------------------------------- |
-| `--spec <path>` | Path to the OpenAPI spec (JSON)     |
-| `--out <path>`  | Output path for the generated types |
-| `--watch`       | Watch for changes and regenerate    |
+| Flag                 | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `--spec <path\|url>` | OpenAPI spec file or URL (JSON)                             |
+| `--out <path>`       | `.ts` for a typed client module, `.d.ts` for types only     |
+| `--header <header>`  | `"Name: value"` header for fetching a spec URL (repeatable) |
+| `--watch`            | Watch a local spec file and regenerate                      |
 
 ## Config File
 
@@ -103,6 +123,21 @@ export default defineConfig({
     spec: './openapi.json',
     out: './src/client.d.ts',
   },
+});
+```
+
+To generate clients for several services, use a list:
+
+```typescript
+export default defineConfig({
+  client: [
+    {
+      spec: 'https://orders.internal/api/api-doc',
+      out: './src/clients/orders.ts',
+      headers: { Authorization: `Bearer ${process.env.DOCS_TOKEN}` },
+    },
+    { spec: 'https://payments.internal/api/api-doc', out: './src/clients/payments.ts' },
+  ],
 });
 ```
 
@@ -131,16 +166,17 @@ await generateSpec({
   version: '1.0.0',
 });
 
-// Generate TypeScript client types
+// Generate a typed client module from another service's spec
 await generateClient({
-  spec: './openapi.json',
-  out: './src/client.d.ts',
+  spec: 'https://orders.internal/api/api-doc',
+  out: './src/clients/orders.ts',
+  headers: { Authorization: `Bearer ${process.env.DOCS_TOKEN}` },
 });
 ```
 
 ## Watch Mode
 
-Use `--watch` during development to regenerate the spec automatically when your contract changes:
+Use `--watch` during development to regenerate the spec automatically when your contract changes (`generate-client --watch` works the same way for a local spec file):
 
 ```bash
 typeful-api generate-spec \

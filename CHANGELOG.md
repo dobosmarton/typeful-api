@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **@typeful-api/core**: Typed client at `@typeful-api/core/client`. `createClient(contract, { baseUrl })` mirrors the contract, and each route returns `{ status, body, headers }` narrowed by status, including the 401/422 problems the adapters send. Also `unwrap()`, `ResponseError`, `UnexpectedResponseError`, `ResponseValidationError` and an optional `validateResponse`
+- **@typeful-api/cli**: `generate-client` creates typed clients for services in other repositories. `--spec` accepts a URL such as another service's `/api-doc` (with `--header` for protected documents), and a `.ts` output is a client module (`createApiClient()`) with the same calls and status narrowing as the contract client. The config file accepts a list of clients, one per service
+- **@typeful-api/core**: `createSpecClient()`, the runtime used by generated client modules
+- **@typeful-api/core**, **@typeful-api/hono**: Every operation in generated OpenAPI documents carries an `x-typeful-route` extension with its position in the contract
 - **@typeful-api/core**: `HttpError`: throw it from handlers or middleware and every adapter sends an RFC 9457 Problem Details response
 - **@typeful-api/core**: `problemSchema(status, code, extension?)` for custom problem types, plus `createProblem()`, `problemResponse()` and `PROBLEM_CONTENT_TYPE`
 - **@typeful-api/core**: Routes keep their literal method, path, auth type and declared status codes at the type level; new `InferBodyInput`, `InferQueryInput`, `InferParamsInput` and `HandlerResult` types
@@ -18,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **@typeful-api/express**: `problemErrorHandler()` for app-level errors such as malformed JSON and oversized bodies
 - **@typeful-api/hono**, **@typeful-api/express**, **@typeful-api/fastify**: Auth verifiers may throw an `HttpError` (for example a 403) to send it as is, and 401 responses carry a `WWW-Authenticate` challenge
 - **@typeful-api/hono**, **@typeful-api/express**, **@typeful-api/fastify**: `HttpError` is re-exported from each adapter
-- Docs: [Migrating from ts-rest](docs/migrating-from-ts-rest.md), and an oRPC column in the README comparison
+- Docs: [Calling services from other repositories](docs/sharing-contracts.md), [Migrating from ts-rest](docs/migrating-from-ts-rest.md), and an oRPC column in the README comparison
 
 ### Changed
 
@@ -30,10 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **@typeful-api/express**, **@typeful-api/fastify**: Request validation runs on the query, then params, then body (the same order as Hono)
 - **@typeful-api/core**: `paginationQuery()` and `cursorQuery()` use `z.coerce.number<number>()`, so their input types are numbers instead of `unknown`
 - **@typeful-api/core**: The package is marked side-effect free, and the adapters and CLI depend on a `^` range of it instead of an exact version
+- **@typeful-api/cli**: `generate-client` with a `.ts` output now writes a client module; use a `.d.ts` output (the default) for types only
+- **@typeful-api/core**: `unwrap()` returns the body of any 2xx response
 - OpenAPI error responses use the `application/problem+json` media type and RFC 9110 status texts (`422 Unprocessable Content`)
 
 ### Fixed
 
+- **@typeful-api/core**: Generated OpenAPI documents describe request parameters and bodies as clients send them: fields with defaults (such as `paginationQuery()`'s `page` and `limit`) are no longer marked required
+- **@typeful-api/hono**: `/api-doc` uses OpenAPI path templates (`/items/{id}`) instead of `/items/:id`
 - **@typeful-api/core**: Contracts exported from packages built with declarations no longer fail with "cannot be named" errors (`FinalRoute` and the route state types are exported)
 - **@typeful-api/core**: Handlers can return `withHeaders()` values without a type error
 - **@typeful-api/express**, **@typeful-api/fastify**: Async refinements in request schemas work (they used to end in a 500)

@@ -33,7 +33,7 @@ Define your API contract once with Zod schemas, get full type inference for hand
 - 🔒 **Full Type Safety**: From Zod schemas to handler implementations
 - 📝 **OpenAPI First**: Auto-generate valid OpenAPI 3.0 / 3.1 specs
 - 🔌 **Framework Agnostic**: Hono, Express, and Fastify adapters
-- 🔗 **Typed Client**: Call your API from the frontend with types inferred from the same contract, no codegen
+- 🔗 **Typed Client**: Call your API with types inferred from the contract, or generated from a service's `/api-doc` when it lives in another repository
 - 🎯 **Minimal Boilerplate**: Define a CRUD API in ~30 lines
 - 🔐 **Auth Enforcement**: Contract-driven authentication with pluggable verify functions
 - 📋 **Response Headers**: Contract-defined response headers with typed handler support
@@ -481,7 +481,22 @@ Good to know:
 - Every route with `.withAuth()` includes 401 in its response union, even if the server does not enforce auth.
 - [`examples/fullstack-monorepo`](https://github.com/dobosmarton/typeful-api/tree/main/examples/fullstack-monorepo) shares the contract through a workspace package and uses the client with TanStack Query.
 
-For clients outside your TypeScript codebase, generate an OpenAPI spec and use the [CLI](#cli-commands) or any OpenAPI tooling.
+### Services in Other Repositories
+
+A service in another repository can't import the contract. Generate its client from the `/api-doc` the adapters serve instead:
+
+```bash
+typeful-api generate-client --spec https://orders.internal/api/api-doc --out src/clients/orders.ts
+```
+
+```typescript
+import { createApiClient } from './clients/orders';
+
+const orders = createApiClient({ baseUrl: process.env.ORDERS_URL! });
+const res = await orders.v1.orders.get({ params: { id } }); // same calls and status narrowing
+```
+
+The generated client mirrors the service's contract and types every documented response, including the Problem Details errors. It works with OpenAPI specs from other tools too. [Calling services from other repositories](docs/sharing-contracts.md) covers both this approach and publishing the contract as a package.
 
 ## Route Builder API
 
@@ -878,11 +893,11 @@ typeful-api generate-spec \
   --api-version "1.0.0" \
   --server https://api.example.com
 
-# Generate TypeScript types from the spec, for clients outside your TypeScript codebase
-# (inside it, use the typed client from @typeful-api/core/client)
+# Generate a typed client for another service from its /api-doc (.ts output),
+# or types only for use with other clients (.d.ts output)
 typeful-api generate-client \
-  --spec ./openapi.json \
-  --out ./src/client.d.ts
+  --spec https://orders.internal/api/api-doc \
+  --out ./src/clients/orders.ts
 
 # Watch mode for development
 typeful-api generate-spec --contract ./src/api.ts --watch
@@ -894,18 +909,18 @@ The `init` command generates a ready-to-run project with `package.json`, `tsconf
 
 Compared as of November 2026: ts-rest 3.52, oRPC 1.16, @hono/zod-openapi 1.6, tRPC 11.23, Elysia 1.4.
 
-|                             | **typeful-api**              | ts-rest                           | oRPC                                                                          | @hono/zod-openapi    | tRPC                                                                    | Elysia                                     |
-| --------------------------- | ---------------------------- | --------------------------------- | ----------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
-| **Maintenance**             | ✅ Active                    | ❌ Archived (Oct 2026)            | ✅ Active (2.0 in beta)                                                       | ✅ Active            | ✅ Active                                                               | ✅ Active (2.0 in RC)                      |
-| **Approach**                | Contract-first               | Contract-first                    | Contract-first or code-first                                                  | Route-first          | Server-first RPC                                                        | Server-first                               |
-| **Validation**              | Zod                          | Standard Schema                   | Standard Schema (Zod, Valibot, ArkType)                                       | Zod                  | Any (Zod common)                                                        | TypeBox / Standard Schema                  |
-| **OpenAPI generation**      | ✅ Portable                  | ✅ Portable                       | ✅ Via `@orpc/openapi`                                                        | ✅ Portable          | ⚠️ Alpha or third-party                                                 | ✅ Via plugin                              |
-| **Framework support**       | Hono, Express, Fastify       | Express, Fastify, Next.js, NestJS | Node.js, Fetch, Hono, Express, Fastify, Next.js, Workers, Lambda and ~15 more | Hono only            | Node.js, Express, Fastify, Next.js, Lambda, Fetch (Workers, Deno, edge) | Bun, Node.js, Deno, Workers (experimental) |
-| **API versioning**          | ✅ First-class               | ❌ Manual                         | ❌ Manual (route prefixes)                                                    | ❌ Manual            | ❌ Manual                                                               | ❌ Manual                                  |
-| **Hierarchical middleware** | ✅ Native                    | ⚠️ Global + per-route             | ✅ Router-level `.use()`                                                      | ✅ Via Hono          | ✅ Chained procedure builders                                           | ✅ Guard system                            |
-| **Handler decoupling**      | ✅ Typed separate files      | ✅ With caveats                   | ✅ `implement(contract)`                                                      | ✅ Routes + handlers | ✅ Standard                                                             | ⚠️ Tricky (chaining)                       |
-| **Built-in client**         | ✅ Type-inferred + CLI types | ✅ Fetch-based                    | ✅ Type-inferred                                                              | ✅ Hono RPC (`hc`)   | ✅ Type-inferred                                                        | ✅ Eden Treaty                             |
-| **REST / OpenAPI native**   | ✅                           | ✅                                | ⚠️ Via `OpenAPIHandler` (RPC by default)                                      | ✅                   | ❌ Custom RPC                                                           | ✅                                         |
+|                             | **typeful-api**                         | ts-rest                           | oRPC                                                                          | @hono/zod-openapi    | tRPC                                                                    | Elysia                                     |
+| --------------------------- | --------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| **Maintenance**             | ✅ Active                               | ❌ Archived (Oct 2026)            | ✅ Active (2.0 in beta)                                                       | ✅ Active            | ✅ Active                                                               | ✅ Active (2.0 in RC)                      |
+| **Approach**                | Contract-first                          | Contract-first                    | Contract-first or code-first                                                  | Route-first          | Server-first RPC                                                        | Server-first                               |
+| **Validation**              | Zod                                     | Standard Schema                   | Standard Schema (Zod, Valibot, ArkType)                                       | Zod                  | Any (Zod common)                                                        | TypeBox / Standard Schema                  |
+| **OpenAPI generation**      | ✅ Portable                             | ✅ Portable                       | ✅ Via `@orpc/openapi`                                                        | ✅ Portable          | ⚠️ Alpha or third-party                                                 | ✅ Via plugin                              |
+| **Framework support**       | Hono, Express, Fastify                  | Express, Fastify, Next.js, NestJS | Node.js, Fetch, Hono, Express, Fastify, Next.js, Workers, Lambda and ~15 more | Hono only            | Node.js, Express, Fastify, Next.js, Lambda, Fetch (Workers, Deno, edge) | Bun, Node.js, Deno, Workers (experimental) |
+| **API versioning**          | ✅ First-class                          | ❌ Manual                         | ❌ Manual (route prefixes)                                                    | ❌ Manual            | ❌ Manual                                                               | ❌ Manual                                  |
+| **Hierarchical middleware** | ✅ Native                               | ⚠️ Global + per-route             | ✅ Router-level `.use()`                                                      | ✅ Via Hono          | ✅ Chained procedure builders                                           | ✅ Guard system                            |
+| **Handler decoupling**      | ✅ Typed separate files                 | ✅ With caveats                   | ✅ `implement(contract)`                                                      | ✅ Routes + handlers | ✅ Standard                                                             | ⚠️ Tricky (chaining)                       |
+| **Built-in client**         | ✅ Inferred, or generated from the spec | ✅ Fetch-based                    | ✅ Type-inferred                                                              | ✅ Hono RPC (`hc`)   | ✅ Type-inferred                                                        | ✅ Eden Treaty                             |
+| **REST / OpenAPI native**   | ✅                                      | ✅                                | ⚠️ Via `OpenAPIHandler` (RPC by default)                                      | ✅                   | ❌ Custom RPC                                                           | ✅                                         |
 
 **How they differ:**
 
@@ -928,6 +943,8 @@ Compared as of November 2026: ts-rest 3.52, oRPC 1.16, @hono/zod-openapi 1.6, tR
 ## Resources
 
 - [Examples](https://github.com/dobosmarton/typeful-api/tree/main/examples) - Full working examples for each framework
+- [Calling services from other repositories](docs/sharing-contracts.md) - Generated clients from `/api-doc`, or published contract packages
+- [Migrating from ts-rest](docs/migrating-from-ts-rest.md) - Side-by-side mapping of contracts, servers and clients
 - [GitHub Issues](https://github.com/dobosmarton/typeful-api/issues) - Report bugs or request features
 - [Changelog](https://github.com/dobosmarton/typeful-api/blob/main/CHANGELOG.md) - Version history and updates
 

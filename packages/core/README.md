@@ -102,6 +102,8 @@ const products = await client.v1.products.list().then(unwrap);
 
 Each call returns `{ status, body, headers }`, a union narrowed by `status` that covers the 200 response, the declared error responses, and the 422/401 problems the adapters send for invalid input and failed auth. Undeclared statuses reject with `UnexpectedResponseError`.
 
+Services in other repositories can't import the contract. For them, `typeful-api generate-client --spec <url>/api-doc --out client.ts` generates a module with the same calls, built on `createSpecClient`. See [Calling services from other repositories](https://github.com/dobosmarton/typeful-api/blob/main/docs/sharing-contracts.md).
+
 | Option             | Description                                                             |
 | ------------------ | ----------------------------------------------------------------------- |
 | `baseUrl`          | Where the API router is mounted                                         |
@@ -113,7 +115,8 @@ Each call returns `{ status, body, headers }`, a union narrowed by `status` that
 | Export                                         | Description                                               |
 | ---------------------------------------------- | --------------------------------------------------------- |
 | `createClient(contract, options)`              | Create the client                                         |
-| `unwrap(response)`                             | Return the 200 body or throw a `ResponseError`            |
+| `createSpecClient(routes, options)`            | Client for a module generated from an OpenAPI spec        |
+| `unwrap(response)`                             | Return the 2xx body or throw a `ResponseError`            |
 | `ResponseError`                                | Base error with `status`, `body`, `headers` and `problem` |
 | `UnexpectedResponseError`                      | A status the route does not declare, or invalid JSON      |
 | `ResponseValidationError`                      | With `validateResponse`: the body does not match          |

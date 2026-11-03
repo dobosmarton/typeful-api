@@ -239,6 +239,10 @@ Or from the command line: `typeful-api generate-spec --contract ./src/api.ts --o
 - **Zod only.** ts-rest accepts any Standard Schema library; typeful-api needs Zod 4.
 - **No response validation on the server.** Handlers are type-checked against the response schema, but the body is not parsed before it is sent.
 
+## Services in separate repositories
+
+If you published ts-rest contracts as packages so other repositories could call your services, the same works with typeful-api. Alternatively, callers can generate their client from the service's `/api-doc` and skip the package altogether. [Calling services from other repositories](sharing-contracts.md) describes both.
+
 ## Migrating incrementally
 
 You don't have to move every route at once:
