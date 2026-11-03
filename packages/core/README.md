@@ -4,7 +4,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Framework-agnostic core for building end-to-end type-safe OpenAPI-first APIs. Define your API contract once with Zod schemas, get full type inference, and generate OpenAPI specs automatically.
+Framework-agnostic core for building end-to-end type-safe OpenAPI-first APIs. Define your API contract once with Zod schemas, get full type inference for handlers and a typed client, and generate OpenAPI specs automatically.
 
 Part of the [typeful-api](https://github.com/dobosmarton/typeful-api) monorepo.
 
@@ -40,7 +40,7 @@ const getProduct = route
   .get('/:id')
   .params(z.object({ id: z.uuid() }))
   .returns(ProductSchema)
-  .withResponses({ 404: NotFoundError })
+  .withErrors(404)
   .withSummary('Get a product by ID');
 ```
 
@@ -51,7 +51,7 @@ Structure your API with versioning and route groups:
 ```typescript
 import { defineApi } from '@typeful-api/core';
 
-const api = defineApi({
+export const api = defineApi({
   v1: {
     children: {
       products: {
@@ -75,6 +75,82 @@ const spec = generateSpec(api, {
   info: { title: 'My API', version: '1.0.0' },
 });
 ```
+
+## Typed Client
+
+`@typeful-api/core/client` creates a typed HTTP client from the same contract. There is no code generation step, and the entry is browser-safe (about 6 KB minified, plus zod).
+
+```typescript
+import { createClient, unwrap } from '@typeful-api/core/client';
+import { api } from './api';
+
+const client = createClient(api, {
+  baseUrl: 'https://api.example.com',
+  headers: async () => ({ Authorization: `Bearer ${await getToken()}` }),
+});
+
+const res = await client.v1.products.get({ params: { id: '42' } });
+if (res.status === 200) {
+  console.log(res.body.name);
+} else if (res.status === 404) {
+  console.log(res.body.detail); // Problem Details body
+}
+
+// Body of a 200 response, or throws a ResponseError
+const products = await client.v1.products.list().then(unwrap);
+```
+
+Each call returns `{ status, body, headers }`, a union narrowed by `status` that covers the 200 response, the declared error responses, and the 422/401 problems the adapters send for invalid input and failed auth. Undeclared statuses reject with `UnexpectedResponseError`.
+
+| Option             | Description                                                             |
+| ------------------ | ----------------------------------------------------------------------- |
+| `baseUrl`          | Where the API router is mounted                                         |
+| `headers`          | Headers for every request, or a (sync or async) function returning them |
+| `fetch`            | Custom `fetch` implementation                                           |
+| `fetchOptions`     | `fetch` options for every request, e.g. `{ credentials: 'include' }`    |
+| `validateResponse` | Parse bodies with their Zod schema (transforms apply). Default: off     |
+
+| Export                                         | Description                                               |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| `createClient(contract, options)`              | Create the client                                         |
+| `unwrap(response)`                             | Return the 200 body or throw a `ResponseError`            |
+| `ResponseError`                                | Base error with `status`, `body`, `headers` and `problem` |
+| `UnexpectedResponseError`                      | A status the route does not declare, or invalid JSON      |
+| `ResponseValidationError`                      | With `validateResponse`: the body does not match          |
+| `InferClientArgs<F>` / `InferClientBody<F, S>` | Argument and body types of a client function              |
+
+## Errors and Problem Details
+
+Adapters send every error as an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details object (`application/problem+json`): `{ type, title, status, detail?, instance?, code, errors? }`. `code` is a stable machine-readable value, and `errors` lists field-level validation problems.
+
+Throw `HttpError` from handlers or middleware:
+
+```typescript
+import { HttpError } from '@typeful-api/core';
+
+throw new HttpError(404, 'Product not found');
+throw new HttpError(409, { code: 'DUPLICATE_NAME', detail: 'Name is already taken' });
+throw new HttpError(429, { headers: { 'Retry-After': '30' } });
+```
+
+Declare the errors a route can return. The schemas document the Problem Details bodies, with literal `status` and `code` values:
+
+```typescript
+import { problemSchema } from '@typeful-api/core';
+
+// Built-in schemas for common status codes
+route.get('/:id').returns(ProductSchema).withErrors(404, 403);
+
+// Your own problem types, optionally with extension members
+const DuplicateName = problemSchema(409, 'DUPLICATE_NAME', { existingId: z.string() });
+route
+  .post('/')
+  .body(CreateProductSchema)
+  .returns(ProductSchema)
+  .withResponses({ 409: DuplicateName });
+```
+
+Routes with input automatically document a `422` response, and routes with `.withAuth()` a `401`.
 
 ## Route Builder API
 
@@ -123,26 +199,7 @@ route
   .returns(paginated(ProductSchema));
 ```
 
-All query helpers use `z.coerce.number()` for automatic HTTP query string conversion.
-
-## Error Response Helpers
-
-Pre-built error schemas and a shorthand for common HTTP errors:
-
-```typescript
-import { notFoundError, commonErrors, errorSchema } from '@typeful-api/core';
-
-// Shorthand — adds typed 404 and 401 responses
-route.get('/:id').returns(ProductSchema).withErrors(404, 401);
-
-// Equivalent using withResponses()
-route.get('/:id').returns(ProductSchema).withResponses(commonErrors(404, 401));
-
-// Custom error schema
-const CustomError = errorSchema('CUSTOM_ERROR', 'Something went wrong');
-```
-
-Available status codes: `400` (Bad Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict), `422` (Unprocessable Entity), `429` (Rate Limit), `500` (Internal Error).
+The query helpers use `z.coerce.number<number>()`, which converts query strings to numbers on the server and lets the typed client accept numbers.
 
 ## Contract Helpers
 
@@ -167,18 +224,20 @@ Available status codes: `400` (Bad Request), `401` (Unauthorized), `403` (Forbid
 
 ## Error Helpers
 
-| Export                    | Description                                     |
-| ------------------------- | ----------------------------------------------- |
-| `errorSchema(code, msg?)` | Create a custom error schema with literal code  |
-| `badRequestError()`       | `{ code: 'BAD_REQUEST', message, details }`     |
-| `unauthorizedError()`     | `{ code: 'UNAUTHORIZED', message }`             |
-| `forbiddenError()`        | `{ code: 'FORBIDDEN', message }`                |
-| `notFoundError()`         | `{ code: 'NOT_FOUND', message }`                |
-| `conflictError()`         | `{ code: 'CONFLICT', message }`                 |
-| `unprocessableError()`    | `{ code: 'UNPROCESSABLE_ENTITY', message }`     |
-| `rateLimitError()`        | `{ code: 'RATE_LIMIT_EXCEEDED', message }`      |
-| `internalError()`         | `{ code: 'INTERNAL_ERROR', message }`           |
-| `commonErrors(...codes)`  | Batch helper returning `Record<status, schema>` |
+| Export                                    | Description                                                |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| `HttpError`                               | Throw to send a Problem Details response                   |
+| `problemSchema(status, code, extension?)` | Schema for a custom problem type                           |
+| `badRequestError()`                       | `400` problem, code `BAD_REQUEST`, optional `errors`       |
+| `unauthorizedError()`                     | `401` problem, code `UNAUTHORIZED`                         |
+| `forbiddenError()`                        | `403` problem, code `FORBIDDEN`                            |
+| `notFoundError()`                         | `404` problem, code `NOT_FOUND`                            |
+| `conflictError()`                         | `409` problem, code `CONFLICT`                             |
+| `unprocessableError()`                    | `422` problem, code `VALIDATION_FAILED`, optional `errors` |
+| `rateLimitError()`                        | `429` problem, code `RATE_LIMIT_EXCEEDED`                  |
+| `internalError()`                         | `500` problem, code `INTERNAL_ERROR`                       |
+| `commonErrors(...codes)`                  | Batch helper returning `{ [status]: schema }`              |
+| `createProblem(status, init?)`            | Build a Problem Details body                               |
 
 ## Framework Adapters
 
@@ -186,7 +245,7 @@ Use the core contract with any of the official adapters:
 
 - [`@typeful-api/hono`](https://www.npmjs.com/package/@typeful-api/hono) — Hono (Node.js, Cloudflare Workers, Deno, Bun)
 - [`@typeful-api/express`](https://www.npmjs.com/package/@typeful-api/express) — Express 4.x / 5.x
-- [`@typeful-api/fastify`](https://www.npmjs.com/package/@typeful-api/fastify) — Fastify 4.x+
+- [`@typeful-api/fastify`](https://www.npmjs.com/package/@typeful-api/fastify) — Fastify 5.x
 
 ## Documentation
 

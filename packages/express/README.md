@@ -43,7 +43,7 @@ const api = defineApi({
 
 ```typescript
 import express from 'express';
-import { createExpressRouter, getLocals } from '@typeful-api/express';
+import { createExpressRouter, getLocals, problemErrorHandler } from '@typeful-api/express';
 
 const router = createExpressRouter(api, {
   v1: {
@@ -61,7 +61,9 @@ const router = createExpressRouter(api, {
 });
 
 const app = express();
+app.use(express.json());
 app.use('/api', router);
+app.use(problemErrorHandler()); // Problem Details for errors such as malformed JSON
 app.listen(3000);
 ```
 
@@ -143,6 +145,30 @@ const router = createExpressRouter(api, handlers, {
 
 The authenticated user is available via `res.locals._authUser` in downstream middleware. Routes with `auth: 'none'` or no auth declaration skip enforcement. Without an `auth` option, or without a verify function for a route's auth type, `.withAuth()` only documents the requirement and the route stays open.
 
+## Errors
+
+Every error is sent as RFC 9457 Problem Details (`application/problem+json`):
+
+- Invalid query, params or body → `422` with an `errors` list (`{ location, path, message }`)
+- Failed auth → `401` with a `WWW-Authenticate` challenge
+- `throw new HttpError(404, 'Product not found')` in a handler or middleware → that problem
+
+Other errors are passed on with `next(error)`. Errors from app-level middleware such as `express.json()` never reach the router, so add `problemErrorHandler()` after your routes to turn malformed JSON (`400`) and oversized bodies (`413`) into problems too.
+
+To change the validation response, pass `onValidationError`:
+
+```typescript
+const router = createExpressRouter(api, handlers, {
+  onValidationError: (error, req, res) => {
+    res.status(400).json({ message: 'Invalid input', fields: error.errors });
+  },
+});
+```
+
+## Typed Client
+
+Call the API from your frontend with `createClient` from `@typeful-api/core/client`, using the same contract. Responses are typed per status, including the problems this adapter sends. See the [core package docs](https://www.npmjs.com/package/@typeful-api/core#typed-client).
+
 ## Core Helpers
 
 The `@typeful-api/core` package provides built-in helpers that work with any adapter:
@@ -162,15 +188,17 @@ See the [core package docs](https://www.npmjs.com/package/@typeful-api/core) for
 
 ## API
 
-| Export                                    | Description                                        |
-| ----------------------------------------- | -------------------------------------------------- |
-| `createExpressRouter(contract, handlers)` | Create a typed Express router from an API contract |
-| `composeMiddleware(...mw)`                | Compose multiple Express middlewares               |
-| `conditionalMiddleware(pred, mw)`         | Apply middleware conditionally                     |
-| `createTypedMiddleware(fn)`               | Create middleware with typed request/response      |
-| `createLocalsMiddleware(fn)`              | Create middleware that populates `res.locals`      |
-| `createErrorHandler(fn)`                  | Create a typed error handler                       |
-| `getLocals(req)`                          | Get typed locals from the request                  |
+| Export                                    | Description                                          |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `createExpressRouter(contract, handlers)` | Create a typed Express router from an API contract   |
+| `composeMiddleware(...mw)`                | Compose multiple Express middlewares                 |
+| `conditionalMiddleware(pred, mw)`         | Apply middleware conditionally                       |
+| `createTypedMiddleware(fn)`               | Create middleware with typed request/response        |
+| `createLocalsMiddleware(fn)`              | Create middleware that populates `res.locals`        |
+| `problemErrorHandler()`                   | Problem Details for app-level errors (e.g. bad JSON) |
+| `HttpError`                               | Throw to send a Problem Details response             |
+| `createErrorHandler(fn)`                  | Create a typed error handler                         |
+| `getLocals(req)`                          | Get typed locals from the request                    |
 
 ## Type Utilities
 

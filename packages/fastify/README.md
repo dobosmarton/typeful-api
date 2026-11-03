@@ -4,7 +4,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Fastify adapter for [typeful-api](https://github.com/dobosmarton/typeful-api) — build end-to-end type-safe OpenAPI-first APIs with Fastify. Compatible with **Fastify 4.x+**.
+Fastify adapter for [typeful-api](https://github.com/dobosmarton/typeful-api) — build end-to-end type-safe OpenAPI-first APIs with Fastify. Compatible with **Fastify 5.x**.
 
 ## Installation
 
@@ -149,6 +149,36 @@ const plugin = createFastifyPlugin(api, handlers, {
 
 The authenticated user is available via `getLocals<{ authUser: User }>(request).authUser` in handlers. Routes with `auth: 'none'` or no auth declaration skip enforcement. Without an `auth` option, or without a verify function for a route's auth type, `.withAuth()` only documents the requirement and the route stays open.
 
+## Errors
+
+Every error is sent as RFC 9457 Problem Details (`application/problem+json`):
+
+- Invalid query, params or body → `422` with an `errors` list (`{ location, path, message }`)
+- Malformed JSON → `400`, unsupported content type → `415`, body too large → `413`
+- Failed auth → `401` with a `WWW-Authenticate` challenge
+- `throw new HttpError(404, 'Product not found')` in a handler or preHandler → that problem
+
+The `errorHandler` option only receives the other errors. Without it, they go to the error handler of the Fastify instance you register the plugin on.
+
+```typescript
+import { HttpError, createFastifyPlugin } from '@typeful-api/fastify';
+
+const plugin = createFastifyPlugin(api, handlers, {
+  prefix: '/api',
+  onValidationError: async (error, request, reply) => {
+    await reply.code(400).send({ message: 'Invalid input', fields: error.errors });
+  },
+  errorHandler: (error, request, reply) =>
+    reply.code(500).send({ message: 'Something went wrong' }),
+});
+```
+
+If `onValidationError` does not send a reply, the default `422` problem is sent, so invalid input never reaches a handler.
+
+## Typed Client
+
+Call the API from your frontend with `createClient` from `@typeful-api/core/client`, using the same contract. Responses are typed per status, including the problems this adapter sends. See the [core package docs](https://www.npmjs.com/package/@typeful-api/core#typed-client).
+
 ## Core Helpers
 
 The `@typeful-api/core` package provides built-in helpers that work with any adapter:
@@ -171,6 +201,7 @@ See the [core package docs](https://www.npmjs.com/package/@typeful-api/core) for
 | Export                                    | Description                                        |
 | ----------------------------------------- | -------------------------------------------------- |
 | `createFastifyPlugin(contract, handlers)` | Create a typed Fastify plugin from an API contract |
+| `HttpError`                               | Throw to send a Problem Details response           |
 | `composePreHandlers(...hooks)`            | Compose multiple preHandler hooks                  |
 | `conditionalPreHandler(pred, hook)`       | Apply preHandler conditionally                     |
 | `createPreHandler(fn)`                    | Create a typed preHandler hook                     |

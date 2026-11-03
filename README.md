@@ -6,7 +6,7 @@
 
 End-to-end type-safe OpenAPI-first APIs with minimal boilerplate.
 
-Define your API contract once with Zod schemas, get full type inference for handlers, and generate OpenAPI specs automatically. Works with **Hono**, **Express**, and **Fastify**.
+Define your API contract once with Zod schemas, get full type inference for handlers and a typed client, and generate OpenAPI specs automatically. Works with **Hono**, **Express**, and **Fastify**.
 
 ## Table of Contents
 
@@ -14,6 +14,7 @@ Define your API contract once with Zod schemas, get full type inference for hand
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Framework Adapters](#framework-adapters)
+- [Typed Client](#typed-client)
 - [Route Builder API](#route-builder-api)
 - [Pagination & Filtering Helpers](#pagination--filtering-helpers)
 - [API Versioning](#api-versioning)
@@ -32,13 +33,14 @@ Define your API contract once with Zod schemas, get full type inference for hand
 - 🔒 **Full Type Safety**: From Zod schemas to handler implementations
 - 📝 **OpenAPI First**: Auto-generate valid OpenAPI 3.0 / 3.1 specs
 - 🔌 **Framework Agnostic**: Hono, Express, and Fastify adapters
+- 🔗 **Typed Client**: Call your API from the frontend with types inferred from the same contract, no codegen
 - 🎯 **Minimal Boilerplate**: Define a CRUD API in ~30 lines
 - 🔐 **Auth Enforcement**: Contract-driven authentication with pluggable verify functions
 - 📋 **Response Headers**: Contract-defined response headers with typed handler support
 - 🏗️ **Hierarchical Middleware**: Apply middleware at version, group, or route level
 - 📦 **First-class API Versioning**: v1, v2, etc. built into the design
 - 📄 **Pagination & Filtering**: Built-in schema factories for offset, cursor, and sort patterns
-- ⚠️ **Typed Error Responses**: Pre-built error schemas with `.withErrors()` shorthand
+- ⚠️ **Problem Details Errors**: RFC 9457 error responses from every adapter, typed with `.withErrors()`
 - 🔧 **CLI Tools**: Generate specs, client types, and scaffold new projects
 
 ## Prerequisites
@@ -149,6 +151,7 @@ export const api = defineApi({
             .get('/:id')
             .params(IdParamsSchema)
             .returns(ProductSchema)
+            .withErrors(404)
             .withSummary('Get a product by ID'),
 
           create: route
@@ -176,8 +179,7 @@ export const api = defineApi({
 ```typescript
 // src/server.ts
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
-import { createHonoRouter } from '@typeful-api/hono';
+import { HttpError, createHonoRouter } from '@typeful-api/hono';
 import { api } from './api';
 
 // Define environment types
@@ -204,7 +206,7 @@ const router = createHonoRouter<typeof api, Envs>(api, {
       get: async ({ c, params }) => {
         const db = c.get('db');
         const product = await db.products.find(params.id);
-        if (!product) throw new HTTPException(404);
+        if (!product) throw new HttpError(404, 'Product not found');
         return product;
       },
 
@@ -248,7 +250,7 @@ export type ProductHandlers = AppHandlers['v1']['products'];
 
 ```typescript
 // src/handlers/products.ts — fully typed, autocompletion works
-import { HTTPException } from 'hono/http-exception';
+import { HttpError } from '@typeful-api/hono';
 import type { ProductHandlers } from '../types';
 
 export const list: ProductHandlers['list'] = async ({ c }) => {
@@ -259,7 +261,7 @@ export const list: ProductHandlers['list'] = async ({ c }) => {
 export const get: ProductHandlers['get'] = async ({ c, params }) => {
   const db = c.get('db');
   const product = await db.products.find(params.id);
-  if (!product) throw new HTTPException(404);
+  if (!product) throw new HttpError(404, 'Product not found');
   return product;
 };
 
@@ -328,6 +330,26 @@ typeful-api generate-spec \
   --api-version "1.0.0"
 ```
 
+### 8. Call It from the Frontend
+
+Import the same contract on the frontend and create a typed client. There is no code generation step:
+
+```typescript
+import { createClient } from '@typeful-api/core/client';
+import { api } from '../server/src/api'; // or a contract package shared by both apps
+
+const client = createClient(api, { baseUrl: 'http://localhost:3000/api' });
+
+const res = await client.v1.products.get({ params: { id } });
+if (res.status === 200) {
+  console.log(res.body.name); // typed from ProductSchema
+} else if (res.status === 404) {
+  console.log(res.body.detail); // the Problem Details body
+}
+```
+
+See [Typed Client](#typed-client) for options, error handling and TanStack Query.
+
 ## Framework Adapters
 
 ### Hono
@@ -392,6 +414,74 @@ fastify.register(
   { prefix: '/api' },
 );
 ```
+
+## Typed Client
+
+`@typeful-api/core/client` turns the contract into a typed HTTP client. Import the same contract on the frontend, for example from a package shared by your API and web app, and call routes as functions. There is no code generation step.
+
+```typescript
+import { createClient } from '@typeful-api/core/client';
+import { api } from '@acme/contract';
+
+const client = createClient(api, {
+  baseUrl: 'https://api.example.com',
+  headers: async () => ({ Authorization: `Bearer ${await getToken()}` }),
+});
+
+const res = await client.v1.products.get({ params: { id } });
+
+switch (res.status) {
+  case 200:
+    return res.body; // Product
+  case 404:
+    return null; // res.body is the NOT_FOUND problem
+  case 422:
+    throw new Error(res.body.errors?.map((e) => e.message).join(', '));
+}
+```
+
+Each call takes `params`, `query` and `body` as the API accepts them (Zod input types, so fields with defaults are optional), plus `headers`, `signal` and `fetchOptions`. It resolves to `{ status, body, headers }`, a union narrowed by `status` that covers:
+
+- the 200 response from `.returns()`
+- the statuses declared with `.withErrors()` or `.withResponses()`
+- 422 for routes that validate input and 401 for routes with `.withAuth()`, which the adapters send on their own
+
+A status the route does not declare, such as a 500 from an unhandled error, rejects with `UnexpectedResponseError`.
+
+### With TanStack Query
+
+`unwrap` returns the body of a 200 response and throws a `ResponseError` for anything else. The error carries `status`, `body` and, for Problem Details bodies, `problem`:
+
+```typescript
+import { queryOptions } from '@tanstack/react-query';
+import { unwrap } from '@typeful-api/core/client';
+
+export const productQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['products', id],
+    queryFn: ({ signal }) => client.v1.products.get({ params: { id }, signal }).then(unwrap),
+  });
+```
+
+### Client Options
+
+| Option             | Description                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `baseUrl`          | Where the API router is mounted, e.g. `https://api.example.com/api` or `/api`                                                 |
+| `headers`          | Headers for every request, or a function (sync or async) that returns them                                                    |
+| `fetch`            | Custom `fetch` implementation, e.g. for tests or retries                                                                      |
+| `fetchOptions`     | `fetch` options for every request, e.g. `{ credentials: 'include' }`                                                          |
+| `validateResponse` | Parse response bodies with their Zod schema: transforms apply, and a mismatch throws `ResponseValidationError`. Default: off. |
+
+Good to know:
+
+- Requests and responses are JSON. Query arrays are sent as repeated keys (`?tag=a&tag=b`) and `Date` values as ISO strings.
+- Response types are the schemas' output types, but without `validateResponse` the body is the JSON on the wire. A `z.date()` field arrives as a string.
+- Use `z.coerce.number<number>()` for numeric query fields (as `paginationQuery()` does), so the client accepts numbers instead of `unknown`.
+- Every route with `.withAuth()` includes 401 in its response union, even if the server does not enforce auth.
+- [`examples/fullstack-monorepo`](https://github.com/dobosmarton/typeful-api/tree/main/examples/fullstack-monorepo) shares the contract through a workspace package and uses the client with TanStack Query.
+
+For clients outside your TypeScript codebase, generate an OpenAPI spec and use the [CLI](#cli-commands) or any OpenAPI tooling.
 
 ## Route Builder API
 
@@ -529,96 +619,111 @@ const router = createHonoRouter(api, {
 
 ## Error Handling
 
-typeful-api validates the request body, query string and path params against your Zod schemas before your handler runs. Invalid requests never reach the handler.
-
-### Validation Errors
-
-The status code and body shape come from each adapter:
-
-| Adapter | Status | Body                                                                                                                                     |
-| ------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Hono    | `400`  | `{ success: false, error: { name: 'ZodError', message } }`, where `message` is the Zod issue list serialized as JSON                     |
-| Express | `422`  | `{ error: 'Validation Error', type: 'body' \| 'query' \| 'params', details: [{ path, message }] }`                                       |
-| Fastify | `422`  | `{ statusCode: 422, error: 'Validation Error', message: 'Request validation failed', details: [{ path, message }] }` (dot-joined `path`) |
-
-For example, posting `{}` to a route whose body requires `name` returns this from Express:
+Every error typeful-api sends is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details object with the `application/problem+json` content type, in all three adapters:
 
 ```json
 {
-  "error": "Validation Error",
-  "type": "body",
-  "details": [{ "path": ["name"], "message": "Invalid input: expected string, received undefined" }]
+  "type": "about:blank",
+  "title": "Unprocessable Content",
+  "status": 422,
+  "code": "VALIDATION_FAILED",
+  "detail": "Invalid request body",
+  "errors": [
+    {
+      "location": "body",
+      "path": ["name"],
+      "message": "Invalid input: expected string, received undefined"
+    }
+  ]
 }
 ```
 
-### Built-in Error Schemas
+`type`, `title`, `status`, `detail` and `instance` are the standard members. `code` is a stable value to branch on, and `errors` lists field-level problems.
 
-Use `.withErrors()` to add typed error responses with a single method call:
+### Validation Errors
 
-```typescript
-// Add 404 and 401 error responses — schemas and OpenAPI descriptions are automatic
-route
-  .get('/:id')
-  .params(IdParamsSchema)
-  .returns(ProductSchema)
-  .withErrors(404, 401)
-  .withSummary('Get a product');
-```
+typeful-api validates the query string, path params and request body against your Zod schemas, in that order, before your handler runs. Invalid requests never reach the handler: they get the `422` problem above, with one `errors` entry per invalid value. Malformed JSON gets a `400` problem.
 
-Supported status codes: `400`, `401`, `403`, `404`, `409`, `422`, `429`, `500`.
-
-Each error schema uses `z.literal()` codes (e.g., `'NOT_FOUND'`) for client-side discriminated unions. You can also use the individual factories directly:
+To send something else, pass `onValidationError` to the adapter. It receives a `ValidationError` with `type`, `errors` and the ready-made `problem`:
 
 ```typescript
-import { notFoundError, unauthorizedError, commonErrors, errorSchema } from '@typeful-api/core';
-
-// Use pre-built error schemas with .withResponses()
-route.get('/:id').returns(ProductSchema).withResponses({
-  404: notFoundError(),
-  401: unauthorizedError(),
+createHonoRouter(api, handlers, {
+  onValidationError: (error, c) => c.json({ message: 'Invalid input', fields: error.errors }, 400),
 });
 
-// Or batch them with commonErrors()
-route.get('/:id').returns(ProductSchema).withResponses(commonErrors(404, 401));
-
-// Create custom error schemas
-const RateLimitError = errorSchema('RATE_LIMITED', 'Too many requests');
-```
-
-### Custom Error Responses
-
-For fully custom error shapes, use `.withResponses()` directly:
-
-```typescript
-const NotFoundError = z.object({
-  error: z.literal('not_found'),
-  message: z.string(),
-});
-
-route
-  .get('/:id')
-  .params(IdParamsSchema)
-  .returns(ProductSchema)
-  .withResponses({ 404: NotFoundError })
-  .withSummary('Get a product');
+// Express: onValidationError: (error, req, res, next) => { ... }
+// Fastify: onValidationError: (error, request, reply) => { ... }
 ```
 
 ### Throwing Errors in Handlers
 
-Use framework-specific exceptions:
+Throw an `HttpError` from a handler or middleware and the adapter sends it as a problem:
 
 ```typescript
-// Hono
-import { HTTPException } from 'hono/http-exception';
+import { HttpError } from '@typeful-api/core'; // also re-exported by each adapter
 
-get: async ({ c, params }) => {
+get: async ({ params }) => {
   const product = await db.products.find(params.id);
-  if (!product) {
-    throw new HTTPException(404, { message: 'Product not found' });
-  }
+  if (!product) throw new HttpError(404, 'Product not found');
   return product;
 };
+
+throw new HttpError(409, { code: 'DUPLICATE_NAME', detail: 'Name is already taken' });
+throw new HttpError(429, { headers: { 'Retry-After': '30' } });
 ```
+
+Other errors are left alone. They reach Hono's `onError`, your Express error middleware, or Fastify's error handler as before.
+
+### Built-in Error Schemas
+
+Declare the errors a route can return with `.withErrors()`. They appear in the OpenAPI spec and in the [typed client](#typed-client)'s response union:
+
+```typescript
+route
+  .get('/:id')
+  .params(IdParamsSchema)
+  .returns(ProductSchema)
+  .withErrors(404, 403)
+  .withSummary('Get a product');
+```
+
+Supported status codes: `400`, `401`, `403`, `404`, `409`, `422`, `429`, `500`. Each schema is a Problem Details object with a literal `status` and `code` (`'NOT_FOUND'` for 404), matching what `new HttpError(404)` sends. You don't have to declare `422` or `401`: routes with input or `.withAuth()` get them automatically.
+
+The schema factories are exported too (`notFoundError()`, `unauthorizedError()`, `commonErrors(404, 401)` and so on) for use with `.withResponses()`.
+
+### Custom Problem Types
+
+For your own error codes, describe the problem with `problemSchema` and throw a matching `HttpError`:
+
+```typescript
+import { HttpError, problemSchema } from '@typeful-api/core';
+
+const DuplicateName = problemSchema(409, 'DUPLICATE_NAME', { existingId: z.string() });
+
+route
+  .post('/')
+  .body(CreateProductSchema)
+  .returns(ProductSchema)
+  .withResponses({ 409: DuplicateName });
+
+// In the handler
+throw new HttpError(409, { code: 'DUPLICATE_NAME', extensions: { existingId: existing.id } });
+```
+
+`.withResponses()` accepts any other Zod schema as well. Responses that are not Problem Details are documented as `application/json`.
+
+### Adapter Notes
+
+- **Express:** add `problemErrorHandler()` after your routes, so errors from app-level middleware such as `express.json()` (malformed JSON, body too large) become problems too:
+
+  ```typescript
+  app.use(express.json());
+  app.use('/api', createExpressRouter(api, handlers));
+  app.use(problemErrorHandler());
+  ```
+
+- **Fastify:** the `errorHandler` option only receives errors typeful-api does not handle itself.
+- **Content types:** Hono and Fastify answer bodies with an unsupported content type with a `415` problem. Express does not check the content type, so those requests fail validation with `422`.
 
 ## Authentication
 
@@ -661,7 +766,7 @@ const router = createExpressRouter(api, handlers, {
 });
 ```
 
-Routes with `auth: 'none'` or no auth declaration skip enforcement entirely. Missing credentials, or a verify function that throws, produce `401 { code: 'UNAUTHORIZED', message }` before the handler runs.
+Routes with `auth: 'none'` or no auth declaration skip enforcement entirely. Missing credentials, or a verify function that throws, produce a `401` [problem](#error-handling) with a `WWW-Authenticate` challenge before the handler runs. To answer with another status, throw an `HttpError` from the verify function, for example `throw new HttpError(403, 'Account suspended')`.
 
 > **Note:** without an `auth` option, `.withAuth()` only documents the requirement in the OpenAPI spec and the route stays open. The same applies to a route whose auth type has no verify function in `auth`. Pass `auth` (or your own middleware) for every auth type your contract uses.
 
@@ -746,7 +851,11 @@ route
     },
     responses: {
       200: { created: { value: { id: '1', name: 'Widget', price: 9.99 } } },
-      400: { invalid: { value: { code: 'BAD_REQUEST', message: 'Invalid input' } } },
+      409: {
+        duplicate: {
+          value: { type: 'about:blank', title: 'Conflict', status: 409, code: 'CONFLICT' },
+        },
+      },
     },
   });
 ```
@@ -769,7 +878,8 @@ typeful-api generate-spec \
   --api-version "1.0.0" \
   --server https://api.example.com
 
-# Generate TypeScript client types
+# Generate TypeScript types from the spec, for clients outside your TypeScript codebase
+# (inside it, use the typed client from @typeful-api/core/client)
 typeful-api generate-client \
   --spec ./openapi.json \
   --out ./src/client.d.ts
@@ -782,37 +892,38 @@ The `init` command generates a ready-to-run project with `package.json`, `tsconf
 
 ## Comparison
 
-Compared as of November 2026: ts-rest 3.52, @hono/zod-openapi 1.6, tRPC 11.23, Elysia 1.4.
+Compared as of November 2026: ts-rest 3.52, oRPC 1.16, @hono/zod-openapi 1.6, tRPC 11.23, Elysia 1.4.
 
-|                             | \*\*typeful-api\*\*     | ts-rest                           | @hono/zod-openapi    | tRPC                                                                    | Elysia                                     |
-| --------------------------- | ----------------------- | --------------------------------- | -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
-| **Maintenance**             | ✅ Active               | ❌ Archived (Oct 2026)            | ✅ Active            | ✅ Active                                                               | ✅ Active (2.0 in RC)                      |
-| **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                                                        | Server-first                               |
-| **Validation**              | Zod                     | Standard Schema                   | Zod                  | Any (Zod common)                                                        | TypeBox / Standard Schema                  |
-| **OpenAPI generation**      | ✅ Portable             | ✅ Portable                       | ✅ Portable          | ⚠️ Alpha or third-party                                                 | ✅ Via plugin                              |
-| **Framework support**       | Hono, Express, Fastify  | Express, Fastify, Next.js, NestJS | Hono only            | Node.js, Express, Fastify, Next.js, Lambda, Fetch (Workers, Deno, edge) | Bun, Node.js, Deno, Workers (experimental) |
-| **API versioning**          | ✅ First-class          | ❌ Manual                         | ❌ Manual            | ❌ Manual                                                               | ❌ Manual                                  |
-| **Hierarchical middleware** | ✅ Native               | ⚠️ Global + per-route             | ✅ Via Hono          | ✅ Chained procedure builders                                           | ✅ Guard system                            |
-| **Handler decoupling**      | ✅ Typed separate files | ✅ With caveats                   | ✅ Routes + handlers | ✅ Standard                                                             | ⚠️ Tricky (chaining)                       |
-| **Built-in client**         | ✅ CLI generation       | ✅ Fetch-based                    | ✅ Hono RPC (`hc`)   | ✅ Type-inferred                                                        | ✅ Eden Treaty                             |
-| **REST / OpenAPI native**   | ✅                      | ✅                                | ✅                   | ❌ Custom RPC                                                           | ✅                                         |
+|                             | **typeful-api**              | ts-rest                           | oRPC                                                                          | @hono/zod-openapi    | tRPC                                                                    | Elysia                                     |
+| --------------------------- | ---------------------------- | --------------------------------- | ----------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| **Maintenance**             | ✅ Active                    | ❌ Archived (Oct 2026)            | ✅ Active (2.0 in beta)                                                       | ✅ Active            | ✅ Active                                                               | ✅ Active (2.0 in RC)                      |
+| **Approach**                | Contract-first               | Contract-first                    | Contract-first or code-first                                                  | Route-first          | Server-first RPC                                                        | Server-first                               |
+| **Validation**              | Zod                          | Standard Schema                   | Standard Schema (Zod, Valibot, ArkType)                                       | Zod                  | Any (Zod common)                                                        | TypeBox / Standard Schema                  |
+| **OpenAPI generation**      | ✅ Portable                  | ✅ Portable                       | ✅ Via `@orpc/openapi`                                                        | ✅ Portable          | ⚠️ Alpha or third-party                                                 | ✅ Via plugin                              |
+| **Framework support**       | Hono, Express, Fastify       | Express, Fastify, Next.js, NestJS | Node.js, Fetch, Hono, Express, Fastify, Next.js, Workers, Lambda and ~15 more | Hono only            | Node.js, Express, Fastify, Next.js, Lambda, Fetch (Workers, Deno, edge) | Bun, Node.js, Deno, Workers (experimental) |
+| **API versioning**          | ✅ First-class               | ❌ Manual                         | ❌ Manual (route prefixes)                                                    | ❌ Manual            | ❌ Manual                                                               | ❌ Manual                                  |
+| **Hierarchical middleware** | ✅ Native                    | ⚠️ Global + per-route             | ✅ Router-level `.use()`                                                      | ✅ Via Hono          | ✅ Chained procedure builders                                           | ✅ Guard system                            |
+| **Handler decoupling**      | ✅ Typed separate files      | ✅ With caveats                   | ✅ `implement(contract)`                                                      | ✅ Routes + handlers | ✅ Standard                                                             | ⚠️ Tricky (chaining)                       |
+| **Built-in client**         | ✅ Type-inferred + CLI types | ✅ Fetch-based                    | ✅ Type-inferred                                                              | ✅ Hono RPC (`hc`)   | ✅ Type-inferred                                                        | ✅ Eden Treaty                             |
+| **REST / OpenAPI native**   | ✅                           | ✅                                | ⚠️ Via `OpenAPIHandler` (RPC by default)                                      | ✅                   | ❌ Custom RPC                                                           | ✅                                         |
 
 **How they differ:**
 
 - **tRPC** is the most popular option for TypeScript monorepos, but its wire protocol is RPC, not REST. The first-party `@trpc/openapi` package (still alpha in v11.23) generates an OpenAPI 3.1 document from your router, but the endpoints keep tRPC's own format: inputs go in `?input=<JSON>` and responses are wrapped in `result.data`. For real REST endpoints, the third-party [`trpc-to-openapi`](https://github.com/mcampa/trpc-to-openapi) maps procedures to custom methods and paths through `meta.openapi` (Zod only). Either way, REST is layered on top of tRPC rather than being its core design.
-- **ts-rest** shares the contract-first Zod approach, but it was archived in October 2026 and no longer receives releases, bug fixes or security updates. typeful-api keeps the same contract-first model and adds built-in API versioning and hierarchical middleware.
+- **ts-rest** shares the contract-first Zod approach, but it was archived in October 2026 and no longer receives releases, bug fixes or security updates. typeful-api keeps the same model and the same call shape (`{ params, query, body }` in, `{ status, body, headers }` out), and adds built-in API versioning, hierarchical middleware and Problem Details errors. See the [migration guide](docs/migrating-from-ts-rest.md).
+- **oRPC** is the most active option for teams leaving ts-rest. It supports contract-first and code-first, accepts any Standard Schema library, and ships type-inferred clients plus official MCP and AI SDK integrations. Its default wire protocol is RPC: REST endpoints and the OpenAPI document come from `@orpc/openapi`'s `OpenAPIHandler`, with a method and path per procedure set through `.route()`. Versioning is up to you, through route prefixes such as `/api/v2`. typeful-api is REST-only by design: every route is a method and path in a versioned contract, and one contract drives the Hono, Express and Fastify adapters and the typed client.
 - **@hono/zod-openapi** is excellent if you're committed to Hono, and it works with Hono's typed RPC client (`hc`). typeful-api builds on top of it for Hono and extends the same ideas to Express and Fastify.
 - **Elysia** is a fast full framework with great DX. Bun is its primary runtime, with Node.js and Deno adapters (since v1.2) and an experimental Cloudflare Workers adapter; 2.0 reached release candidate in October 2026. It is not contract-first.
 
 ## Packages
 
-| Package                | Description                                                    |
-| ---------------------- | -------------------------------------------------------------- |
-| `@typeful-api/core`    | Framework-agnostic core with route builder and spec generation |
-| `@typeful-api/hono`    | Hono adapter with OpenAPI integration                          |
-| `@typeful-api/express` | Express adapter with validation middleware                     |
-| `@typeful-api/fastify` | Fastify adapter with preHandler hooks                          |
-| `@typeful-api/cli`     | CLI for spec and client generation                             |
+| Package                | Description                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `@typeful-api/core`    | Route builder, spec generation, errors, and the typed client (`@typeful-api/core/client`) |
+| `@typeful-api/hono`    | Hono adapter with OpenAPI integration                                                     |
+| `@typeful-api/express` | Express adapter with validation middleware                                                |
+| `@typeful-api/fastify` | Fastify adapter with preHandler hooks                                                     |
+| `@typeful-api/cli`     | CLI for spec and client generation                                                        |
 
 ## Resources
 

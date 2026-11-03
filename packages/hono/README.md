@@ -149,6 +149,29 @@ const router = createHonoRouter(api, handlers, {
 
 The authenticated user is available via `c.get('authUser')` in handlers. Routes with `auth: 'none'` or no auth declaration skip enforcement. Without an `auth` option, or without a verify function for a route's auth type, `.withAuth()` only documents the requirement and the route stays open.
 
+## Errors
+
+Every error is sent as RFC 9457 Problem Details (`application/problem+json`):
+
+- Invalid query, params or body → `422` with an `errors` list (`{ location, path, message }`)
+- Malformed JSON → `400`, unsupported content type → `415`
+- Failed auth → `401` with a `WWW-Authenticate` challenge
+- `throw new HttpError(404, 'Product not found')` in a handler or middleware → that problem
+
+Other errors still reach your `app.onError`. To change the validation response, pass `onValidationError`:
+
+```typescript
+import { HttpError, createHonoRouter } from '@typeful-api/hono';
+
+const router = createHonoRouter(api, handlers, {
+  onValidationError: (error, c) => c.json({ message: 'Invalid input', fields: error.errors }, 400),
+});
+```
+
+## Typed Client
+
+Call the API from your frontend with `createClient` from `@typeful-api/core/client`, using the same contract. Responses are typed per status, including the problems this adapter sends. See the [core package docs](https://www.npmjs.com/package/@typeful-api/core#typed-client).
+
 ## Core Helpers
 
 The `@typeful-api/core` package provides built-in helpers that work with any adapter:
