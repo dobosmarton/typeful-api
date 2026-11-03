@@ -23,7 +23,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build && changeset publish"
+    "release": "turbo run build --filter='./packages/*' && sh scripts/stage-release.sh"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
