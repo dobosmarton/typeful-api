@@ -54,7 +54,9 @@ const request = async (
   headers?: Record<string, string>,
 ): Promise<Response> => {
   const server = createServer(app);
-  await new Promise<void>((resolve) => server.listen(0, resolve));
+  // Bind the address the request uses: a wildcard listener can share its port with another
+  // test's 127.0.0.1 listener, which would then receive this request
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;
   const res = await fetch(`http://127.0.0.1:${port}${path}`, {
     headers,
