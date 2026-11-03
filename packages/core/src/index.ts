@@ -67,6 +67,7 @@ export {
 
 // Spec generation
 export { generateSpec, generateSpecJson, type OpenApiDocument } from './spec';
+export { TYPEFUL_ROUTE_EXTENSION, convertPathParams } from './path';
 
 // Types
 export type {

@@ -10,6 +10,8 @@ import type {
 } from '@typeful-api/core';
 import {
   HttpError,
+  TYPEFUL_ROUTE_EXTENSION,
+  convertPathParams,
   createAuthenticator,
   isHttpError,
   isWithHeaders,
@@ -93,7 +95,9 @@ function toRouteConfig(
 
   const config: RouteConfig = {
     method: route.method,
-    path: normalizedPath.replace(/\/$/, '') || '/',
+    // OpenAPI path templates use {id}; @hono/zod-openapi turns them back into :id for routing
+    path: convertPathParams(normalizedPath.replace(/\/$/, '') || '/'),
+    [TYPEFUL_ROUTE_EXTENSION]: [version, ...groupPath, name],
     responses: Object.fromEntries(
       resolveRouteResponses(route).map(({ status, description, mediaType, schema }) => [
         status,

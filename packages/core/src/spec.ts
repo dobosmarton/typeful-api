@@ -2,7 +2,7 @@ import type { ZodType } from 'zod';
 import { toJSONSchema } from 'zod/v4/core';
 import type { $ZodType } from 'zod/v4/core';
 import { extractTags, flattenRoutes } from './contract';
-import { convertPathParams } from './path';
+import { TYPEFUL_ROUTE_EXTENSION, convertPathParams } from './path';
 import { resolveRouteResponses } from './responses';
 import type { ApiContract, AuthType, GenerateSpecOptions, RouteDefinition } from './types';
 
@@ -63,6 +63,8 @@ type Operation = {
   requestBody?: RequestBody;
   responses: Record<string, Response>;
   security?: Array<Record<string, string[]>>;
+  /** Where the route sits in the contract: version, groups, route name */
+  'x-typeful-route'?: string[];
 };
 
 type Parameter = {
@@ -132,12 +134,21 @@ type JsonSchema = {
 };
 
 /**
- * Convert a Zod schema to JSON Schema using Zod v4's native conversion
+ * Convert a Zod schema to JSON Schema using Zod v4's native conversion.
+ *
+ * Request schemas (params, query, body) describe what clients send, so they use Zod's input
+ * types: fields with defaults are optional, transforms show their input. Responses describe
+ * what the server sends, so they use the output types.
  */
-function zodToJsonSchema(schema: ZodType, openapiVersion: '3.0' | '3.1' = '3.0'): JsonSchema {
+function zodToJsonSchema(
+  schema: ZodType,
+  openapiVersion: '3.0' | '3.1' = '3.0',
+  io: 'input' | 'output' = 'output',
+): JsonSchema {
   const target = openapiVersion === '3.1' ? 'draft-2020-12' : 'draft-7';
   const result = toJSONSchema(schema as unknown as $ZodType, {
     target,
+    io,
     unrepresentable: 'any',
   });
   return result as JsonSchema;
@@ -178,7 +189,7 @@ function generateParameters(route: RouteDefinition, openapiVersion: '3.0' | '3.1
 
   // Path parameters
   if (route.params) {
-    const paramSchema = zodToJsonSchema(route.params, openapiVersion);
+    const paramSchema = zodToJsonSchema(route.params, openapiVersion, 'input');
     if (paramSchema.properties) {
       for (const [name, schema] of Object.entries(paramSchema.properties)) {
         parameters.push({
@@ -193,7 +204,7 @@ function generateParameters(route: RouteDefinition, openapiVersion: '3.0' | '3.1
 
   // Query parameters
   if (route.query) {
-    const querySchema = zodToJsonSchema(route.query, openapiVersion);
+    const querySchema = zodToJsonSchema(route.query, openapiVersion, 'input');
     if (querySchema.properties) {
       const required = querySchema.required ?? [];
       for (const [name, schema] of Object.entries(querySchema.properties)) {
@@ -298,6 +309,7 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
     const operation: Operation = {
       operationId: route.operationId ?? `${version}_${group.join('_')}_${name}`,
       responses: generateResponses(route, ver),
+      [TYPEFUL_ROUTE_EXTENSION]: [version, ...group, name],
     };
 
     if (route.summary) {
@@ -328,7 +340,7 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
     // Request body
     if (route.body && ['post', 'put', 'patch'].includes(route.method)) {
       const requestBodyContent: MediaTypeObject = {
-        schema: zodToJsonSchema(route.body, ver),
+        schema: zodToJsonSchema(route.body, ver, 'input'),
       };
 
       if (route.examples?.requestBody) {

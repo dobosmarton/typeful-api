@@ -241,4 +241,13 @@ describe('Problem Details responses', () => {
     expect(create?.['422']?.content?.['application/problem+json']).toBeDefined();
     expect(admin?.['401']?.content?.['application/problem+json']).toBeDefined();
   });
+
+  it('records the contract position of every operation for generated clients', async () => {
+    const spec = await (
+      await request(createHonoRouter(contract, handlers()), 'GET', '/api-doc')
+    ).json();
+
+    expect(spec.paths['/v1/items/{id}'].get['x-typeful-route']).toEqual(['v1', 'items', 'get']);
+    expect(spec.paths['/v1/items'].post['x-typeful-route']).toEqual(['v1', 'items', 'create']);
+  });
 });

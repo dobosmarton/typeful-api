@@ -40,6 +40,12 @@ exports[`OpenAPI spec snapshots > deeply nested groups 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "admin",
+          "users",
+          "list"
+        ],
         "tags": [
           "admin"
         ]
@@ -84,6 +90,13 @@ exports[`OpenAPI spec snapshots > deeply nested groups 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "admin",
+          "users",
+          "roles",
+          "list"
+        ],
         "tags": [
           "admin"
         ]
@@ -209,6 +222,13 @@ exports[`OpenAPI spec snapshots > deeply nested groups 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "admin",
+          "users",
+          "roles",
+          "get"
+        ],
         "tags": [
           "admin"
         ],
@@ -377,6 +397,13 @@ exports[`OpenAPI spec snapshots > deeply nested groups 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "admin",
+          "users",
+          "roles",
+          "assign"
+        ],
         "tags": [
           "admin"
         ],
@@ -404,8 +431,7 @@ exports[`OpenAPI spec snapshots > deeply nested groups 1`] = `
                 },
                 "required": [
                   "userId"
-                ],
-                "additionalProperties": false
+                ]
               }
             }
           }
@@ -465,6 +491,10 @@ exports[`OpenAPI spec snapshots > multi-version API with auth and metadata 1`] =
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "health"
+        ],
         "summary": "Health check",
         "tags": [
           "system"
@@ -557,6 +587,10 @@ exports[`OpenAPI spec snapshots > multi-version API with auth and metadata 1`] =
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "legacyUsers"
+        ],
         "summary": "List users (deprecated)",
         "description": "Use v2 instead",
         "tags": [
@@ -740,6 +774,11 @@ exports[`OpenAPI spec snapshots > multi-version API with auth and metadata 1`] =
             }
           }
         },
+        "x-typeful-route": [
+          "v2",
+          "users",
+          "list"
+        ],
         "summary": "List users",
         "tags": [
           "users"
@@ -932,6 +971,11 @@ exports[`OpenAPI spec snapshots > multi-version API with auth and metadata 1`] =
             }
           }
         },
+        "x-typeful-route": [
+          "v2",
+          "users",
+          "get"
+        ],
         "summary": "Get user",
         "tags": [
           "users"
@@ -1140,6 +1184,11 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "products",
+          "list"
+        ],
         "summary": "List products",
         "description": "Returns a paginated list of products",
         "tags": [
@@ -1149,7 +1198,7 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
           {
             "name": "page",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
               "default": 1,
               "description": "Page number",
@@ -1161,7 +1210,7 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
           {
             "name": "limit",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
               "default": 20,
               "description": "Items per page",
@@ -1345,6 +1394,11 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "products",
+          "create"
+        ],
         "summary": "Create a product",
         "tags": [
           "products"
@@ -1377,8 +1431,7 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
                   "name",
                   "price",
                   "inStock"
-                ],
-                "additionalProperties": false
+                ]
               }
             }
           }
@@ -1518,6 +1571,11 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "products",
+          "get"
+        ],
         "summary": "Get product by ID",
         "tags": [
           "products"
@@ -1707,6 +1765,11 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "products",
+          "update"
+        ],
         "summary": "Update a product",
         "tags": [
           "products"
@@ -1745,8 +1808,7 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
                     "type": "boolean",
                     "description": "Availability status"
                   }
-                },
-                "additionalProperties": false
+                }
               }
             }
           }
@@ -1911,6 +1973,11 @@ exports[`OpenAPI spec snapshots > simple CRUD API 1`] = `
             }
           }
         },
+        "x-typeful-route": [
+          "v1",
+          "products",
+          "delete"
+        ],
         "summary": "Delete a product",
         "tags": [
           "products"
