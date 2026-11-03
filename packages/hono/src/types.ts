@@ -2,10 +2,10 @@ import type { Context, Env, MiddlewareHandler } from 'hono';
 import type {
   ApiContract,
   AuthConfig,
+  HandlerResult,
   InferBody,
   InferParams,
   InferQuery,
-  InferResponse,
   RouteDefinition,
   RouteGroup,
 } from '@typeful-api/core';
@@ -47,7 +47,7 @@ export type HonoRouteContext<R extends RouteDefinition, E extends Env> = {
  */
 export type HonoHandler<R extends RouteDefinition, E extends Env> = (
   ctx: HonoRouteContext<R, E>,
-) => Promise<InferResponse<R>> | InferResponse<R>;
+) => Promise<HandlerResult<R>> | HandlerResult<R>;
 
 /**
  * Recursively infer handler types from a route group for Hono

@@ -47,14 +47,14 @@ export const paginationQuery = (options?: PaginationQueryOptions) => {
 
   return z.object({
     page: z.coerce
-      .number()
+      .number<number>()
       .int()
       .positive()
       .optional()
       .default(defaultPage)
       .describe('Page number (1-indexed)'),
     limit: z.coerce
-      .number()
+      .number<number>()
       .int()
       .positive()
       .max(maxLimit)
@@ -79,7 +79,7 @@ export const cursorQuery = (options?: CursorQueryOptions) => {
   return z.object({
     cursor: z.string().optional().describe('Pagination cursor for the next page'),
     limit: z.coerce
-      .number()
+      .number<number>()
       .int()
       .positive()
       .max(maxLimit)

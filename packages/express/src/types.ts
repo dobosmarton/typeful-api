@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response, RequestHandler } from 'express';
 import type {
   ApiContract,
   AuthConfig,
+  HandlerResult,
   InferBody,
   InferParams,
   InferQuery,
@@ -41,7 +42,7 @@ export type ExpressRouteContext<R extends RouteDefinition> = {
  */
 export type ExpressHandler<R extends RouteDefinition> = (
   ctx: ExpressRouteContext<R>,
-) => Promise<InferResponse<R>> | InferResponse<R>;
+) => Promise<HandlerResult<R>> | HandlerResult<R>;
 
 /**
  * Recursively infer handler types from a route group for Express

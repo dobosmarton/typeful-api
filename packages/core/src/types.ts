@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod';
+import type { z, ZodType } from 'zod';
 
 /**
  * Supported HTTP methods
@@ -93,31 +93,58 @@ export type VersionedRoutes = Record<string, RouteGroup>;
 export type ApiContract = VersionedRoutes;
 
 /**
- * Extract the body type from a route definition
- * Uses NonNullable to handle the optional nature of body
+ * Parsed (output) type of a schema slot, or `never` when the route does not define it.
+ * The tuple wrapper keeps an unset slot (`never` after `NonNullable`) resolving to `never`
+ * instead of `unknown`.
  */
-export type InferBody<R extends RouteDefinition> =
-  NonNullable<R['body']> extends ZodType<infer T> ? T : never;
+type SlotOutput<S> = [S] extends [never] ? never : S extends ZodType ? z.output<S> : never;
 
 /**
- * Extract the query type from a route definition
- * Uses NonNullable to handle the optional nature of query
+ * Raw (input) type of a schema slot, i.e. what a caller sends before defaults and
+ * coercion are applied, or `never` when the route does not define it.
  */
-export type InferQuery<R extends RouteDefinition> =
-  NonNullable<R['query']> extends ZodType<infer T> ? T : never;
+type SlotInput<S> = [S] extends [never] ? never : S extends ZodType ? z.input<S> : never;
 
 /**
- * Extract the params type from a route definition
- * Uses NonNullable to handle the optional nature of params
+ * Extract the parsed body type from a route definition (what handlers receive)
  */
-export type InferParams<R extends RouteDefinition> =
-  NonNullable<R['params']> extends ZodType<infer T> ? T : never;
+export type InferBody<R extends RouteDefinition> = SlotOutput<NonNullable<R['body']>>;
+
+/**
+ * Extract the parsed query type from a route definition (what handlers receive)
+ */
+export type InferQuery<R extends RouteDefinition> = SlotOutput<NonNullable<R['query']>>;
+
+/**
+ * Extract the parsed params type from a route definition (what handlers receive)
+ */
+export type InferParams<R extends RouteDefinition> = SlotOutput<NonNullable<R['params']>>;
 
 /**
  * Extract the response type from a route definition
  */
-export type InferResponse<R extends RouteDefinition> =
-  R['response'] extends ZodType<infer T> ? T : never;
+export type InferResponse<R extends RouteDefinition> = SlotOutput<R['response']>;
+
+/**
+ * Extract the body type a client sends (before defaults and transforms)
+ */
+export type InferBodyInput<R extends RouteDefinition> = SlotInput<NonNullable<R['body']>>;
+
+/**
+ * Extract the query type a client sends (before defaults and coercion)
+ */
+export type InferQueryInput<R extends RouteDefinition> = SlotInput<NonNullable<R['query']>>;
+
+/**
+ * Extract the path params type a client sends (before coercion)
+ */
+export type InferParamsInput<R extends RouteDefinition> = SlotInput<NonNullable<R['params']>>;
+
+/**
+ * What a handler may return: the response body, or the body wrapped with `withHeaders()`
+ */
+export type HandlerResult<R extends RouteDefinition> =
+  InferResponse<R> | WithResponseHeaders<InferResponse<R>, Record<string, string>>;
 
 /**
  * Context object passed to handlers, containing typed request data
@@ -133,7 +160,7 @@ export type RouteContext<R extends RouteDefinition> = {
  */
 export type HandlerFn<R extends RouteDefinition, TContext = unknown> = (
   ctx: TContext & RouteContext<R>,
-) => Promise<InferResponse<R>> | InferResponse<R>;
+) => Promise<HandlerResult<R>> | HandlerResult<R>;
 
 /**
  * Recursively infer handler types from a route group

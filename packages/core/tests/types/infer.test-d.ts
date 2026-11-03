@@ -10,6 +10,7 @@ import type {
   InferParams,
   InferQuery,
   InferResponse,
+  WithResponseHeaders,
 } from '../../src/types';
 
 const Product = z.object({ id: z.string(), price: z.number() });
@@ -67,12 +68,14 @@ describe('handler types', () => {
     },
   });
 
-  it('mirrors the contract tree and types handler input and output', () => {
+  it('mirrors the contract tree and types handler input and output (body or withHeaders)', () => {
     type Handlers = InferHandlers<typeof api>;
     type GetHandler = Handlers['v1']['products']['get'];
 
     expectTypeOf<Parameters<GetHandler>[0]['params']>().toEqualTypeOf<{ id: string }>();
-    expectTypeOf<Awaited<ReturnType<GetHandler>>>().toEqualTypeOf<Product>();
+    expectTypeOf<Awaited<ReturnType<GetHandler>>>().toEqualTypeOf<
+      Product | WithResponseHeaders<Product, Record<string, string>>
+    >();
   });
 
   it('accepts sync and async handlers', () => {

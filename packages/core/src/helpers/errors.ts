@@ -84,7 +84,7 @@ export const internalError = () => errorSchema('INTERNAL_ERROR', 'Internal serve
 /**
  * Map of HTTP status codes to their error schema factories.
  */
-const errorFactories: Record<ErrorStatusCode, () => ZodType> = {
+const errorFactories = {
   400: badRequestError,
   401: unauthorizedError,
   403: forbiddenError,
@@ -93,7 +93,17 @@ const errorFactories: Record<ErrorStatusCode, () => ZodType> = {
   422: unprocessableError,
   429: rateLimitError,
   500: internalError,
-};
+} as const satisfies Record<ErrorStatusCode, () => ZodType>;
+
+/**
+ * The schema type `withErrors()` / `commonErrors()` registers for a status code
+ */
+export type ErrorSchemaFor<C extends ErrorStatusCode> = ReturnType<(typeof errorFactories)[C]>;
+
+/**
+ * Status code → schema map for a set of error status codes
+ */
+export type ErrorSchemas<C extends ErrorStatusCode> = { [K in C]: ErrorSchemaFor<K> };
 
 /**
  * Creates a record of error response schemas keyed by HTTP status code.
@@ -114,8 +124,10 @@ const errorFactories: Record<ErrorStatusCode, () => ZodType> = {
  *   .withErrors(404, 401)
  * ```
  */
-export const commonErrors = (...codes: ErrorStatusCode[]): Record<number, ZodType> => {
+export const commonErrors = <const C extends readonly ErrorStatusCode[]>(
+  ...codes: C
+): ErrorSchemas<C[number]> => {
   return Object.fromEntries(
-    codes.filter((code) => code in errorFactories).map((code) => [code, errorFactories[code]!()]),
-  );
+    codes.filter((code) => code in errorFactories).map((code) => [code, errorFactories[code]()]),
+  ) as ErrorSchemas<C[number]>;
 };

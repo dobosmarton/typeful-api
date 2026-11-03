@@ -7,10 +7,10 @@ import type {
 import type {
   ApiContract,
   AuthConfig,
+  HandlerResult,
   InferBody,
   InferParams,
   InferQuery,
-  InferResponse,
   RouteDefinition,
   RouteGroup,
 } from '@typeful-api/core';
@@ -40,7 +40,7 @@ export type FastifyRouteContext<R extends RouteDefinition> = {
  */
 export type FastifyHandler<R extends RouteDefinition> = (
   ctx: FastifyRouteContext<R>,
-) => Promise<InferResponse<R>> | InferResponse<R>;
+) => Promise<HandlerResult<R>> | HandlerResult<R>;
 
 /**
  * Recursively infer handler types from a route group for Fastify

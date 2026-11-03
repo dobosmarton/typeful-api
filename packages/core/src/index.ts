@@ -44,6 +44,14 @@
 
 // Route builder
 export { route } from './route';
+export type {
+  FinalRoute,
+  InitialRouteState,
+  MergeResponses,
+  RouteBuilder,
+  RouteState,
+  WithRouteState,
+} from './route';
 
 // Contract definition helpers
 export {
@@ -66,12 +74,16 @@ export type {
   AuthType,
   GenerateSpecOptions,
   HandlerFn,
+  HandlerResult,
   HttpMethod,
   InferBody,
+  InferBodyInput,
   InferGroupHandlers,
   InferHandlers,
   InferParams,
+  InferParamsInput,
   InferQuery,
+  InferQueryInput,
   InferResponse,
   OpenApiInfo,
   OpenApiServer,
@@ -114,5 +126,7 @@ export {
   rateLimitError,
   internalError,
   commonErrors,
+  type ErrorSchemaFor,
+  type ErrorSchemas,
   type ErrorStatusCode,
 } from './helpers/errors';
