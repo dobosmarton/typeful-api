@@ -64,9 +64,11 @@ export class ResponseValidationError extends ResponseError {
 export const isResponseError = (value: unknown): value is ResponseError =>
   value instanceof ResponseError;
 
+type SuccessStatus = 200 | 201 | 202 | 203 | 204 | 205 | 206;
+
 /**
- * Returns the body of a 200 response and throws a `ResponseError` for any other status.
- * Handy with data-fetching libraries that expect a value or a thrown error.
+ * Returns the body of a successful (2xx) response and throws a `ResponseError` for any other
+ * status. Handy with data-fetching libraries that expect a value or a thrown error.
  *
  * @example
  * ```ts
@@ -75,7 +77,7 @@ export const isResponseError = (value: unknown): value is ResponseError =>
  */
 export const unwrap = <R extends { status: number; body: unknown; headers: Headers }>(
   response: R,
-): Extract<R, { status: 200 }>['body'] => {
-  if (response.status !== 200) throw new ResponseError(response);
-  return response.body as Extract<R, { status: 200 }>['body'];
+): Extract<R, { status: SuccessStatus }>['body'] => {
+  if (response.status < 200 || response.status > 299) throw new ResponseError(response);
+  return response.body as Extract<R, { status: SuccessStatus }>['body'];
 };

@@ -9,6 +9,16 @@
 
 export { createClient } from './create-client';
 export {
+  createSpecClient,
+  type SpecArgs,
+  type SpecCaller,
+  type SpecClient,
+  type SpecClientOptions,
+  type SpecResponse,
+  type SpecRoute,
+  type SpecRoutes,
+} from './spec-client';
+export {
   ResponseError,
   ResponseValidationError,
   UnexpectedResponseError,

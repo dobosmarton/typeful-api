@@ -3,8 +3,8 @@ import type { ErrorSchemaFor } from '../helpers/errors';
 import type { MergeResponses } from '../route';
 import type { ApiContract } from '../types';
 
-type Simplify<T> = { [K in keyof T]: T[K] } & {};
-type Empty = Record<never, never>;
+export type Simplify<T> = { [K in keyof T]: T[K] } & {};
+export type Empty = Record<never, never>;
 
 type SchemaSlot = 'body' | 'query' | 'params';
 
@@ -28,7 +28,7 @@ type PathParamNames<P extends string> = P extends `${string}:${infer Name}/${inf
     : never;
 
 /** `{ key: T }`, or `{ key?: T }` when every field of T is optional */
-type Optional<K extends string, T> = Empty extends T ? { [P in K]?: T } : { [P in K]: T };
+export type Optional<K extends string, T> = Empty extends T ? { [P in K]?: T } : { [P in K]: T };
 
 type ParamsArg<R> = [Slot<R, 'params'>] extends [never]
   ? string extends PathOf<R>
