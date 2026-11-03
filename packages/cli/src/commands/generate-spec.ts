@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createJiti } from 'jiti';
 import pc from 'picocolors';
 import { generateSpecJson, type ApiContract, type GenerateSpecOptions } from '@typeful-api/core';
+import { watchFile } from '../watch';
 
 type GenerateSpecCommandOptions = {
   contract: string;
@@ -113,20 +114,16 @@ export async function generateSpecCommand(options: GenerateSpecCommandOptions): 
       console.log(pc.yellow('\n👀 Watching for changes...'));
       const contractPath = path.resolve(process.cwd(), options.contract);
 
-      fs.watch(contractPath, async (eventType) => {
-        if (eventType === 'change') {
-          console.log(pc.gray(`\n📝 Contract changed, regenerating...`));
-          try {
-            // Clear module cache for hot reload
-            delete require.cache[contractPath];
-
-            const updatedContract = await loadContract(options.contract);
-            const updatedSpec = generateSpecJson(updatedContract, specOptions, options.pretty);
-            fs.writeFileSync(outPath, updatedSpec, 'utf-8');
-            console.log(pc.green(`✅ Spec regenerated`));
-          } catch (error) {
-            console.error(pc.red(`❌ Error regenerating spec:`), error);
-          }
+      watchFile(contractPath, async () => {
+        console.log(pc.gray(`\n📝 Contract changed, regenerating...`));
+        try {
+          // jiti is created with moduleCache: false, so this re-imports the edited contract
+          const updatedContract = await loadContract(options.contract);
+          const updatedSpec = generateSpecJson(updatedContract, specOptions, options.pretty);
+          fs.writeFileSync(outPath, updatedSpec, 'utf-8');
+          console.log(pc.green(`✅ Spec regenerated`));
+        } catch (error) {
+          console.error(pc.red(`❌ Error regenerating spec:`), error);
         }
       });
     }

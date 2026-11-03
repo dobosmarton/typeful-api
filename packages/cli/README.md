@@ -78,11 +78,11 @@ typeful-api generate-client \
 
 **Options:**
 
-| Flag            | Description                             |
-| --------------- | --------------------------------------- |
-| `--spec <path>` | Path to the OpenAPI spec (JSON or YAML) |
-| `--out <path>`  | Output path for the generated types     |
-| `--watch`       | Watch for changes and regenerate        |
+| Flag            | Description                         |
+| --------------- | ----------------------------------- |
+| `--spec <path>` | Path to the OpenAPI spec (JSON)     |
+| `--out <path>`  | Output path for the generated types |
+| `--watch`       | Watch for changes and regenerate    |
 
 ## Config File
 

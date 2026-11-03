@@ -7,6 +7,11 @@ set -eu
 out="${RUNNER_TEMP:-$(mktemp -d)}/stage-release"
 
 for dir in packages/*/; do
+  if [ "$(node -p "require('./${dir}package.json').private === true")" = "true" ]; then
+    echo "skipping private package in ${dir}"
+    continue
+  fi
+
   name=$(node -p "require('./${dir}package.json').name")
   version=$(node -p "require('./${dir}package.json').version")
 

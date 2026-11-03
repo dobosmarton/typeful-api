@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
+import { watchFile } from '../watch';
 
 type GenerateClientCommandOptions = {
   spec: string;
@@ -67,19 +68,17 @@ export async function generateClientCommand(options: GenerateClientCommandOption
     if (options.watch) {
       console.log(pc.yellow('\n👀 Watching for changes...'));
 
-      fs.watch(specPath, async (eventType) => {
-        if (eventType === 'change') {
-          console.log(pc.gray(`\n🔧 Spec changed, regenerating types...`));
-          try {
-            const updatedSpecContent = fs.readFileSync(specPath, 'utf-8');
-            const updatedSpec = JSON.parse(updatedSpecContent);
-            const updatedAst = await openapiTS(updatedSpec);
-            const updatedOutput = astToString(updatedAst);
-            fs.writeFileSync(outPath, updatedOutput, 'utf-8');
-            console.log(pc.green(`✅ Types regenerated`));
-          } catch (error) {
-            console.error(pc.red(`❌ Error regenerating types:`), error);
-          }
+      watchFile(specPath, async () => {
+        console.log(pc.gray(`\n🔧 Spec changed, regenerating types...`));
+        try {
+          const updatedSpecContent = fs.readFileSync(specPath, 'utf-8');
+          const updatedSpec = JSON.parse(updatedSpecContent);
+          const updatedAst = await openapiTS(updatedSpec);
+          const updatedOutput = astToString(updatedAst);
+          fs.writeFileSync(outPath, updatedOutput, 'utf-8');
+          console.log(pc.green(`✅ Types regenerated`));
+        } catch (error) {
+          console.error(pc.red(`❌ Error regenerating types:`), error);
         }
       });
     }

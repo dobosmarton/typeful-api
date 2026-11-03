@@ -46,7 +46,7 @@ openapi.json
 };
 
 export const getApiTs = (): string => {
-  return `import { defineApi, route, paginationQuery, paginated, notFoundError } from '@typeful-api/core';
+  return `import { defineApi, route, paginationQuery, paginated } from '@typeful-api/core';
 import { z } from 'zod';
 
 // ============================================
