@@ -10,6 +10,6 @@
     "noUncheckedIndexedAccess": true,
     "types": ["@cloudflare/workers-types"]
   },
-  "include": ["src/**/*", "scripts/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }

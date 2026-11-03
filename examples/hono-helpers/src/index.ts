@@ -147,121 +147,139 @@ const cursorPaginate = <T extends { id: string; createdAt: string }>(
 // Router
 // ============================================
 
-const router = createHonoRouter(api, {
-  v1: {
-    health: async () => ({ status: 'ok' as const }),
+const router = createHonoRouter(
+  api,
+  {
+    v1: {
+      health: async () => ({ status: 'ok' as const }),
 
-    articles: {
-      list: async ({ query }) => {
-        const { page, limit, sortBy, sortOrder } = query;
+      articles: {
+        list: async ({ query }) => {
+          const { page, limit, sortBy, sortOrder } = query;
 
-        // Sort
-        const sorted = [...articles].sort((a, b) => {
-          const field = sortBy ?? 'createdAt';
-          const aVal = a[field];
-          const bVal = b[field];
-          const cmp = String(aVal).localeCompare(String(bVal));
-          return sortOrder === 'desc' ? -cmp : cmp;
-        });
-
-        // Paginate
-        const start = (page - 1) * limit;
-        const pageItems = sorted.slice(start, start + limit);
-
-        return {
-          items: pageItems,
-          total: articles.length,
-          page,
-          limit,
-          totalPages: Math.ceil(articles.length / limit),
-        };
-      },
-
-      get: async ({ params }) => {
-        const article = articles.find((a) => a.id === params.id);
-        if (!article) throw new HttpError(404, 'Article not found');
-        return article;
-      },
-
-      create: async ({ body }) => {
-        // Check for duplicate title
-        const existing = articles.find((a) => a.title.toLowerCase() === body.title.toLowerCase());
-        if (existing) {
-          throw new HttpError(409, {
-            code: 'DUPLICATE_TITLE',
-            detail: 'An article with this title already exists',
+          // Sort
+          const sorted = [...articles].sort((a, b) => {
+            const field = sortBy ?? 'createdAt';
+            const aVal = a[field];
+            const bVal = b[field];
+            const cmp = String(aVal).localeCompare(String(bVal));
+            return sortOrder === 'desc' ? -cmp : cmp;
           });
-        }
 
-        const article: Article = {
-          id: randomUUID(),
-          slug: toSlug(body.title),
-          publishedAt: body.status === 'published' ? new Date().toISOString() : null,
-          createdAt: new Date().toISOString(),
-          ...body,
-        };
+          // Paginate
+          const start = (page - 1) * limit;
+          const pageItems = sorted.slice(start, start + limit);
 
-        articles.push(article);
-        return article;
+          return {
+            items: pageItems,
+            total: articles.length,
+            page,
+            limit,
+            totalPages: Math.ceil(articles.length / limit),
+          };
+        },
+
+        get: async ({ params }) => {
+          const article = articles.find((a) => a.id === params.id);
+          if (!article) throw new HttpError(404, 'Article not found');
+          return article;
+        },
+
+        create: async ({ body }) => {
+          // Check for duplicate title
+          const existing = articles.find((a) => a.title.toLowerCase() === body.title.toLowerCase());
+          if (existing) {
+            throw new HttpError(409, {
+              code: 'DUPLICATE_TITLE',
+              detail: 'An article with this title already exists',
+            });
+          }
+
+          const article: Article = {
+            id: randomUUID(),
+            slug: toSlug(body.title),
+            publishedAt: body.status === 'published' ? new Date().toISOString() : null,
+            createdAt: new Date().toISOString(),
+            ...body,
+          };
+
+          articles.push(article);
+          return article;
+        },
+
+        update: async ({ params, body }) => {
+          const index = articles.findIndex((a) => a.id === params.id);
+          if (index === -1) throw new HttpError(404, 'Article not found');
+          if (body.title) {
+            const title = body.title.toLowerCase();
+            const taken = articles.some(
+              (a) => a.id !== params.id && a.title.toLowerCase() === title,
+            );
+            if (taken) {
+              throw new HttpError(409, {
+                code: 'DUPLICATE_TITLE',
+                detail: 'An article with this title already exists',
+              });
+            }
+          }
+
+          const current = articles[index]!;
+          const updated: Article = {
+            ...current,
+            ...body,
+            slug: body.title ? toSlug(body.title) : current.slug,
+            publishedAt:
+              body.status === 'published' && !current.publishedAt
+                ? new Date().toISOString()
+                : current.publishedAt,
+          };
+
+          articles[index] = updated;
+          return updated;
+        },
+
+        delete: async ({ params }) => {
+          const index = articles.findIndex((a) => a.id === params.id);
+          if (index === -1) throw new HttpError(404, 'Article not found');
+          articles.splice(index, 1);
+          return { success: true };
+        },
       },
 
-      update: async ({ params, body }) => {
-        const index = articles.findIndex((a) => a.id === params.id);
-        if (index === -1) throw new HttpError(404, 'Article not found');
+      comments: {
+        feed: async ({ query }) => {
+          return cursorPaginate(comments, query.cursor, query.limit);
+        },
 
-        const current = articles[index]!;
-        const updated: Article = {
-          ...current,
-          ...body,
-          slug: body.title ? toSlug(body.title) : current.slug,
-          publishedAt:
-            body.status === 'published' && !current.publishedAt
-              ? new Date().toISOString()
-              : current.publishedAt,
-        };
+        byArticle: async ({ params, query }) => {
+          const article = articles.find((a) => a.id === params.articleId);
+          if (!article) throw new HttpError(404, 'Article not found');
 
-        articles[index] = updated;
-        return updated;
-      },
+          const articleComments = comments.filter((c) => c.articleId === params.articleId);
+          return cursorPaginate(articleComments, query.cursor, query.limit);
+        },
 
-      delete: async ({ params }) => {
-        const index = articles.findIndex((a) => a.id === params.id);
-        if (index === -1) throw new HttpError(404, 'Article not found');
-        articles.splice(index, 1);
-        return { success: true };
-      },
-    },
+        create: async ({ params, body }) => {
+          const article = articles.find((a) => a.id === params.articleId);
+          if (!article) throw new HttpError(404, 'Article not found');
 
-    comments: {
-      feed: async ({ query }) => {
-        return cursorPaginate(comments, query.cursor, query.limit);
-      },
+          const comment: Comment = {
+            id: randomUUID(),
+            articleId: params.articleId,
+            createdAt: new Date().toISOString(),
+            ...body,
+          };
 
-      byArticle: async ({ params, query }) => {
-        const article = articles.find((a) => a.id === params.articleId);
-        if (!article) throw new HttpError(404, 'Article not found');
-
-        const articleComments = comments.filter((c) => c.articleId === params.articleId);
-        return cursorPaginate(articleComments, query.cursor, query.limit);
-      },
-
-      create: async ({ params, body }) => {
-        const article = articles.find((a) => a.id === params.articleId);
-        if (!article) throw new HttpError(404, 'Article not found');
-
-        const comment: Comment = {
-          id: randomUUID(),
-          articleId: params.articleId,
-          createdAt: new Date().toISOString(),
-          ...body,
-        };
-
-        comments.push(comment);
-        return comment;
+          comments.push(comment);
+          return comment;
+        },
       },
     },
   },
-});
+  {
+    docsConfig: { info: { title: 'Hono Helpers Example API', version: '1.0.0' } },
+  },
+);
 
 // ============================================
 // App

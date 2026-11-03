@@ -124,6 +124,7 @@ export const api = defineApi({
             .returns(ArticleSchema)
             .withAuth('bearer')
             .withErrors(404, 401)
+            .withResponses({ 409: DuplicateTitleError })
             .withSummary('Update an article')
             .withTags('articles'),
 
@@ -167,7 +168,7 @@ export const api = defineApi({
             .params(ArticleIdParamsSchema)
             .body(CreateCommentSchema.omit({ articleId: true }))
             .returns(CommentSchema)
-            .withErrors(404, 401)
+            .withErrors(404)
             .withSummary('Add a comment to an article')
             .withTags('comments'),
         },

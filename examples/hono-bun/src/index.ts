@@ -1,7 +1,7 @@
 /**
  * Hono Bun Example
  *
- * A complete example demonstrating typi with Hono on Bun runtime.
+ * A complete example demonstrating typeful-api with Hono on the Bun runtime.
  * This example uses the simplified API without Cloudflare bindings.
  *
  * Run with: bun run dev
@@ -30,7 +30,7 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'TypeScript Handbook',
     description: 'Complete guide to TypeScript',
-    price: 29.99,
+    price: 2999,
     inStock: true,
     createdAt: new Date().toISOString(),
   },
@@ -38,7 +38,7 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Bun in Action',
     description: 'Learn Bun the fast way',
-    price: 34.99,
+    price: 3499,
     inStock: true,
     createdAt: new Date().toISOString(),
   },

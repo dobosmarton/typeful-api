@@ -1,7 +1,7 @@
 /**
  * Hono Docker Example
  *
- * A production-ready example demonstrating typi with Hono in Docker.
+ * A production-ready example demonstrating typeful-api with Hono in Docker.
  * This example uses the simplified API without Cloudflare bindings.
  *
  * Build: docker build -t hono-docker-example .
@@ -34,7 +34,7 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'TypeScript Handbook',
     description: 'Complete guide to TypeScript',
-    price: 29.99,
+    price: 2999,
     inStock: true,
     createdAt: new Date().toISOString(),
   },
@@ -42,7 +42,7 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Docker in Practice',
     description: 'Containerization made simple',
-    price: 44.99,
+    price: 4499,
     inStock: true,
     createdAt: new Date().toISOString(),
   },

@@ -1,51 +1,39 @@
-# Build stage
+# Builds this example from inside the typeful-api monorepo. Run from the repository root:
+#
+#   docker build -f examples/hono-docker/Dockerfile -t hono-docker-example .
+#
+# (or `pnpm docker:build` in this folder). The repository root is the build context because the
+# example depends on the workspace's @typeful-api packages and lockfile. In your own project,
+# where @typeful-api/* come from npm, the build stage is just `pnpm install` and `pnpm build`.
+
+# Build stage: install and build the example and the packages it depends on, then collect it
+# with its production dependencies in /deploy
 FROM node:26-alpine AS builder
 
-WORKDIR /app
+# Corepack is no longer bundled with Node.js 25+; use the repository's pnpm version
+RUN npm install -g pnpm@10.34.9
 
-# Install pnpm (corepack is no longer bundled with Node.js 25+)
-RUN npm install -g pnpm@10
+WORKDIR /repo
+COPY . .
 
-# Copy package files
-COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile --filter "hono-docker-example..."
+RUN pnpm --filter "hono-docker-example..." build
+RUN pnpm --filter hono-docker-example deploy --prod --legacy /deploy
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy source files
-COPY tsconfig.json ./
-COPY src ./src
-
-# Build the application
-RUN pnpm build
-
-# Production stage
+# Runtime stage: only the built app and its production dependencies
 FROM node:26-alpine AS runner
 
 WORKDIR /app
+COPY --from=builder /deploy ./
 
-# Install pnpm (corepack is no longer bundled with Node.js 25+)
-RUN npm install -g pnpm@10
-
-# Copy package files
-COPY package.json pnpm-lock.yaml* ./
-
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
-
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
-
-# Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Expose port
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1
 
-# Run the application
+USER node
+
 CMD ["node", "dist/index.js"]

@@ -4,11 +4,14 @@
   "private": true,
   "description": "Hono + Docker example using typeful-api",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsup src/index.ts --format esm --dts --clean",
     "start": "node dist/index.js",
-    "docker:build": "docker build -t hono-docker-example .",
+    "docker:build": "docker build -f Dockerfile -t hono-docker-example ../..",
     "docker:run": "docker run -p 3000:3000 hono-docker-example",
     "generate": "pnpm generate:spec && pnpm generate:client",
     "generate:spec": "typeful-api generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Docker Example API' --api-version '1.0.0'",

@@ -1,7 +1,7 @@
 /**
- * Hono Basic Example
+ * Hono Cloudflare Workers Example
  *
- * A complete example demonstrating typi with Hono.
+ * A complete example demonstrating typeful-api with Hono on Cloudflare Workers.
  * This example includes:
  * - Type-safe route handlers
  * - Middleware composition
@@ -18,8 +18,9 @@ import { api, type Product } from './api';
 // Environment Types
 // ============================================
 
+// Bindings from wrangler.toml, typed for every handler (c.env)
 type Env = {
-  JWT_SECRET: string;
+  ENVIRONMENT: string;
 };
 
 type BaseEnv = { Bindings: Env };
@@ -40,7 +41,7 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'TypeScript Handbook',
     description: 'Complete guide to TypeScript',
-    price: 29.99,
+    price: 2999,
     inStock: true,
     createdAt: new Date().toISOString(),
   },
@@ -48,7 +49,7 @@ const products: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Node.js in Action',
     description: 'Learn Node.js the practical way',
-    price: 39.99,
+    price: 3999,
     inStock: true,
     createdAt: new Date().toISOString(),
   },
@@ -175,8 +176,9 @@ app.route('/api', router);
 // Root endpoint
 app.get('/', (c) => {
   return c.json({
-    name: 'Hono Basic Example',
+    name: 'Hono Cloudflare Workers Example',
     version: '1.0.0',
+    environment: c.env.ENVIRONMENT,
     docs: '/api/api-doc',
   });
 });

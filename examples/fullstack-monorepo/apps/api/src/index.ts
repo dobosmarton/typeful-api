@@ -1,7 +1,7 @@
 /**
  * Fullstack Monorepo API Server
  *
- * A Hono API server demonstrating typi with type-safe routes.
+ * A Hono API server demonstrating typeful-api with type-safe routes.
  * This API serves as the backend for the React + TanStack Query frontend.
  *
  * Run with: pnpm dev

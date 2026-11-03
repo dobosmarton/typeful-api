@@ -1,0 +1,12 @@
+# The build context is the repository root (see Dockerfile). BuildKit uses this file
+# because it sits next to the Dockerfile and has the Dockerfile's name.
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/tests/.generated
+**/.env*
+**/.DS_Store
+**/*.md
+.git
+blog

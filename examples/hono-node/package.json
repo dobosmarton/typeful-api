@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "build": "tsup src/index.ts --format esm --dts",
     "generate": "pnpm generate:spec && pnpm generate:client",
-    "generate:spec": "typeful-api generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Node Example API' --api-version '1.0.0'",
+    "generate:spec": "typeful-api generate-spec --contract ./src/api.ts --out ./openapi.json --title 'Hono Node.js Example API' --api-version '1.0.0'",
     "generate:client": "typeful-api generate-client --spec ./openapi.json --out ./src/api.generated.d.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -6,7 +6,7 @@
  *
  * Type flow: api.ts (contract) → types.ts (derived types) → handlers/*.ts (typed handlers)
  *
- * Run with: npm run dev
+ * Run with: pnpm dev
  */
 
 import { serve } from '@hono/node-server';
@@ -28,7 +28,7 @@ const initialProducts: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'TypeScript Handbook',
     description: 'Complete guide to TypeScript',
-    price: 29.99,
+    price: 2999,
     inStock: true,
     createdAt: new Date().toISOString(),
   },
@@ -36,7 +36,7 @@ const initialProducts: Product[] = [
     id: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Node.js in Action',
     description: 'Learn Node.js the practical way',
-    price: 39.99,
+    price: 3999,
     inStock: true,
     createdAt: new Date().toISOString(),
   },
