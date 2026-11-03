@@ -1,0 +1,25 @@
+{
+  "name": "@example/orders-service",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Orders service (Hono): owns orders and publishes its API at /api/api-doc",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "@hono/zod-openapi": "^1.6.3",
+    "@typeful-api/core": "workspace:*",
+    "@typeful-api/hono": "workspace:*",
+    "hono": "^4.13.16",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,3 @@
+# Written by `typeful-api generate-client`: regenerate instead of reformatting, so CI can
+# check the committed clients against the services they call
+examples/microservices/checkout-service/src/clients/

@@ -3,3 +3,4 @@ packages:
   - "examples/*"
   - "examples/fullstack-monorepo/apps/*"
   - "examples/fullstack-monorepo/packages/*"
+  - "examples/microservices/*"

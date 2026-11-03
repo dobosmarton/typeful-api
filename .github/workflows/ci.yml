@@ -86,3 +86,7 @@ jobs:
 
       - name: Typecheck examples
         run: pnpm --filter './examples/*' typecheck
+
+      # Starts the example orders service and fails if checkout's generated client is out of date
+      - name: Check generated example clients
+        run: pnpm --filter microservices-example check:clients

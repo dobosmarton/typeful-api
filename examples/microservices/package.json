@@ -1,0 +1,15 @@
+{
+  "name": "microservices-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Two services that only share an OpenAPI document: checkout calls orders through a client generated from orders' /api-doc",
+  "type": "module",
+  "scripts": {
+    "dev:orders": "pnpm --filter @example/orders-service dev",
+    "dev:checkout": "pnpm --filter @example/checkout-service dev",
+    "dev": "pnpm dev:orders & pnpm dev:checkout",
+    "generate": "pnpm --filter @example/checkout-service generate:clients",
+    "check:clients": "node scripts/check-clients.mjs",
+    "typecheck": "pnpm --filter @example/orders-service typecheck && pnpm --filter @example/checkout-service typecheck"
+  }
+}
