@@ -358,7 +358,7 @@ importers:
   packages/cli:
     dependencies:
       '@typeful-api/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       cac:
         specifier: ^7.1.0
@@ -423,7 +423,7 @@ importers:
   packages/express:
     dependencies:
       '@typeful-api/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@types/express':
@@ -457,7 +457,7 @@ importers:
   packages/fastify:
     dependencies:
       '@typeful-api/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@types/node':
@@ -491,7 +491,7 @@ importers:
         specifier: ^1.6.3
         version: 1.6.3(hono@4.13.16)(zod@4.6.7)
       '@typeful-api/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@types/node':

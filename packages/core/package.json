@@ -1,6 +1,6 @@
 {
   "name": "@typeful-api/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Framework-agnostic core for typesafe OpenAPI-first APIs",
   "type": "module",
   "main": "./dist/index.js",

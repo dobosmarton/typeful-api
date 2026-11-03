@@ -1,6 +1,6 @@
 {
   "name": "@typeful-api/hono",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Hono adapter for typeful-api - works on Node.js, Cloudflare Workers, Deno, Bun, and more",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",
-    "@typeful-api/core": "workspace:*"
+    "@typeful-api/core": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

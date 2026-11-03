@@ -1,6 +1,6 @@
 {
   "name": "@typeful-api/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "CLI for generating OpenAPI specs and client types from typeful-api contracts",
   "type": "module",
   "main": "./dist/index.js",
@@ -28,7 +28,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@typeful-api/core": "workspace:*",
+    "@typeful-api/core": "workspace:^",
     "cac": "^7.1.0",
     "jiti": "^2.7.0",
     "openapi-typescript": "^7.13.0",

@@ -1,6 +1,6 @@
 {
   "name": "@typeful-api/fastify",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Fastify adapter for typeful-api",
   "type": "module",
   "main": "./dist/index.js",
@@ -26,7 +26,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@typeful-api/core": "workspace:*"
+    "@typeful-api/core": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
