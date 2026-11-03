@@ -75,7 +75,15 @@ describe('auth enforcement', () => {
     it('rejects a missing bearer token', async () => {
       const res = await request(createRouter(), 'GET', '/v1/protected/bearer');
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ code: 'UNAUTHORIZED', message: 'Missing credentials' });
+      expect(res.headers.get('content-type')).toBe('application/problem+json');
+      expect(res.headers.get('www-authenticate')).toBe('Bearer');
+      expect(await res.json()).toEqual({
+        type: 'about:blank',
+        title: 'Unauthorized',
+        status: 401,
+        code: 'UNAUTHORIZED',
+        detail: 'Missing credentials',
+      });
     });
 
     it('rejects an invalid bearer token', async () => {
@@ -83,7 +91,11 @@ describe('auth enforcement', () => {
         headers: { Authorization: 'Bearer invalid-token' },
       });
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ code: 'UNAUTHORIZED', message: 'Authentication failed' });
+      expect(await res.json()).toMatchObject({
+        status: 401,
+        code: 'UNAUTHORIZED',
+        detail: 'Authentication failed',
+      });
     });
   });
 

@@ -83,6 +83,7 @@ export {
 export type {
   CreateHonoRouterOptions,
   HonoHandler,
+  HonoValidationErrorHandler,
   HonoRouteContext,
   InferHonoGroupHandlers,
   InferHonoHandlers,
@@ -96,4 +97,11 @@ export type {
 } from './types';
 
 // Re-export core types for convenience
-export type { ApiContract, RouteDefinition, RouteGroup } from '@typeful-api/core';
+export type {
+  ApiContract,
+  ProblemDetails,
+  RouteDefinition,
+  RouteGroup,
+  ValidationError,
+} from '@typeful-api/core';
+export { HttpError } from '@typeful-api/core';

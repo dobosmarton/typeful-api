@@ -8,6 +8,7 @@ import type {
   InferQuery,
   RouteDefinition,
   RouteGroup,
+  ValidationError,
 } from '@typeful-api/core';
 
 /**
@@ -188,6 +189,15 @@ export type InferHonoHandlersWithVars<C extends ApiContract, V extends Record<st
 };
 
 /**
+ * Called when request validation fails; return the response to send instead of the default
+ * 422 Problem Details response
+ */
+export type HonoValidationErrorHandler = (
+  error: ValidationError,
+  c: Context,
+) => Response | Promise<Response>;
+
+/**
  * Options for creating a Hono router
  */
 export type CreateHonoRouterOptions = {
@@ -205,6 +215,12 @@ export type CreateHonoRouterOptions = {
    * Auth configuration for runtime enforcement of route-level auth types
    */
   auth?: AuthConfig;
+
+  /**
+   * Replace the default response for requests that fail validation, which is a 422
+   * `application/problem+json` body (`error.problem`). Return the response to send.
+   */
+  onValidationError?: HonoValidationErrorHandler;
 
   /**
    * Whether to register OpenAPI documentation routes

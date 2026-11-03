@@ -131,7 +131,7 @@ describe('createHonoRouter', () => {
       expect(body.price).toBe(29.99);
     });
 
-    it('returns 400 for invalid body', async () => {
+    it('returns a 422 problem for an invalid body', async () => {
       const router = createHonoRouter(fullContract, {
         v1: {
           products: {
@@ -161,7 +161,18 @@ describe('createHonoRouter', () => {
         body: { name: '', price: -10 }, // Invalid: empty name, negative price
       });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
+      expect(res.headers.get('content-type')).toBe('application/problem+json');
+      const problem = await res.json();
+      expect(problem).toMatchObject({
+        type: 'about:blank',
+        title: 'Unprocessable Content',
+        status: 422,
+        code: 'VALIDATION_FAILED',
+        detail: 'Invalid request body',
+      });
+      expect(problem.errors.map((e: { path: string[] }) => e.path)).toEqual([['name'], ['price']]);
+      expect(problem.errors[0].location).toBe('body');
     });
 
     it('handles PUT requests with body', async () => {
@@ -323,7 +334,7 @@ describe('createHonoRouter', () => {
       expect(body[0].name).toBe('Page 1, Limit 10');
     });
 
-    it('returns 400 for invalid query parameters', async () => {
+    it('returns a 422 problem for invalid query parameters', async () => {
       const router = createHonoRouter(fullContract, {
         v1: {
           products: {
@@ -348,7 +359,11 @@ describe('createHonoRouter', () => {
 
       // limit > 100 should fail
       const res = await request(router, 'GET', '/v1/products?limit=500');
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
+      expect(await res.json()).toMatchObject({
+        detail: 'Invalid query parameters',
+        errors: [{ location: 'query', path: ['limit'] }],
+      });
     });
   });
 
@@ -386,7 +401,7 @@ describe('createHonoRouter', () => {
       expect(body.id).toBe('550e8400-e29b-41d4-a716-446655440000');
     });
 
-    it('returns 400 for invalid path parameters', async () => {
+    it('returns a 422 problem for invalid path parameters', async () => {
       const router = createHonoRouter(fullContract, {
         v1: {
           products: {
@@ -415,7 +430,11 @@ describe('createHonoRouter', () => {
 
       // Invalid UUID format
       const res = await request(router, 'GET', '/v1/products/not-a-uuid');
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
+      expect(await res.json()).toMatchObject({
+        detail: 'Invalid path parameters',
+        errors: [{ location: 'params', path: ['id'] }],
+      });
     });
   });
 

@@ -4,17 +4,22 @@ import type {
   ApiContract,
   AuthConfig,
   AuthType,
+  RequestLocation,
   RouteDefinition,
   RouteGroup,
 } from '@typeful-api/core';
 import {
+  HttpError,
+  createAuthenticator,
+  isHttpError,
   isWithHeaders,
-  extractBearerToken,
-  extractApiKey,
-  extractBasicCredentials,
+  problemResponse,
+  resolveRouteResponses,
+  toValidationError,
 } from '@typeful-api/core';
-import type { Context, Env, MiddlewareHandler } from 'hono';
-import type { ZodObject } from 'zod';
+import type { Context, Env, ErrorHandler, MiddlewareHandler, ValidationTargets } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import type { ZodError, ZodObject } from 'zod';
 import type {
   CreateHonoRouterOptions,
   DefaultEnv,
@@ -26,52 +31,57 @@ import type {
 } from './types';
 
 /**
- * Extract credentials from a Hono context based on auth type.
- */
-function extractCredentials(authType: AuthType, c: Context): Record<string, unknown> | null {
-  const authHeader = c.req.header('Authorization');
-  const extractors: Record<string, () => Record<string, unknown> | null> = {
-    bearer: () => {
-      const token = extractBearerToken(authHeader);
-      return token ? { token } : null;
-    },
-    apiKey: () => {
-      const key = extractApiKey(c.req.header('X-API-Key'));
-      return key ? { key } : null;
-    },
-    basic: () => extractBasicCredentials(authHeader),
-  };
-  return extractors[authType]?.() ?? null;
-}
-
-/**
  * Create a Hono middleware that enforces auth for a route.
  */
 function createAuthMiddleware(
   authType: AuthType,
   authConfig: AuthConfig,
 ): MiddlewareHandler | null {
-  if (authType === 'none') return null;
-  const verifyFn = authConfig[authType];
-  if (!verifyFn) return null;
+  const authenticate = createAuthenticator(authType, authConfig);
+  if (!authenticate) return null;
 
   return async (c, next) => {
-    try {
-      const credentials = extractCredentials(authType, c);
-      if (!credentials) {
-        return c.json({ code: 'UNAUTHORIZED', message: 'Missing credentials' }, 401);
-      }
-      const user = await verifyFn(credentials as never);
-      c.set('authUser' as never, user as never);
-      await next();
-    } catch (error) {
-      if (authConfig.onError) {
-        await authConfig.onError(error, authType);
-      }
-      return c.json({ code: 'UNAUTHORIZED', message: 'Authentication failed' }, 401);
-    }
+    const result = await authenticate((name) => c.req.header(name));
+    if (!result.ok) return result.error.getResponse();
+    c.set('authUser' as never, result.user as never);
+    await next();
   };
 }
+
+const validationTargets: Partial<Record<keyof ValidationTargets, RequestLocation>> = {
+  json: 'body',
+  query: 'query',
+  param: 'params',
+};
+
+type ValidationResult = { target: keyof ValidationTargets } & (
+  { success: true; data: unknown } | { success: false; error: ZodError }
+);
+
+/**
+ * Validation hook passed to `openapi()`: turns a failed validation into a 422 problem, or
+ * into whatever the `onValidationError` option returns.
+ */
+const createValidationHook =
+  (onValidationError: CreateHonoRouterOptions['onValidationError']) =>
+  (result: ValidationResult, c: Context): Response | Promise<Response> | undefined => {
+    if (result.success) return undefined;
+    const error = toValidationError(validationTargets[result.target] ?? 'body', result.error);
+    return onValidationError ? onValidationError(error, c) : problemResponse(error.problem);
+  };
+
+/**
+ * Error handler installed on every version app. It turns `HttpError`s, and Hono's own 4xx
+ * `HTTPException`s (malformed JSON, unsupported media type), into Problem Details. Anything else
+ * is rethrown so it reaches the parent app's error handler (yours, or Hono's default).
+ */
+const problemErrorHandler: ErrorHandler = (error) => {
+  if (isHttpError(error)) return error.getResponse();
+  if (error instanceof HTTPException && !error.res && error.status >= 400) {
+    return new HttpError(error.status, { detail: error.message || undefined }).getResponse();
+  }
+  throw error;
+};
 
 function toRouteConfig(
   route: RouteDefinition,
@@ -84,16 +94,12 @@ function toRouteConfig(
   const config: RouteConfig = {
     method: route.method,
     path: normalizedPath.replace(/\/$/, '') || '/',
-    responses: {
-      200: {
-        description: 'Successful response',
-        content: {
-          'application/json': {
-            schema: route.response,
-          },
-        },
-      },
-    },
+    responses: Object.fromEntries(
+      resolveRouteResponses(route).map(({ status, description, mediaType, schema }) => [
+        status,
+        { description, content: { [mediaType]: { schema } } },
+      ]),
+    ),
   };
 
   // Request body
@@ -159,20 +165,6 @@ function toRouteConfig(
     config.security = [{ [schemeName]: [] }];
   }
 
-  // Additional responses
-  if (route.responses) {
-    for (const [code, schema] of Object.entries(route.responses)) {
-      config.responses[code] = {
-        description: `Response ${code}`,
-        content: {
-          'application/json': {
-            schema,
-          },
-        },
-      };
-    }
-  }
-
   return config;
 }
 
@@ -210,6 +202,8 @@ const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
   if (handlers.middlewares?.length) {
     target.use(...handlers.middlewares);
   }
+
+  const validationHook = createValidationHook(options.onValidationError);
 
   // Register routes (leaves)
   if (group.routes) {
@@ -255,7 +249,11 @@ const applyGroupHandlers = <E extends Env, H extends HonoGroupHandlers>(
           ? createAuthMiddleware(route.auth, options.auth)
           : null;
 
-      target.openapi(authMw ? { ...routeConfig, middleware: authMw } : routeConfig, wrappedHandler);
+      target.openapi(
+        authMw ? { ...routeConfig, middleware: authMw } : routeConfig,
+        wrappedHandler,
+        validationHook,
+      );
     }
   }
 
@@ -443,6 +441,8 @@ export function createHonoRouter(
       );
     }
 
+    // Must be set before mounting: route() captures the sub-app's error handler
+    versionApp.onError(problemErrorHandler);
     app.route(`/${version}`, versionApp);
   }
 
