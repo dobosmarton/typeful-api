@@ -114,9 +114,38 @@ export { extractBearerToken, extractApiKey, extractBasicCredentials } from './he
 // Response header helpers
 export { withHeaders, isWithHeaders } from './helpers/headers';
 
-// Error response helpers
+// Errors and RFC 9457 Problem Details
+export { HttpError, isHttpError, type HttpErrorInit } from './errors/http-error';
 export {
-  errorSchema,
+  PROBLEM_CONTENT_TYPE,
+  createProblem,
+  fieldErrorSchema,
+  problemResponse,
+  problemSchema,
+  type FieldError,
+  type ProblemDetails,
+  type ProblemInit,
+  type RequestLocation,
+} from './helpers/problem';
+
+// For adapter authors: shared request handling used by the official adapters
+export {
+  isProblemSchema,
+  resolveRouteResponses,
+  routeHasInput,
+  routeRequiresAuth,
+  type ResolvedResponse,
+} from './responses';
+export { toValidationError, type ValidationError } from './server/validation';
+export {
+  createAuthenticator,
+  type AuthResult,
+  type Authenticator,
+  type HeaderReader,
+} from './server/authenticate';
+
+// Error response schemas
+export {
   badRequestError,
   unauthorizedError,
   forbiddenError,

@@ -5,7 +5,7 @@
  * - paginationQuery() + sortQuery()  → offset pagination with sorting
  * - cursorQuery() + cursorPaginated() → cursor-based pagination
  * - paginated()                       → standard paginated response envelope
- * - errorSchema()                     → custom error types
+ * - problemSchema()                   → custom Problem Details error types
  * - withErrors()                      → typed HTTP error responses
  * - conflictError()                   → pre-built error factories
  */
@@ -18,7 +18,7 @@ import {
   sortQuery,
   paginated,
   cursorPaginated,
-  errorSchema,
+  problemSchema,
   conflictError,
 } from '@typeful-api/core';
 import { z } from 'zod';
@@ -60,11 +60,8 @@ export const CreateCommentSchema = CommentSchema.omit({
   createdAt: true,
 });
 
-// Custom error type — demonstrates errorSchema() for domain-specific errors
-export const DuplicateTitleError = errorSchema(
-  'DUPLICATE_TITLE',
-  'An article with this title already exists',
-);
+// Custom error type — demonstrates problemSchema() for domain-specific errors
+export const DuplicateTitleError = problemSchema(409, 'DUPLICATE_TITLE');
 
 export const IdParamsSchema = z.object({
   id: z.uuid().describe('Resource ID'),

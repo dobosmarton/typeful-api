@@ -1,85 +1,41 @@
 import { z, type ZodType } from 'zod';
+import { fieldErrorSchema, problemSchema } from './problem';
 
 /**
  * Supported HTTP error status codes for the `commonErrors()` and `withErrors()` helpers
  */
 export type ErrorStatusCode = 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500;
 
-/**
- * Options for custom error schema creation
- */
-type ErrorSchemaOptions = {
-  /** Schema for additional error details */
-  details?: ZodType;
-};
+const fieldErrors = () =>
+  z.array(fieldErrorSchema).optional().describe('Field-level problems, one per invalid value');
 
-/**
- * Creates a standard error response schema with a literal error code.
- * Using `z.literal()` for the code field enables discriminated unions
- * in generated client types and precise `enum` values in OpenAPI specs.
- *
- * @example
- * ```ts
- * const NotFoundSchema = errorSchema('NOT_FOUND', 'Resource not found');
- * // { code: 'NOT_FOUND', message: string }
- *
- * const ValidationSchema = errorSchema('VALIDATION_ERROR', 'Invalid input', {
- *   details: z.array(z.object({ field: z.string(), message: z.string() })),
- * });
- * // { code: 'VALIDATION_ERROR', message: string, details?: [...] }
- * ```
- */
-export const errorSchema = <TCode extends string>(
-  code: TCode,
-  defaultMessage?: string,
-  options?: ErrorSchemaOptions,
-) => {
-  const base = {
-    code: z.literal(code).describe('Machine-readable error code'),
-    message: z.string().describe(defaultMessage ?? 'Human-readable error message'),
-  };
+// Each schema documents the RFC 9457 Problem Details body adapters send for that status.
+// The codes match what `new HttpError(status)` uses by default.
 
-  if (options?.details) {
-    return z.object({
-      ...base,
-      details: options.details.optional().describe('Additional error details'),
-    });
-  }
-
-  return z.object(base);
-};
-
-/** 400 Bad Request — validation or malformed request */
-export const badRequestError = () =>
-  errorSchema('BAD_REQUEST', 'Bad request', {
-    details: z.array(
-      z.object({
-        field: z.string().optional().describe('Field that failed validation'),
-        message: z.string().describe('Validation error message'),
-      }),
-    ),
-  });
+/** 400 Bad Request — malformed request (for example invalid JSON) */
+export const badRequestError = () => problemSchema(400, 'BAD_REQUEST', { errors: fieldErrors() });
 
 /** 401 Unauthorized — missing or invalid authentication */
-export const unauthorizedError = () => errorSchema('UNAUTHORIZED', 'Authentication required');
+export const unauthorizedError = () => problemSchema(401, 'UNAUTHORIZED');
 
 /** 403 Forbidden — insufficient permissions */
-export const forbiddenError = () => errorSchema('FORBIDDEN', 'Insufficient permissions');
+export const forbiddenError = () => problemSchema(403, 'FORBIDDEN');
 
 /** 404 Not Found — resource does not exist */
-export const notFoundError = () => errorSchema('NOT_FOUND', 'Resource not found');
+export const notFoundError = () => problemSchema(404, 'NOT_FOUND');
 
 /** 409 Conflict — resource state conflict */
-export const conflictError = () => errorSchema('CONFLICT', 'Resource conflict');
+export const conflictError = () => problemSchema(409, 'CONFLICT');
 
-/** 422 Unprocessable Entity — semantically invalid request */
-export const unprocessableError = () => errorSchema('UNPROCESSABLE_ENTITY', 'Unprocessable entity');
+/** 422 Unprocessable Content — request validation failed; `errors` lists each problem */
+export const unprocessableError = () =>
+  problemSchema(422, 'VALIDATION_FAILED', { errors: fieldErrors() });
 
 /** 429 Too Many Requests — rate limit exceeded */
-export const rateLimitError = () => errorSchema('RATE_LIMIT_EXCEEDED', 'Too many requests');
+export const rateLimitError = () => problemSchema(429, 'RATE_LIMIT_EXCEEDED');
 
 /** 500 Internal Server Error */
-export const internalError = () => errorSchema('INTERNAL_ERROR', 'Internal server error');
+export const internalError = () => problemSchema(500, 'INTERNAL_ERROR');
 
 /**
  * Map of HTTP status codes to their error schema factories.

@@ -95,7 +95,7 @@ const comments: Comment[] = [
     id: '660e8400-e29b-41d4-a716-446655440005',
     articleId: '550e8400-e29b-41d4-a716-446655440003',
     authorName: 'Dave',
-    content: 'The errorSchema helper is brilliant for discriminated unions.',
+    content: 'The problemSchema helper is brilliant for discriminated unions.',
     createdAt: '2025-03-11T11:00:00.000Z',
   },
   {

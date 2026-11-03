@@ -2,6 +2,8 @@ import type { ZodType } from 'zod';
 import { toJSONSchema } from 'zod/v4/core';
 import type { $ZodType } from 'zod/v4/core';
 import { extractTags, flattenRoutes } from './contract';
+import { convertPathParams } from './path';
+import { resolveRouteResponses } from './responses';
 import type { ApiContract, AuthType, GenerateSpecOptions, RouteDefinition } from './types';
 
 /**
@@ -77,14 +79,14 @@ type OpenApiExample = {
   value: unknown;
 };
 
+type MediaTypeObject = {
+  schema: JsonSchema;
+  examples?: Record<string, OpenApiExample>;
+};
+
 type RequestBody = {
   required?: boolean;
-  content: {
-    'application/json': {
-      schema: JsonSchema;
-      examples?: Record<string, OpenApiExample>;
-    };
-  };
+  content: Record<string, MediaTypeObject>;
 };
 
 type ResponseHeader = {
@@ -96,12 +98,7 @@ type ResponseHeader = {
 type Response = {
   description: string;
   headers?: Record<string, ResponseHeader>;
-  content?: {
-    'application/json': {
-      schema: JsonSchema;
-      examples?: Record<string, OpenApiExample>;
-    };
-  };
+  content?: Record<string, MediaTypeObject>;
 };
 
 type SecurityScheme = {
@@ -132,23 +129,6 @@ type JsonSchema = {
   allOf?: JsonSchema[];
   $ref?: string;
   additionalProperties?: boolean | JsonSchema;
-};
-
-/**
- * Standard HTTP status text for common error codes
- */
-const httpStatusText: Record<number, string> = {
-  400: 'Bad Request',
-  401: 'Unauthorized',
-  403: 'Forbidden',
-  404: 'Not Found',
-  405: 'Method Not Allowed',
-  409: 'Conflict',
-  422: 'Unprocessable Entity',
-  429: 'Too Many Requests',
-  500: 'Internal Server Error',
-  502: 'Bad Gateway',
-  503: 'Service Unavailable',
 };
 
 /**
@@ -191,13 +171,6 @@ function getSecurityScheme(auth: AuthType): SecurityScheme | null {
 }
 
 /**
- * Convert a path with :param syntax to OpenAPI {param} syntax
- */
-function convertPathParams(path: string): string {
-  return path.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
-}
-
-/**
  * Generate parameter definitions from a route
  */
 function generateParameters(route: RouteDefinition, openapiVersion: '3.0' | '3.1'): Parameter[] {
@@ -235,6 +208,38 @@ function generateParameters(route: RouteDefinition, openapiVersion: '3.0' | '3.1
   }
 
   return parameters;
+}
+
+/**
+ * Generate the responses object of an operation: the 200 response (with any response headers),
+ * the declared responses and the implicit 401/422 problem responses
+ */
+function generateResponses(
+  route: RouteDefinition,
+  openapiVersion: '3.0' | '3.1',
+): Record<string, Response> {
+  const responses: Record<string, Response> = {};
+
+  for (const { status, description, mediaType, schema } of resolveRouteResponses(route)) {
+    const content: MediaTypeObject = { schema: zodToJsonSchema(schema, openapiVersion) };
+    const examples = route.examples?.responses?.[status];
+    if (examples) {
+      content.examples = examples;
+    }
+
+    const response: Response = { description, content: { [mediaType]: content } };
+
+    if (status === 200 && route.responseHeaders) {
+      response.headers = {};
+      for (const [headerName, headerSchema] of Object.entries(route.responseHeaders)) {
+        response.headers[headerName] = { schema: zodToJsonSchema(headerSchema, openapiVersion) };
+      }
+    }
+
+    responses[String(status)] = response;
+  }
+
+  return responses;
 }
 
 /**
@@ -290,35 +295,9 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
       doc.paths[openApiPath] = {};
     }
 
-    const successContent: Response['content'] = {
-      'application/json': {
-        schema: zodToJsonSchema(route.response, ver),
-      },
-    };
-
-    if (route.examples?.responses?.[200]) {
-      successContent!['application/json'].examples = route.examples.responses[200];
-    }
-
-    const successResponse: Response = {
-      description: 'Successful response',
-      content: successContent,
-    };
-
-    if (route.responseHeaders) {
-      successResponse.headers = {};
-      for (const [headerName, headerSchema] of Object.entries(route.responseHeaders)) {
-        successResponse.headers[headerName] = {
-          schema: zodToJsonSchema(headerSchema, ver),
-        };
-      }
-    }
-
     const operation: Operation = {
       operationId: route.operationId ?? `${version}_${group.join('_')}_${name}`,
-      responses: {
-        '200': successResponse,
-      },
+      responses: generateResponses(route, ver),
     };
 
     if (route.summary) {
@@ -348,7 +327,7 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
 
     // Request body
     if (route.body && ['post', 'put', 'patch'].includes(route.method)) {
-      const requestBodyContent: RequestBody['content']['application/json'] = {
+      const requestBodyContent: MediaTypeObject = {
         schema: zodToJsonSchema(route.body, ver),
       };
 
@@ -368,27 +347,6 @@ export function generateSpec(contract: ApiContract, options: GenerateSpecOptions
       const schemeName =
         route.auth === 'bearer' ? 'Bearer' : route.auth === 'apiKey' ? 'ApiKey' : 'Basic';
       operation.security = [{ [schemeName]: [] }];
-    }
-
-    // Additional responses
-    if (route.responses) {
-      for (const [code, schema] of Object.entries(route.responses)) {
-        const responseContent: Response['content'] = {
-          'application/json': {
-            schema: zodToJsonSchema(schema, ver),
-          },
-        };
-
-        const codeExamples = route.examples?.responses?.[Number(code)];
-        if (codeExamples) {
-          responseContent!['application/json'].examples = codeExamples;
-        }
-
-        operation.responses[code] = {
-          description: httpStatusText[Number(code)] ?? `Response ${code}`,
-          content: responseContent,
-        };
-      }
     }
 
     doc.paths[openApiPath]![route.method] = operation;

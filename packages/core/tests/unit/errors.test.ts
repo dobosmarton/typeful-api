@@ -1,127 +1,87 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
-  errorSchema,
   badRequestError,
-  unauthorizedError,
-  forbiddenError,
-  notFoundError,
-  conflictError,
-  unprocessableError,
-  rateLimitError,
-  internalError,
   commonErrors,
+  conflictError,
+  forbiddenError,
+  internalError,
+  notFoundError,
+  rateLimitError,
+  unauthorizedError,
+  unprocessableError,
 } from '../../src/helpers/errors';
-import { route } from '../../src/route';
+import { defaultCode } from '../../src/helpers/status';
 import { defineApi } from '../../src/contract';
+import { route } from '../../src/route';
 import { generateSpec } from '../../src/spec';
 
+const problem = (status: number, code: string, extra: Record<string, unknown> = {}) => ({
+  type: 'about:blank',
+  title: 'Title',
+  status,
+  code,
+  ...extra,
+});
+
 describe('error helpers', () => {
-  describe('errorSchema', () => {
-    it('creates a schema with a literal code', () => {
-      const schema = errorSchema('CUSTOM_ERROR');
-      const result = schema.parse({ code: 'CUSTOM_ERROR', message: 'Something went wrong' });
-      expect(result.code).toBe('CUSTOM_ERROR');
-      expect(result.message).toBe('Something went wrong');
+  describe('built-in Problem Details schemas', () => {
+    const cases = [
+      [badRequestError, 400, 'BAD_REQUEST'],
+      [unauthorizedError, 401, 'UNAUTHORIZED'],
+      [forbiddenError, 403, 'FORBIDDEN'],
+      [notFoundError, 404, 'NOT_FOUND'],
+      [conflictError, 409, 'CONFLICT'],
+      [unprocessableError, 422, 'VALIDATION_FAILED'],
+      [rateLimitError, 429, 'RATE_LIMIT_EXCEEDED'],
+      [internalError, 500, 'INTERNAL_ERROR'],
+    ] as const;
+
+    it.each(cases)('%o accepts its status and code', (factory, status, code) => {
+      expect(factory().safeParse(problem(status, code)).success).toBe(true);
     });
 
-    it('rejects non-matching code', () => {
-      const schema = errorSchema('CUSTOM_ERROR');
-      const result = schema.safeParse({ code: 'WRONG_CODE', message: 'test' });
-      expect(result.success).toBe(false);
+    it.each(cases)('%o uses the same code HttpError uses by default', (_factory, status, code) => {
+      expect(defaultCode(status)).toBe(code);
     });
 
-    it('requires message field', () => {
-      const schema = errorSchema('ERROR');
-      const result = schema.safeParse({ code: 'ERROR' });
-      expect(result.success).toBe(false);
+    it.each(cases)('%o rejects another code', (factory, status) => {
+      expect(factory().safeParse(problem(status, 'SOMETHING_ELSE')).success).toBe(false);
     });
 
-    it('creates a schema with details when provided', () => {
-      const schema = errorSchema('VALIDATION', 'Validation failed', {
-        details: z.array(z.object({ field: z.string(), message: z.string() })),
-      });
-      const result = schema.parse({
-        code: 'VALIDATION',
-        message: 'Validation failed',
-        details: [{ field: 'name', message: 'required' }],
-      });
-      expect(result.code).toBe('VALIDATION');
-      expect(result.details).toHaveLength(1);
+    it('rejects a mismatching status', () => {
+      expect(notFoundError().safeParse(problem(410, 'NOT_FOUND')).success).toBe(false);
     });
 
-    it('details field is optional', () => {
-      const schema = errorSchema('ERROR', 'msg', {
-        details: z.string(),
-      });
-      const result = schema.parse({ code: 'ERROR', message: 'msg' });
-      expect(result.code).toBe('ERROR');
-    });
-  });
-
-  describe('pre-built error schemas', () => {
-    it('badRequestError has BAD_REQUEST code', () => {
-      const schema = badRequestError();
-      const result = schema.parse({
-        code: 'BAD_REQUEST',
-        message: 'Invalid input',
-        details: [{ field: 'email', message: 'invalid format' }],
-      });
-      expect(result.code).toBe('BAD_REQUEST');
+    it('requires type and title', () => {
+      expect(notFoundError().safeParse({ status: 404, code: 'NOT_FOUND' }).success).toBe(false);
     });
 
-    it('badRequestError details are optional', () => {
-      const schema = badRequestError();
-      const result = schema.parse({ code: 'BAD_REQUEST', message: 'Bad' });
-      expect(result.code).toBe('BAD_REQUEST');
+    it('accepts optional detail and instance', () => {
+      const result = notFoundError().safeParse(
+        problem(404, 'NOT_FOUND', { detail: 'Product 42 not found', instance: '/products/42' }),
+      );
+      expect(result.success).toBe(true);
     });
 
-    it('unauthorizedError has UNAUTHORIZED code', () => {
-      const schema = unauthorizedError();
-      const result = schema.parse({ code: 'UNAUTHORIZED', message: 'Not logged in' });
-      expect(result.code).toBe('UNAUTHORIZED');
+    it('keeps unknown extension members', () => {
+      const result = notFoundError().parse(problem(404, 'NOT_FOUND', { traceId: 'abc' }));
+      expect(result).toMatchObject({ traceId: 'abc' });
     });
 
-    it('forbiddenError has FORBIDDEN code', () => {
-      const schema = forbiddenError();
-      const result = schema.parse({ code: 'FORBIDDEN', message: 'No access' });
-      expect(result.code).toBe('FORBIDDEN');
-    });
-
-    it('notFoundError has NOT_FOUND code', () => {
-      const schema = notFoundError();
-      const result = schema.parse({ code: 'NOT_FOUND', message: 'Missing' });
-      expect(result.code).toBe('NOT_FOUND');
-    });
-
-    it('conflictError has CONFLICT code', () => {
-      const schema = conflictError();
-      const result = schema.parse({ code: 'CONFLICT', message: 'Already exists' });
-      expect(result.code).toBe('CONFLICT');
-    });
-
-    it('unprocessableError has UNPROCESSABLE_ENTITY code', () => {
-      const schema = unprocessableError();
-      const result = schema.parse({ code: 'UNPROCESSABLE_ENTITY', message: 'Invalid' });
-      expect(result.code).toBe('UNPROCESSABLE_ENTITY');
-    });
-
-    it('rateLimitError has RATE_LIMIT_EXCEEDED code', () => {
-      const schema = rateLimitError();
-      const result = schema.parse({ code: 'RATE_LIMIT_EXCEEDED', message: 'Slow down' });
-      expect(result.code).toBe('RATE_LIMIT_EXCEEDED');
-    });
-
-    it('internalError has INTERNAL_ERROR code', () => {
-      const schema = internalError();
-      const result = schema.parse({ code: 'INTERNAL_ERROR', message: 'Oops' });
-      expect(result.code).toBe('INTERNAL_ERROR');
-    });
-
-    it('each call returns a fresh schema instance', () => {
-      const schema1 = notFoundError();
-      const schema2 = notFoundError();
-      expect(schema1).not.toBe(schema2);
+    it('validates field errors on 400 and 422', () => {
+      const errors = [{ location: 'body', path: ['items', 0, 'name'], message: 'Required' }];
+      expect(
+        unprocessableError().safeParse(problem(422, 'VALIDATION_FAILED', { errors })).success,
+      ).toBe(true);
+      expect(badRequestError().safeParse(problem(400, 'BAD_REQUEST', { errors })).success).toBe(
+        true,
+      );
+      expect(
+        unprocessableError().safeParse(
+          problem(422, 'VALIDATION_FAILED', { errors: [{ location: 'header', path: [] }] }),
+        ).success,
+      ).toBe(false);
     });
   });
 
@@ -130,12 +90,11 @@ describe('error helpers', () => {
       const errors = commonErrors(404, 401);
       expect(errors[404]).toBeDefined();
       expect(errors[401]).toBeDefined();
-      expect(errors[500]).toBeUndefined();
+      expect(Object.keys(errors)).toEqual(['401', '404']);
     });
 
     it('returns empty record for no codes', () => {
-      const errors = commonErrors();
-      expect(Object.keys(errors)).toHaveLength(0);
+      expect(Object.keys(commonErrors())).toHaveLength(0);
     });
 
     it('maps all supported codes', () => {
@@ -143,13 +102,8 @@ describe('error helpers', () => {
       expect(Object.keys(errors)).toHaveLength(8);
     });
 
-    it('schemas are valid Zod schemas', () => {
-      const errors = commonErrors(404);
-      const result = errors[404]!.safeParse({
-        code: 'NOT_FOUND',
-        message: 'Not found',
-      });
-      expect(result.success).toBe(true);
+    it('returns working Zod schemas', () => {
+      expect(commonErrors(404)[404].safeParse(problem(404, 'NOT_FOUND')).success).toBe(true);
     });
   });
 
@@ -161,9 +115,8 @@ describe('error helpers', () => {
         .returns(z.object({ name: z.string() }))
         .withErrors(404, 401);
 
-      expect(getRoute.responses).toBeDefined();
-      expect(getRoute.responses![404]).toBeDefined();
-      expect(getRoute.responses![401]).toBeDefined();
+      expect(getRoute.responses?.[404]).toBeDefined();
+      expect(getRoute.responses?.[401]).toBeDefined();
     });
 
     it('adds error responses via RouteBuilder (before .returns())', () => {
@@ -173,8 +126,7 @@ describe('error helpers', () => {
         .withErrors(404)
         .returns(z.object({ name: z.string() }));
 
-      expect(getRoute.responses).toBeDefined();
-      expect(getRoute.responses![404]).toBeDefined();
+      expect(getRoute.responses?.[404]).toBeDefined();
     });
 
     it('merges with existing withResponses', () => {
@@ -185,82 +137,60 @@ describe('error helpers', () => {
         .withErrors(404)
         .returns(z.object({ name: z.string() }));
 
-      expect(getRoute.responses![503]).toBeDefined();
-      expect(getRoute.responses![404]).toBeDefined();
+      expect(getRoute.responses?.[503]).toBe(customSchema);
+      expect(getRoute.responses?.[404]).toBeDefined();
     });
 
     it('preserves immutability', () => {
       const base = route.get('/:id').returns(z.object({ name: z.string() }));
-
       const withError = base.withErrors(404);
 
       expect(base.responses).toBeUndefined();
-      expect(withError.responses![404]).toBeDefined();
+      expect(withError.responses?.[404]).toBeDefined();
     });
   });
 
   describe('integration with OpenAPI spec generation', () => {
-    it('generates error responses in OpenAPI spec', () => {
-      const api = defineApi({
-        v1: {
-          children: {
-            items: {
-              routes: {
-                get: route
-                  .get('/:id')
-                  .params(z.object({ id: z.string() }))
-                  .returns(z.object({ name: z.string() }))
-                  .withErrors(404, 401),
-              },
+    const api = defineApi({
+      v1: {
+        children: {
+          items: {
+            routes: {
+              get: route
+                .get('/:id')
+                .params(z.object({ id: z.string() }))
+                .returns(z.object({ name: z.string() }))
+                .withErrors(404, 401),
+              teapot: route
+                .get('/teapot')
+                .withResponses({ 418: z.object({ error: z.string() }) })
+                .returns(z.object({ ok: z.boolean() })),
             },
           },
         },
-      });
+      },
+    });
+    const spec = generateSpec(api, { info: { title: 'Test', version: '1.0.0' } });
 
-      const spec = generateSpec(api, {
-        info: { title: 'Test', version: '1.0.0' },
-      });
+    it('documents error responses as application/problem+json with status text', () => {
+      const responses = spec.paths['/v1/items/{id}']?.get?.responses;
 
-      const operation = spec.paths['/v1/items/{id}']?.get;
-      expect(operation).toBeDefined();
-
-      // Check 200 success response
-      expect(operation?.responses['200']).toBeDefined();
-
-      // Check error responses
-      expect(operation?.responses['404']).toBeDefined();
-      expect(operation?.responses['401']).toBeDefined();
-
-      // Check descriptions use HTTP status text
-      expect(operation?.responses['404'].description).toBe('Not Found');
-      expect(operation?.responses['401'].description).toBe('Unauthorized');
-
-      // Check error schema has code property in JSON Schema
-      const errorSchema404 = operation?.responses['404']?.content?.['application/json']?.schema;
-      expect(errorSchema404?.properties).toHaveProperty('code');
-      expect(errorSchema404?.properties).toHaveProperty('message');
+      expect(responses?.['404']?.description).toBe('Not Found');
+      expect(responses?.['401']?.description).toBe('Unauthorized');
+      const schema = responses?.['404']?.content?.['application/problem+json']?.schema;
+      expect(schema?.properties).toHaveProperty('type');
+      expect(schema?.properties).toHaveProperty('title');
+      expect(schema?.properties).toHaveProperty('status');
+      expect(schema?.properties).toHaveProperty('code');
+      expect(schema?.properties?.code).toMatchObject({ const: 'NOT_FOUND' });
+      expect(responses?.['404']?.content?.['application/json']).toBeUndefined();
     });
 
-    it('uses fallback description for unknown status codes', () => {
-      const api = defineApi({
-        v1: {
-          routes: {
-            test: route
-              .get('/test')
-              .withResponses({
-                418: z.object({ error: z.string() }),
-              })
-              .returns(z.object({ ok: z.boolean() })),
-          },
-        },
-      });
+    it('keeps custom non-problem schemas as application/json', () => {
+      const responses = spec.paths['/v1/items/teapot']?.get?.responses;
 
-      const spec = generateSpec(api, {
-        info: { title: 'Test', version: '1.0.0' },
-      });
-
-      const operation = spec.paths['/v1/test']?.get;
-      expect(operation?.responses['418'].description).toBe('Response 418');
+      expect(responses?.['418']?.content?.['application/json']).toBeDefined();
+      expect(responses?.['418']?.description).toBe('Response 418');
     });
   });
 });

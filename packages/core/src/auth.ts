@@ -42,6 +42,9 @@ export type AuthConfig<TUser = unknown> = {
   bearer?: AuthVerifyFn<'bearer', TUser>;
   apiKey?: AuthVerifyFn<'apiKey', TUser>;
   basic?: AuthVerifyFn<'basic', TUser>;
-  /** Called when auth fails. If not provided, adapters return a default 401 response. */
+  /**
+   * Called with the error when a verify function throws, e.g. for logging. It does not change
+   * the response: adapters still send 401, or the thrown `HttpError` (e.g. a 403) as is.
+   */
   onError?: (error: unknown, authType: AuthType) => void | Promise<void>;
 };
