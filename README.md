@@ -784,22 +784,22 @@ The `init` command generates a ready-to-run project with `package.json`, `tsconf
 
 Compared as of November 2026: ts-rest 3.52, @hono/zod-openapi 1.6, tRPC 11.23, Elysia 1.4.
 
-|                             | \*\*typeful-api\*\*     | ts-rest                           | @hono/zod-openapi    | tRPC                              | Elysia                                     |
-| --------------------------- | ----------------------- | --------------------------------- | -------------------- | --------------------------------- | ------------------------------------------ |
-| **Maintenance**             | ✅ Active               | ❌ Archived (Oct 2026)            | ✅ Active            | ✅ Active                         | ✅ Active (2.0 in RC)                      |
-| **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                  | Server-first                               |
-| **Validation**              | Zod                     | Standard Schema                   | Zod                  | Any (Zod common)                  | TypeBox / Standard Schema                  |
-| **OpenAPI generation**      | ✅ Portable             | ✅ Portable                       | ✅ Portable          | ⚠️ `@trpc/openapi` (alpha)        | ✅ Via plugin                              |
-| **Framework support**       | Hono, Express, Fastify  | Express, Fastify, Next.js, NestJS | Hono only            | Express, Fastify, Next.js, Lambda | Bun, Node.js, Deno, Workers (experimental) |
-| **API versioning**          | ✅ First-class          | ❌ Manual                         | ❌ Manual            | ❌ Manual                         | ❌ Manual                                  |
-| **Hierarchical middleware** | ✅ Native               | ⚠️ Global + per-route             | ✅ Via Hono          | ✅ Type-safe pipes                | ✅ Guard system                            |
-| **Handler decoupling**      | ✅ Typed separate files | ✅ With caveats                   | ✅ Routes + handlers | ✅ Standard                       | ⚠️ Tricky (chaining)                       |
-| **Built-in client**         | ✅ CLI generation       | ✅ Fetch-based                    | ✅ Hono RPC (`hc`)   | ✅ Type-inferred                  | ✅ Eden Treaty                             |
-| **REST / OpenAPI native**   | ✅                      | ✅                                | ✅                   | ❌ Custom RPC                     | ✅                                         |
+|                             | \*\*typeful-api\*\*     | ts-rest                           | @hono/zod-openapi    | tRPC                                                                    | Elysia                                     |
+| --------------------------- | ----------------------- | --------------------------------- | -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| **Maintenance**             | ✅ Active               | ❌ Archived (Oct 2026)            | ✅ Active            | ✅ Active                                                               | ✅ Active (2.0 in RC)                      |
+| **Approach**                | Contract-first          | Contract-first                    | Route-first          | Server-first RPC                                                        | Server-first                               |
+| **Validation**              | Zod                     | Standard Schema                   | Zod                  | Any (Zod common)                                                        | TypeBox / Standard Schema                  |
+| **OpenAPI generation**      | ✅ Portable             | ✅ Portable                       | ✅ Portable          | ⚠️ Alpha or third-party                                                 | ✅ Via plugin                              |
+| **Framework support**       | Hono, Express, Fastify  | Express, Fastify, Next.js, NestJS | Hono only            | Node.js, Express, Fastify, Next.js, Lambda, Fetch (Workers, Deno, edge) | Bun, Node.js, Deno, Workers (experimental) |
+| **API versioning**          | ✅ First-class          | ❌ Manual                         | ❌ Manual            | ❌ Manual                                                               | ❌ Manual                                  |
+| **Hierarchical middleware** | ✅ Native               | ⚠️ Global + per-route             | ✅ Via Hono          | ✅ Chained procedure builders                                           | ✅ Guard system                            |
+| **Handler decoupling**      | ✅ Typed separate files | ✅ With caveats                   | ✅ Routes + handlers | ✅ Standard                                                             | ⚠️ Tricky (chaining)                       |
+| **Built-in client**         | ✅ CLI generation       | ✅ Fetch-based                    | ✅ Hono RPC (`hc`)   | ✅ Type-inferred                                                        | ✅ Eden Treaty                             |
+| **REST / OpenAPI native**   | ✅                      | ✅                                | ✅                   | ❌ Custom RPC                                                           | ✅                                         |
 
 **How they differ:**
 
-- **tRPC** is the most popular option for TypeScript monorepos, but uses a custom RPC protocol — not REST. Its `@trpc/openapi` package (still alpha in v11.23) generates an OpenAPI 3.1 document from your router's types, but the endpoints keep tRPC's own request format, so REST/OpenAPI remains a secondary output rather than the core design.
+- **tRPC** is the most popular option for TypeScript monorepos, but its wire protocol is RPC, not REST. The first-party `@trpc/openapi` package (still alpha in v11.23) generates an OpenAPI 3.1 document from your router, but the endpoints keep tRPC's own format: inputs go in `?input=<JSON>` and responses are wrapped in `result.data`. For real REST endpoints, the third-party [`trpc-to-openapi`](https://github.com/mcampa/trpc-to-openapi) maps procedures to custom methods and paths through `meta.openapi` (Zod only). Either way, REST is layered on top of tRPC rather than being its core design.
 - **ts-rest** shares the contract-first Zod approach, but it was archived in October 2026 and no longer receives releases, bug fixes or security updates. typeful-api keeps the same contract-first model and adds built-in API versioning and hierarchical middleware.
 - **@hono/zod-openapi** is excellent if you're committed to Hono, and it works with Hono's typed RPC client (`hc`). typeful-api builds on top of it for Hono and extends the same ideas to Express and Fastify.
 - **Elysia** is a fast full framework with great DX. Bun is its primary runtime, with Node.js and Deno adapters (since v1.2) and an experimental Cloudflare Workers adapter; 2.0 reached release candidate in October 2026. It is not contract-first.
